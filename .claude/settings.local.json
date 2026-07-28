@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npm install; if \\($?\\) { npm install tailwindcss \"@tailwindcss/vite\" leaflet react-leaflet date-fns lucide-react idb-keyval })",
+      "PowerShell(Get-ChildItem -Recurse -File -Path \"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\" -Exclude node_modules | Where-Object { $_.FullName -notmatch 'node_modules' } | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\\\\\",\"\"\\) })",
+      "PowerShell(if \\(Test-Path \"$env:ProgramFiles\\\\nodejs\\\\npm.cmd\"\\) { \"$env:ProgramFiles\\\\nodejs\\\\npm.cmd\" } else { \"missing\" })",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npm run build; if \\($?\\) { npm run lint })",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npm run lint)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); npm run lint; if \\($?\\) { npm run build })",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); node \"C:\\\\Users\\\\naor1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-naor1-OneDrive--------Project-Travel\\\\b476ea7b-6c06-442e-b56d-bf102c1b8147\\\\scratchpad\\\\recolor.mjs\" \"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\\\\src\")",
+      "PowerShell(cmd /c \"`\"C:\\\\Users\\\\naor1\\\\OneDrive\\\\??????\\\\Project Travel\\\\_launcher_test.bat`\"\")",
+      "PowerShell($c = New-Object Net.Sockets.TcpClient; try { $c.Connect\\('127.0.0.1',5173\\); $c.Close\\(\\); \"PORT 5173 STILL BUSY\" } catch { \"port 5173 free\" })",
+      "PowerShell(cmd /c \"`\"C:\\\\Users\\\\naor1\\\\OneDrive\\\\??????\\\\Project Travel\\\\Open Project Travel.bat`\"\")",
+      "PowerShell(cd \"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\"; & \"$env:ProgramFiles\\\\nodejs\\\\node.exe\" \"node_modules\\\\vite\\\\bin\\\\vite.js\" --port 5173 --strictPort --version 2>&1 | Select-Object -First 20)",
+      "PowerShell(cd \"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\"; $p = Start-Process -FilePath \"$env:ProgramFiles\\\\nodejs\\\\node.exe\" -ArgumentList '\"node_modules\\\\vite\\\\bin\\\\vite.js\"','--port','5173','--strictPort' -PassThru -RedirectStandardOutput \"$env:TEMP\\\\vite-out.txt\" -RedirectStandardError \"$env:TEMP\\\\vite-err.txt\" -WindowStyle Hidden; Start-Sleep -Seconds 6; \"exited=$\\($p.HasExited\\)\"; \"--- stdout ---\"; Get-Content \"$env:TEMP\\\\vite-out.txt\" -ErrorAction SilentlyContinue | Select-Object -First 20; \"--- stderr ---\"; Get-Content \"$env:TEMP\\\\vite-err.txt\" -ErrorAction SilentlyContinue | Select-Object -First 20)",
+      "Bash(grep -n \"AttractionsSection$\\\\|<AttractionsSection\\\\|<ReservationsSection\" -A 12 src/components/ItineraryView.jsx)"
+    ]
+  }
+}

@@ -1,0 +1,240 @@
+import { useState } from 'react'
+import {
+  Bed,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Minus,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import {
+  moveDestination,
+  num,
+  removeDestination,
+  setNights,
+  updateDestination,
+} from '../lib/store.js'
+import { formatDay } from '../lib/store.js'
+import { formatMoney } from '../lib/money.js'
+import { useI18n } from '../lib/i18n.js'
+
+export default function DestinationRow({
+  dest,
+  index,
+  isFirst,
+  isLast,
+  currency,
+  active,
+  onHover,
+  onOpenDay,
+  dragProps = {},
+  gripProps = {},
+  isDragging = false,
+  dropBefore = false,
+  dropAfter = false,
+}) {
+  const [showSleeping, setShowSleeping] = useState(false)
+  const { t } = useI18n()
+
+  const sleepingTotal = num(dest.sleeping?.cost) * dest.nights
+  const hasSleeping = Boolean(dest.sleeping?.name) || sleepingTotal > 0
+  const nightWord = dest.nights === 1 ? t('plan.night') : t('plan.nightsPlural')
+
+  return (
+    <li
+      {...dragProps}
+      onMouseEnter={() => onHover?.(dest.id)}
+      onMouseLeave={() => onHover?.(null)}
+      className={`relative rounded-xl transition-colors ${
+        isDragging ? 'opacity-40' : ''
+      } ${active && !isDragging ? 'bg-raised' : 'hover:bg-raised/60'}`}
+    >
+      {/* Insertion line: shows exactly where the row will land, which reads
+          the same whether you came from above or below. */}
+      {(dropBefore || dropAfter) && (
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute inset-x-2 z-10 h-0.5 rounded-full bg-accent ${
+            dropBefore ? '-top-px' : '-bottom-px'
+          }`}
+        />
+      )}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-3 py-3 @[700px]:flex-nowrap">
+        {/* Grip + order badge + name + derived dates */}
+        <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
+          <span
+            {...gripProps}
+            title={t('plan.dragHint')}
+            aria-hidden
+            className="-ms-1 cursor-grab text-subtle transition hover:text-fg active:cursor-grabbing"
+          >
+            <GripVertical size={15} />
+          </span>
+          <span
+            aria-hidden
+            className={`tabular grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold transition ${
+              active
+                ? 'border-accent bg-accent text-on-accent'
+                : 'border-line-strong bg-surface text-fg'
+            }`}
+          >
+            {index + 1}
+          </span>
+          <div className="min-w-0">
+            <input
+              value={dest.name}
+              onChange={(e) =>
+                updateDestination(dest.id, { name: e.target.value })
+              }
+              onDoubleClick={(e) => {
+                // Overrides the browser's select-a-word, which is the trade the
+                // shortcut asks for.
+                e.preventDefault()
+                onOpenDay?.(dest.id)
+              }}
+              aria-label={t('plan.nameLabel', { n: index + 1 })}
+              title={t('plan.openDayHint')}
+              className="w-full truncate rounded border-none bg-transparent p-0 text-[15px] font-semibold text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+            />
+            <p className="tabular truncate text-xs text-muted">
+              {formatDay(dest.startDate)} – {formatDay(dest.endDate)}
+              {dest.country && ` · ${dest.country}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Nights stepper. The fixed width only applies once the pane is wide
+            enough to show the column header, where alignment matters; below
+            that the row wraps and natural sizing keeps it compact. */}
+        <div className="flex shrink-0 items-center justify-center gap-2 @[700px]:w-[116px]">
+          <button
+            type="button"
+            className="stepper-btn"
+            onClick={() => setNights(dest.id, dest.nights - 1)}
+            disabled={dest.nights <= 0}
+            aria-label={t('plan.removeNight', { name: dest.name })}
+          >
+            <Minus size={14} />
+          </button>
+          <span className="tabular w-10 text-center text-sm font-semibold">
+            {dest.nights}
+            <span className="block text-[10px] font-normal text-muted">
+              {nightWord}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="stepper-btn"
+            onClick={() => setNights(dest.id, dest.nights + 1)}
+            aria-label={t('plan.addNight', { name: dest.name })}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
+        {/* Accommodation stays on the row because it drives the nightly cost.
+            The wrapper centres the button under the Accommodation header. */}
+        <div className="flex shrink-0 justify-center @[700px]:w-[132px]">
+          <button
+            type="button"
+            onClick={() => setShowSleeping((v) => !v)}
+            aria-expanded={showSleeping}
+            aria-label={t('plan.accommodationCol')}
+            title={t('plan.accommodationCol')}
+            className={`grid size-8 place-items-center rounded-full border transition
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                showSleeping
+                  ? 'border-accent bg-accent text-on-accent'
+                  : hasSleeping
+                    ? 'border-line-strong bg-accent-soft text-fg hover:border-accent'
+                    : 'border-line-strong bg-surface text-subtle hover:border-accent hover:text-fg'
+              }`}
+          >
+            <Bed size={15} strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Reorder + delete */}
+        <div className="flex shrink-0 items-center justify-end gap-0.5 border-s border-line ps-2 @[700px]:w-[104px]">
+          <button
+            type="button"
+            className="btn-ghost !px-1.5 !py-1"
+            disabled={isFirst}
+            onClick={() => moveDestination(dest.id, -1)}
+            aria-label={t('plan.moveEarlier', { name: dest.name })}
+          >
+            <ChevronUp size={16} />
+          </button>
+          <button
+            type="button"
+            className="btn-ghost !px-1.5 !py-1"
+            disabled={isLast}
+            onClick={() => moveDestination(dest.id, 1)}
+            aria-label={t('plan.moveLater', { name: dest.name })}
+          >
+            <ChevronDown size={16} />
+          </button>
+          <button
+            type="button"
+            className="btn-ghost !px-1.5 !py-1"
+            onClick={() => removeDestination(dest.id)}
+            aria-label={t('plan.remove', { name: dest.name })}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      {showSleeping && (
+        <div className="px-3 pb-3 ps-13">
+          <div className="rounded-xl border border-line bg-raised p-3">
+            <h4 className="col-head mb-2">
+              <Bed size={13} /> {t('sleeping.title')}
+            </h4>
+            <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+              <label className="text-xs font-medium text-muted">
+                {t('sleeping.accommodation')}
+                <input
+                  className="field mt-1"
+                  placeholder={t('sleeping.placeholder')}
+                  value={dest.sleeping?.name ?? ''}
+                  onChange={(e) =>
+                    updateDestination(dest.id, {
+                      sleeping: { ...dest.sleeping, name: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label className="text-xs font-medium text-muted">
+                {t('sleeping.perNight')}
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="field tabular mt-1"
+                  placeholder="0"
+                  value={dest.sleeping?.cost || ''}
+                  onChange={(e) =>
+                    updateDestination(dest.id, {
+                      sleeping: { ...dest.sleeping, cost: num(e.target.value) },
+                    })
+                  }
+                />
+              </label>
+              <p className="tabular pb-2 text-sm font-semibold text-fg">
+                {formatMoney(sleepingTotal, currency)}
+                <span className="block text-[11px] font-normal text-muted">
+                  {dest.nights} {nightWord}
+                </span>
+              </p>
+            </div>
+            <p className="mt-2 text-[11px] text-subtle">
+              {t('sleeping.docsHint')}
+            </p>
+          </div>
+        </div>
+      )}
+    </li>
+  )
+}

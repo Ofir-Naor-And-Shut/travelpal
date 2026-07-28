@@ -1,0 +1,308 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+/* ---------------------------------------------------------------------------
+   Brand ramp, anchored on the two supplied colours:
+
+     brand-500  #6260FF   primary / accent
+     brand-100  #E4E4FF   soft fills
+
+   The remaining steps are interpolated between and beyond them so every
+   surface, border and state comes from one hue family.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-brand-50: #f4f4ff;
+  --color-brand-100: #e4e4ff;
+  --color-brand-200: #cdccff;
+  --color-brand-300: #adacff;
+  --color-brand-400: #8a88ff;
+  --color-brand-500: #6260ff;
+  --color-brand-600: #4b48ec;
+  --color-brand-700: #3b38c8;
+  --color-brand-800: #2f2d9c;
+  --color-brand-900: #26246f;
+  --color-brand-950: #16154a;
+
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-card: 1rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic tokens. Components reference these rather than ramp steps, so a
+   single block below re-themes the whole app instead of every file needing a
+   `dark:` twin.
+   --------------------------------------------------------------------------- */
+:root {
+  /* Floating bottom bar. Kept separate from the surface tokens because it sits
+     over arbitrary content (the map especially) and needs its own contrast. */
+  --c-nav-bg: rgb(255 255 255 / 0.82);
+  --c-nav-border: rgb(38 36 111 / 0.1);
+  --c-nav-idle: #5d5b8c;
+  --c-nav-hover: #1b1a3d;
+  --c-nav-shadow: rgb(38 36 111 / 0.18);
+
+  --c-canvas: #f4f4ff;
+  --c-surface: #ffffff;
+  --c-raised: #f4f4ff;
+  --c-fg: #1b1a3d;
+  --c-muted: #5d5b8c;
+  --c-subtle: #908fb8;
+  --c-line: #e4e4ff;
+  --c-line-strong: #cdccff;
+  --c-accent: #6260ff;
+  --c-accent-hover: #4b48ec;
+  --c-accent-soft: #e4e4ff;
+  --c-on-accent: #ffffff;
+  --c-scrim: rgb(22 21 74 / 0.55);
+  --c-shadow: rgb(38 36 111 / 0.14);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --c-nav-bg: rgb(38 37 68 / 0.72);
+  --c-nav-border: rgb(255 255 255 / 0.09);
+  --c-nav-idle: #cfcef0;
+  --c-nav-hover: #ffffff;
+  --c-nav-shadow: rgb(0 0 0 / 0.55);
+
+  --c-canvas: #0d0c1a;
+  --c-surface: #16152b;
+  --c-raised: #1e1d3a;
+  --c-fg: #ececff;
+  --c-muted: #a9a8d4;
+  --c-subtle: #7b7aa8;
+  --c-line: #29284d;
+  --c-line-strong: #3a3868;
+  /* Lifted off #6260FF so it keeps contrast against a dark surface. */
+  --c-accent: #8a88ff;
+  --c-accent-hover: #adacff;
+  --c-accent-soft: #262551;
+  --c-on-accent: #0d0c1a;
+  --c-scrim: rgb(5 5 15 / 0.7);
+  --c-shadow: rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
+/* `inline` keeps the var reference in the generated utility, so the values
+   above can be swapped at runtime. */
+@theme inline {
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-fg: var(--c-fg);
+  --color-muted: var(--c-muted);
+  --color-subtle: var(--c-subtle);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-on-accent: var(--c-on-accent);
+  --color-scrim: var(--c-scrim);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-fg antialiased;
+    margin: 0;
+  }
+
+  /* Numbers in steppers/dates shouldn't jitter as they change width. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-surface;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2
+           text-sm font-medium text-on-accent transition hover:bg-accent-hover
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
+           disabled:opacity-40;
+  }
+
+  .btn-soft {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent-soft px-4 py-2
+           text-sm font-medium text-accent transition hover:bg-line-strong
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm
+           font-medium text-muted transition hover:bg-raised hover:text-fg
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+
+  /* Circular -/+ control used by the nights stepper. */
+  .stepper-btn {
+    @apply flex size-7 shrink-0 items-center justify-center rounded-full border border-line-strong
+           text-muted transition hover:border-accent hover:bg-raised hover:text-fg
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
+           disabled:cursor-not-allowed disabled:opacity-30;
+  }
+
+  .field {
+    @apply w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg
+           placeholder:text-subtle focus:border-accent focus:outline-none
+           focus:ring-2 focus:ring-accent/25;
+  }
+
+  .col-head {
+    @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted;
+  }
+
+  /* --- Floating bottom navigation ---------------------------------------- */
+  .nav-bar {
+    background: var(--c-nav-bg);
+    border: 1px solid var(--c-nav-border);
+    box-shadow:
+      0 8px 32px var(--c-nav-shadow),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  }
+
+  .nav-item-idle {
+    color: var(--c-nav-idle);
+  }
+
+  .nav-item-idle:hover {
+    color: var(--c-nav-hover);
+  }
+
+  /* Pinned to the base brand purple in both themes rather than the themed
+     accent: white-on-purple is the look, and dark mode's lifted accent would
+     otherwise pair with dark text. White on #6260FF is 4.57:1, which clears
+     AA for normal text. */
+  .nav-pill-active {
+    background: var(--color-brand-500);
+    color: #ffffff;
+    /* The glow is what makes the active pill read as lit rather than filled. */
+    box-shadow:
+      0 2px 14px color-mix(in srgb, var(--color-brand-500) 60%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent);
+  }
+}
+
+/* --- Leaflet overrides so the map reads as part of the app ---------------- */
+.leaflet-container {
+  background: var(--c-raised);
+  font-family: var(--font-sans);
+}
+
+.leaflet-control-zoom a {
+  background: var(--c-surface) !important;
+  color: var(--c-fg) !important;
+  border-color: var(--c-line) !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--c-surface);
+  color: var(--c-fg);
+  box-shadow: 0 8px 24px var(--c-shadow);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--c-muted);
+}
+
+/* Custom numbered pin (built as a divIcon in TripMap). */
+.pin {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: var(--c-surface);
+  color: var(--c-fg);
+  border: 2.5px solid var(--c-accent);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 10px var(--c-shadow);
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.pin-active {
+  background: var(--c-accent);
+  color: var(--c-on-accent);
+  transform: scale(1.25);
+}
+
+/* Destination pins open their Details tab, so they read as buttons. */
+.pin-clickable {
+  cursor: pointer;
+}
+
+.pin-clickable:hover {
+  transform: scale(1.15);
+}
+
+.pin-clickable.pin-active:hover {
+  transform: scale(1.3);
+}
+
+/* Transport-mode chip pinned to the middle of a route link. */
+.leg-badge {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--c-surface);
+  /* `color` is set inline per mode; the ring follows it. */
+  border: 2px solid currentColor;
+  box-shadow: 0 1px 6px var(--c-shadow);
+  transition: transform 0.15s ease;
+}
+
+.leg-badge:hover {
+  transform: scale(1.15);
+}
+
+/* Attraction pins on a day route sit closer together than city pins. */
+.pin-sm {
+  width: 26px;
+  height: 26px;
+  border-width: 2px;
+  font-size: 11px;
+}
+
+/* Satellite tiles are dark, so the pin needs a halo to stay readable. */
+.pin-on-dark {
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.75),
+    0 2px 10px rgb(0 0 0 / 0.45);
+}
+
+/* Dark theme: knock back the glare of light raster tiles. Leaflet puts the
+   layer's `className` on the container (`.leaflet-layer`), not on each tile
+   image — so a natively dark tileset opts out here rather than per-tile. */
+[data-theme='dark'] .leaflet-layer:not(.tile-no-dim) {
+  filter: brightness(0.78) contrast(1.05) saturate(0.85);
+}
+
+::selection {
+  background: var(--c-accent-soft);
+  color: var(--c-fg);
+}
