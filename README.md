@@ -1,4 +1,4 @@
-# Project Travel
+# Project Travel travelpal
 
 A multi-stop trip planner in the spirit of Stippl: lay out destinations, dial in
 how many nights you spend at each, connect them with transport legs, track the
