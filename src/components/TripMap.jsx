@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   Marker,
@@ -7,20 +7,21 @@ import {
   TileLayer,
   Tooltip,
   useMap,
-} from 'react-leaflet'
-import L from 'leaflet'
-import { Layers } from 'lucide-react'
-import { TransportIcon } from './TransportLeg.jsx'
-import { arcPoints, splitArc } from '../lib/arc.js'
+} from "react-leaflet";
+import L from "leaflet";
+import { Layers } from "lucide-react";
+import { TransportIcon } from "./TransportLeg.jsx";
+import { arcPoints, splitArc } from "../lib/arc.js";
 import {
   TRANSPORT_MODES,
   formatDay,
   isPlaced,
   legOf,
   modeColor,
-} from '../lib/store.js'
-import { useI18n } from '../lib/i18n.js'
-import { useTheme } from '../lib/theme.js'
+} from "../lib/store.js";
+import { hasGoogleKey } from "../lib/googlePlaces.js";
+import { useI18n } from "../lib/i18n.js";
+import { useTheme } from "../lib/theme.js";
 
 /**
  * Basemaps. Voyager leads because it keeps street names, parks and water
@@ -31,43 +32,54 @@ import { useTheme } from '../lib/theme.js'
  */
 const BASEMAPS = [
   {
-    id: 'voyager',
-    key: 'map.streets',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
+    id: "voyager",
+    key: "map.streets",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    subdomains: "abcd",
     maxZoom: 20,
-    attribution: '© OpenStreetMap · © CARTO',
+    attribution: "© OpenStreetMap · © CARTO",
   },
   {
-    id: 'positron',
-    key: 'map.minimal',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    darkUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
+    id: "positron",
+    key: "map.minimal",
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    darkUrl: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    subdomains: "abcd",
     maxZoom: 20,
-    attribution: '© OpenStreetMap · © CARTO',
+    attribution: "© OpenStreetMap · © CARTO",
   },
   {
-    id: 'terrain',
-    key: 'map.terrain',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    subdomains: 'abc',
+    id: "terrain",
+    key: "map.terrain",
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    subdomains: "abc",
     maxZoom: 17,
-    attribution: '© OpenTopoMap · © OpenStreetMap',
+    attribution: "© OpenTopoMap · © OpenStreetMap",
   },
   {
-    id: 'satellite',
-    key: 'map.satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    subdomains: 'abc',
+    id: "satellite",
+    key: "map.satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    subdomains: "abc",
     maxZoom: 19,
-    attribution: '© Esri · Maxar · Earthstar Geographics',
+    attribution: "© Esri · Maxar · Earthstar Geographics",
   },
-]
+];
 
-const STYLE_KEY = 'project-travel:basemap'
+// A separate, non-Leaflet entry: picking it swaps the whole map surface for
+// the Google Maps JS API instead of adding a tile layer. Google's terms don't
+// allow pulling its raster tiles into a third-party map library directly, so
+// this is the only way to offer it — gated on a key being present at all,
+// same graceful-degradation rule as Google Places search.
+const GOOGLE_BASEMAP = { id: "google", key: "map.google", google: true };
 
-const SPRITE_ID = (mode) => `mode-icon-${mode}`
+const STYLE_KEY = "project-travel:basemap";
+
+// Code-split: @vis.gl/react-google-maps (and the Maps JS SDK it loads) should
+// only ever be downloaded by someone who actually has a Google key configured.
+const GoogleTripMap = lazy(() => import("./GoogleTripMap.jsx"));
+
+const SPRITE_ID = (mode) => `mode-icon-${mode}`;
 
 /**
  * Off-screen copies of the mode icons that the Leaflet badges point at.
@@ -91,15 +103,15 @@ function ModeIconSprite() {
         />
       ))}
     </svg>
-  )
+  );
 }
 
 function modeBadgeIcon(mode, color, small) {
-  const box = small ? 22 : 26
-  const glyph = small ? 12 : 14
+  const box = small ? 22 : 26;
+  const glyph = small ? 12 : 14;
 
   return L.divIcon({
-    className: '',
+    className: "",
     // `currentColor` inside the referenced icon resolves against this element.
     html:
       `<div class="leg-badge" style="color:${color};width:${box}px;height:${box}px">` +
@@ -108,7 +120,7 @@ function modeBadgeIcon(mode, color, small) {
     iconSize: [box, box],
     iconAnchor: [box / 2, box / 2],
     popupAnchor: [0, -box / 2],
-  })
+  });
 }
 
 /**
@@ -116,8 +128,8 @@ function modeBadgeIcon(mode, color, small) {
  * what the line actually connects; stations sit underneath as detail.
  */
 function LegSummary({ leg, t }) {
-  const origin = leg.station?.origin
-  const destination = leg.station?.destination
+  const origin = leg.station?.origin;
+  const destination = leg.station?.destination;
 
   return (
     <>
@@ -129,31 +141,31 @@ function LegSummary({ leg, t }) {
       </p>
       {(origin || destination) && (
         <p className="mt-0.5 text-xs text-muted">
-          {origin || '—'} → {destination || '—'}
+          {origin || "—"} → {destination || "—"}
         </p>
       )}
     </>
-  )
+  );
 }
 
 function numberedIcon(index, active, dark, small = false, clickable = false) {
   const classes = [
-    'pin',
-    small && 'pin-sm',
-    active && 'pin-active',
-    dark && 'pin-on-dark',
-    clickable && 'pin-clickable',
+    "pin",
+    small && "pin-sm",
+    active && "pin-active",
+    dark && "pin-on-dark",
+    clickable && "pin-clickable",
   ]
     .filter(Boolean)
-    .join(' ')
+    .join(" ");
 
   return L.divIcon({
-    className: '',
+    className: "",
     html: `<div class="${classes}">${index + 1}</div>`,
     iconSize: small ? [26, 26] : [32, 32],
     iconAnchor: small ? [13, 13] : [16, 16],
     popupAnchor: [0, small ? -14 : -18],
-  })
+  });
 }
 
 /**
@@ -161,17 +173,17 @@ function numberedIcon(index, active, dark, small = false, clickable = false) {
  * stale tiles and mis-placed pins until it's told to re-measure.
  */
 function AutoResize() {
-  const map = useMap()
+  const map = useMap();
 
   useEffect(() => {
     const observer = new ResizeObserver(() =>
       map.invalidateSize({ animate: false }),
-    )
-    observer.observe(map.getContainer())
-    return () => observer.disconnect()
-  }, [map])
+    );
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
 
-  return null
+  return null;
 }
 
 /**
@@ -182,7 +194,7 @@ function AutoResize() {
  * of points is a fresh reference each time.
  */
 function FitBounds({ points, fallback, soloZoom, maxZoom, fitKey }) {
-  const map = useMap()
+  const map = useMap();
 
   useEffect(() => {
     // No geometry yet — frame the city so the search has somewhere to land.
@@ -190,25 +202,25 @@ function FitBounds({ points, fallback, soloZoom, maxZoom, fitKey }) {
       if (fallback) {
         map.setView([fallback.lat, fallback.lng], fallback.zoom, {
           animate: true,
-        })
+        });
       }
-      return
+      return;
     }
 
     if (points.length === 1) {
-      map.setView(points[0], soloZoom, { animate: true })
-      return
+      map.setView(points[0], soloZoom, { animate: true });
+      return;
     }
 
     map.fitBounds(L.latLngBounds(points), {
       padding: [60, 60],
       maxZoom,
       animate: true,
-    })
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, fitKey])
+  }, [map, fitKey]);
 
-  return null
+  return null;
 }
 
 export default function TripMap({
@@ -218,24 +230,32 @@ export default function TripMap({
   dayRoute,
   onOpenDetails,
 }) {
-  const { t } = useI18n()
-  const { theme } = useTheme()
+  const { t } = useI18n();
+  const { theme } = useTheme();
   const [styleId, setStyleId] = useState(
-    () => localStorage.getItem(STYLE_KEY) ?? 'voyager',
-  )
-  const [pickerOpen, setPickerOpen] = useState(false)
+    () => localStorage.getItem(STYLE_KEY) ?? "voyager",
+  );
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const basemap = BASEMAPS.find((b) => b.id === styleId) ?? BASEMAPS[0]
-  const isDark = theme === 'dark'
-  const tileUrl = (isDark && basemap.darkUrl) || basemap.url
+  // Google only shows up as a choice once a key is configured — same
+  // graceful-degradation rule the search inputs follow.
+  const availableBasemaps = hasGoogleKey()
+    ? [...BASEMAPS, GOOGLE_BASEMAP]
+    : BASEMAPS;
+
+  const basemap =
+    availableBasemaps.find((b) => b.id === styleId) ?? availableBasemaps[0];
+  const isDark = theme === "dark";
+  const tileUrl = (isDark && basemap.darkUrl) || basemap.url;
   // True when the tiles themselves are dark, so pins and casings need to flip.
-  const onDark = basemap.id === 'satellite' || (isDark && Boolean(basemap.darkUrl))
+  const onDark =
+    basemap.id === "satellite" || (isDark && Boolean(basemap.darkUrl));
 
   function chooseStyle(id) {
-    setStyleId(id)
-    setPickerOpen(false)
+    setStyleId(id);
+    setPickerOpen(false);
     try {
-      localStorage.setItem(STYLE_KEY, id)
+      localStorage.setItem(STYLE_KEY, id);
     } catch {
       // Non-fatal: the choice just won't survive a reload.
     }
@@ -244,65 +264,64 @@ export default function TripMap({
   // In Day by day the map narrows to one day's attraction route; elsewhere it
   // shows the whole trip. Both are just "an ordered list of placed points with
   // a mode on each hop", so the rendering below is shared.
-  const inDayMode = Boolean(dayRoute)
+  const inDayMode = Boolean(dayRoute);
 
   const stops = useMemo(
     () => (inDayMode ? dayRoute.stops : destinations.filter(isPlaced)),
     [inDayMode, dayRoute, destinations],
-  )
+  );
 
   // A stable primitive key stops the arcs and fitBounds from being rebuilt on
   // every unrelated render (renaming a stop, editing a cost, …). The centre is
   // part of it so moving between two still-empty days still re-frames the map.
   const routeKey = [
-    inDayMode ? 'day' : 'trip',
+    inDayMode ? "day" : "trip",
     inDayMode && dayRoute.center
       ? `@${dayRoute.center.lat},${dayRoute.center.lng}`
-      : '',
+      : "",
     ...stops.map((s) => {
       // Station names ride along so their popups refresh, but they carry no
       // coordinates here — the geometry depends only on the destinations.
       const hops = inDayMode
-        ? [s.legOut?.mode ?? '-']
+        ? [s.legOut?.mode ?? "-"]
         : legOf(s).map(
-            (seg) =>
-              `${seg.mode}:${seg.origin.name}>${seg.destination.name}`,
-          )
-      return `${s.id}:${s.lat},${s.lng}:${hops.join('+') || '-'}`
+            (seg) => `${seg.mode}:${seg.origin.name}>${seg.destination.name}`,
+          );
+      return `${s.id}:${s.lat},${s.lng}:${hops.join("+") || "-"}`;
     }),
-  ].join('|')
+  ].join("|");
 
   const legs = useMemo(() => {
-    const out = []
+    const out = [];
 
     for (let i = 0; i < stops.length - 1; i += 1) {
-      const from = stops[i]
-      const to = stops[i + 1]
-      const a = [from.lat, from.lng]
-      const b = [to.lat, to.lng]
+      const from = stops[i];
+      const to = stops[i + 1];
+      const a = [from.lat, from.lng];
+      const b = [to.lat, to.lng];
       // City hops are short, so a gentler bow reads better than the sweeping
       // arc used between cities.
-      const curvature = inDayMode ? 0.08 : 0.18
+      const curvature = inDayMode ? 0.08 : 0.18;
 
       // A day route still has exactly one mode per hop.
       const segments = inDayMode
-        ? [{ id: 'day', mode: from.legOut?.mode ?? 'walk' }]
-        : legOf(from)
+        ? [{ id: "day", mode: from.legOut?.mode ?? "walk" }]
+        : legOf(from);
 
       if (segments.length === 0) {
         // No transport chosen yet — still show the connection, neutrally.
-        const points = arcPoints(a, b, { curvature })
+        const points = arcPoints(a, b, { curvature });
         out.push({
           id: `${from.id}->${to.id}`,
           from,
           to,
-          mode: 'train',
-          color: modeColor('train'),
+          mode: "train",
+          color: modeColor("train"),
           points,
           midpoint: points[Math.floor(points.length / 2)],
           badge: null,
-        })
-        continue
+        });
+        continue;
       }
 
       /**
@@ -318,12 +337,12 @@ export default function TripMap({
       const wholeArc = arcPoints(a, b, {
         curvature,
         segments: Math.max(96, segments.length * 48),
-      })
-      const pieces = splitArc(wholeArc, segments.length)
+      });
+      const pieces = splitArc(wholeArc, segments.length);
 
       segments.forEach((segment, s) => {
-        const color = modeColor(segment.mode)
-        const points = pieces[s]
+        const color = modeColor(segment.mode);
+        const points = pieces[s];
 
         out.push({
           id: `${from.id}->${to.id}#${segment.id}`,
@@ -342,185 +361,197 @@ export default function TripMap({
                 destination: segment.destination?.name || null,
               }
             : null,
-        })
-      })
+        });
+      });
     }
 
-    return out
+    return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeKey])
+  }, [routeKey]);
 
   // Bounds follow the drawn geometry so a bowed leg never gets cropped.
   const boundsPoints = useMemo(() => {
-    const pts = stops.map((s) => [s.lat, s.lng])
-    legs.forEach((leg) => pts.push(...leg.points))
-    return pts
+    const pts = stops.map((s) => [s.lat, s.lng]);
+    legs.forEach((leg) => pts.push(...leg.points));
+    return pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeKey])
+  }, [routeKey]);
 
   const usedModes = useMemo(
     () => [...new Set(legs.map((l) => l.mode))],
     [legs],
-  )
+  );
 
   return (
     <div className="relative h-full w-full">
       <ModeIconSprite />
 
-      <MapContainer
-        center={[45.4642, 9.19]}
-        zoom={5}
-        scrollWheelZoom
-        className="h-full w-full"
-        attributionControl={false}
-      >
-        <TileLayer
-          key={`${basemap.id}:${isDark}`}
-          url={tileUrl}
-          subdomains={basemap.subdomains}
-          maxZoom={basemap.maxZoom}
-          detectRetina
-          // A natively dark tileset shouldn't also get the CSS dimming filter.
-          className={basemap.darkUrl ? 'tile-no-dim' : undefined}
-        />
-
-        {/* Casing under every leg keeps thin colour readable on any basemap;
-            it flips to a dark halo where the tiles themselves are dark. */}
-        {legs.map((leg) => (
-          <Polyline
-            key={`casing-${leg.id}`}
-            positions={leg.points}
-            pathOptions={{
-              color: onDark ? '#0d0c1a' : '#ffffff',
-              weight: 8,
-              opacity: onDark ? 0.5 : 0.85,
-              lineCap: 'round',
-              lineJoin: 'round',
-              interactive: false,
-              // Leaflet's default simplification would straighten the arc.
-              smoothFactor: 0,
-            }}
+      {basemap.google ? (
+        <Suspense fallback={<div className="h-full w-full bg-canvas" />}>
+          <GoogleTripMap
+            destinations={destinations}
+            activeId={activeId}
+            onHover={onHover}
+            dayRoute={dayRoute}
+            onOpenDetails={onOpenDetails}
           />
-        ))}
+        </Suspense>
+      ) : (
+        <MapContainer
+          center={[45.4642, 9.19]}
+          zoom={5}
+          scrollWheelZoom
+          className="h-full w-full"
+          attributionControl={false}
+        >
+          <TileLayer
+            key={`${basemap.id}:${isDark}`}
+            url={tileUrl}
+            subdomains={basemap.subdomains}
+            maxZoom={basemap.maxZoom}
+            detectRetina
+            // A natively dark tileset shouldn't also get the CSS dimming filter.
+            className={basemap.darkUrl ? "tile-no-dim" : undefined}
+          />
 
-        {legs.map((leg) => (
-          <Polyline
-            key={leg.id}
-            positions={leg.points}
-            pathOptions={{
-              color: leg.color,
-              weight: 4,
-              opacity: 0.95,
-              lineCap: 'round',
-              lineJoin: 'round',
-              smoothFactor: 0,
-            }}
-          >
-            <Popup>
-              <LegSummary leg={leg} t={t} />
-            </Popup>
-          </Polyline>
-        ))}
+          {/* Casing under every leg keeps thin colour readable on any basemap;
+            it flips to a dark halo where the tiles themselves are dark. */}
+          {legs.map((leg) => (
+            <Polyline
+              key={`casing-${leg.id}`}
+              positions={leg.points}
+              pathOptions={{
+                color: onDark ? "#0d0c1a" : "#ffffff",
+                weight: 8,
+                opacity: onDark ? 0.5 : 0.85,
+                lineCap: "round",
+                lineJoin: "round",
+                interactive: false,
+                // Leaflet's default simplification would straighten the arc.
+                smoothFactor: 0,
+              }}
+            />
+          ))}
 
-        {/* Mode badge sitting on each link, so the chosen transport is legible
-            without cross-referencing the colour legend. */}
-        {legs
-          .filter((leg) => leg.badge)
-          .map((leg) => (
-            <Marker
-              key={`badge-${leg.id}`}
-              position={leg.midpoint}
-              icon={leg.badge}
-              // Keep pins above badges where they overlap.
-              zIndexOffset={-200}
+          {legs.map((leg) => (
+            <Polyline
+              key={leg.id}
+              positions={leg.points}
+              pathOptions={{
+                color: leg.color,
+                weight: 4,
+                opacity: 0.95,
+                lineCap: "round",
+                lineJoin: "round",
+                smoothFactor: 0,
+              }}
             >
-              <Tooltip direction="top" offset={[0, -10]}>
-                <span className="text-xs font-semibold">
-                  {t(`mode.${leg.mode}`)}
-                </span>
-              </Tooltip>
               <Popup>
                 <LegSummary leg={leg} t={t} />
               </Popup>
-            </Marker>
+            </Polyline>
           ))}
 
-        {stops.map((stop, i) => {
-          // Trip pins number by position in the full itinerary, not in the
-          // filtered list, so an unplaced stop doesn't shift the numbering.
-          const index = inDayMode
-            ? i
-            : destinations.findIndex((d) => d.id === stop.id)
-          return (
-            <Marker
-              key={stop.id}
-              position={[stop.lat, stop.lng]}
-              icon={numberedIcon(
-                index,
-                activeId === stop.id,
-                onDark,
-                inDayMode,
-                !inDayMode,
-              )}
-              eventHandlers={{
-                mouseover: () => onHover?.(stop.id),
-                mouseout: () => onHover?.(null),
-                // A destination pin is a shortcut into its Details tab. Day
-                // pins are attractions, which have no details of their own.
-                click: () => {
-                  if (!inDayMode) onOpenDetails?.(stop.id)
-                },
-              }}
-            >
-              {inDayMode ? (
-                <Popup>
-                  <p className="text-sm font-semibold">
-                    {stop.name || t('attractions.fallback')}
-                  </p>
-                  {stop.time && (
-                    <p className="tabular text-xs text-muted">{stop.time}</p>
-                  )}
-                  {stop.address && (
-                    <p className="text-xs text-muted">{stop.address}</p>
-                  )}
-                </Popup>
-              ) : (
-                /* Hover rather than a popup, so the click stays free to
-                   navigate while the same information is still reachable. */
-                <Tooltip direction="top" offset={[0, -18]}>
-                  <span className="text-sm font-semibold">{stop.name}</span>
-                  <span className="block text-xs text-muted">
-                    {formatDay(stop.startDate)} – {formatDay(stop.endDate)}
-                  </span>
-                  <span className="block text-xs text-muted">
-                    {stop.nights}{' '}
-                    {stop.nights === 1
-                      ? t('plan.night')
-                      : t('plan.nightsPlural')}
-                  </span>
-                  <span className="mt-1 block text-[11px] font-medium text-accent">
-                    {t('map.openDetails')}
+          {/* Mode badge sitting on each link, so the chosen transport is legible
+            without cross-referencing the colour legend. */}
+          {legs
+            .filter((leg) => leg.badge)
+            .map((leg) => (
+              <Marker
+                key={`badge-${leg.id}`}
+                position={leg.midpoint}
+                icon={leg.badge}
+                // Keep pins above badges where they overlap.
+                zIndexOffset={-200}
+              >
+                <Tooltip direction="top" offset={[0, -10]}>
+                  <span className="text-xs font-semibold">
+                    {t(`mode.${leg.mode}`)}
                   </span>
                 </Tooltip>
-              )}
-            </Marker>
-          )
-        })}
+                <Popup>
+                  <LegSummary leg={leg} t={t} />
+                </Popup>
+              </Marker>
+            ))}
 
-        <AutoResize />
-        <FitBounds
-          points={boundsPoints}
-          fitKey={routeKey}
-          // City work needs a much closer view than hopping between countries.
-          soloZoom={inDayMode ? 15 : 9}
-          maxZoom={inDayMode ? 16 : 11}
-          fallback={
-            inDayMode && dayRoute.center
-              ? { ...dayRoute.center, zoom: 13 }
-              : null
-          }
-        />
-      </MapContainer>
+          {stops.map((stop, i) => {
+            // Trip pins number by position in the full itinerary, not in the
+            // filtered list, so an unplaced stop doesn't shift the numbering.
+            const index = inDayMode
+              ? i
+              : destinations.findIndex((d) => d.id === stop.id);
+            return (
+              <Marker
+                key={stop.id}
+                position={[stop.lat, stop.lng]}
+                icon={numberedIcon(
+                  index,
+                  activeId === stop.id,
+                  onDark,
+                  inDayMode,
+                  !inDayMode,
+                )}
+                eventHandlers={{
+                  mouseover: () => onHover?.(stop.id),
+                  mouseout: () => onHover?.(null),
+                  // A destination pin is a shortcut into its Details tab. Day
+                  // pins are attractions, which have no details of their own.
+                  click: () => {
+                    if (!inDayMode) onOpenDetails?.(stop.id);
+                  },
+                }}
+              >
+                {inDayMode ? (
+                  <Popup>
+                    <p className="text-sm font-semibold">
+                      {stop.name || t("attractions.fallback")}
+                    </p>
+                    {stop.time && (
+                      <p className="tabular text-xs text-muted">{stop.time}</p>
+                    )}
+                    {stop.address && (
+                      <p className="text-xs text-muted">{stop.address}</p>
+                    )}
+                  </Popup>
+                ) : (
+                  /* Hover rather than a popup, so the click stays free to
+                   navigate while the same information is still reachable. */
+                  <Tooltip direction="top" offset={[0, -18]}>
+                    <span className="text-sm font-semibold">{stop.name}</span>
+                    <span className="block text-xs text-muted">
+                      {formatDay(stop.startDate)} – {formatDay(stop.endDate)}
+                    </span>
+                    <span className="block text-xs text-muted">
+                      {stop.nights}{" "}
+                      {stop.nights === 1
+                        ? t("plan.night")
+                        : t("plan.nightsPlural")}
+                    </span>
+                    <span className="mt-1 block text-[11px] font-medium text-accent">
+                      {t("map.openDetails")}
+                    </span>
+                  </Tooltip>
+                )}
+              </Marker>
+            );
+          })}
+
+          <AutoResize />
+          <FitBounds
+            points={boundsPoints}
+            fitKey={routeKey}
+            // City work needs a much closer view than hopping between countries.
+            soloZoom={inDayMode ? 15 : 9}
+            maxZoom={inDayMode ? 16 : 11}
+            fallback={
+              inDayMode && dayRoute.center
+                ? { ...dayRoute.center, zoom: 13 }
+                : null
+            }
+          />
+        </MapContainer>
+      )}
 
       {/* --- Basemap picker ------------------------------------------------ */}
       <div className="absolute end-3 top-3 z-[600] flex flex-col items-end gap-2">
@@ -537,10 +568,10 @@ export default function TripMap({
         {pickerOpen && (
           <div
             role="radiogroup"
-            aria-label={t('map.style')}
+            aria-label={t("map.style")}
             className="overflow-hidden rounded-xl bg-surface/95 shadow-lg backdrop-blur"
           >
-            {BASEMAPS.map((b) => (
+            {availableBasemaps.map((b) => (
               <button
                 key={b.id}
                 type="button"
@@ -549,8 +580,8 @@ export default function TripMap({
                 onClick={() => chooseStyle(b.id)}
                 className={`block w-full px-4 py-2 text-start text-xs font-medium transition ${
                   b.id === basemap.id
-                    ? 'bg-accent text-on-accent'
-                    : 'text-fg hover:bg-raised'
+                    ? "bg-accent text-on-accent"
+                    : "text-fg hover:bg-raised"
                 }`}
               >
                 {t(b.key)}
@@ -579,27 +610,32 @@ export default function TripMap({
         </ul>
       )}
 
-      <p
-        dir="ltr"
-        className="pointer-events-none absolute bottom-20 end-1 z-[600] rounded bg-surface/80 px-1.5 py-0.5 text-[10px] text-muted"
-      >
-        {basemap.attribution}
-      </p>
+      {/* Google renders its own "Google" wordmark/ToS link on the map itself;
+          a second attribution line would be redundant and, for the other
+          basemaps, wrong. */}
+      {!basemap.google && (
+        <p
+          dir="ltr"
+          className="pointer-events-none absolute bottom-20 end-1 z-[600] rounded bg-surface/80 px-1.5 py-0.5 text-[10px] text-muted"
+        >
+          {basemap.attribution}
+        </p>
+      )}
 
       {/* Badge naming the day being shown, so the narrowed view is obvious. */}
       {inDayMode && (
         <p className="absolute start-3 top-3 z-[600] rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-on-accent shadow-md">
-          {t('map.dayRoute', { name: dayRoute.label })}
+          {t("map.dayRoute", { name: dayRoute.label })}
         </p>
       )}
 
       {stops.length === 0 && (
         <div className="pointer-events-none absolute inset-0 z-[500] grid place-items-center">
           <p className="rounded-full bg-surface/90 px-4 py-2 text-xs font-medium text-muted">
-            {inDayMode ? t('map.dayEmpty') : t('map.empty')}
+            {inDayMode ? t("map.dayEmpty") : t("map.empty")}
           </p>
         </div>
       )}
     </div>
-  )
+  );
 }

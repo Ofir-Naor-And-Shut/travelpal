@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { Check, Loader2, MapPin } from 'lucide-react'
-import { searchNearby } from '../lib/places.js'
+import { useEffect, useRef, useState } from "react";
+import { Check, Loader2, MapPin } from "lucide-react";
+import { searchNearby } from "../lib/places.js";
+import {
+  autocompleteGooglePlaces,
+  hasGoogleKey,
+  resolveGooglePlace,
+} from "../lib/googlePlaces.js";
 
 /**
  * A text field that doubles as a place lookup.
@@ -15,95 +20,107 @@ export default function PlaceSearchInput({
   center,
   placeholder,
   label,
-  className = '',
+  className = "",
 }) {
-  const [query, setQuery] = useState(value?.name ?? '')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [highlight, setHighlight] = useState(0)
-  const boxRef = useRef(null)
-  const dirtyRef = useRef(false)
+  const [query, setQuery] = useState(value?.name ?? "");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const boxRef = useRef(null);
+  const dirtyRef = useRef(false);
 
   // Follow the stored value unless the user is mid-edit.
   useEffect(() => {
-    if (!dirtyRef.current) setQuery(value?.name ?? '')
-  }, [value?.name])
+    if (!dirtyRef.current) setQuery(value?.name ?? "");
+  }, [value?.name]);
 
   useEffect(() => {
-    const q = query.trim()
+    const q = query.trim();
     if (!dirtyRef.current || q.length < 2) {
-      setResults([])
-      setLoading(false)
-      return undefined
+      setResults([]);
+      setLoading(false);
+      return undefined;
     }
 
-    const controller = new AbortController()
-    setLoading(true)
+    const controller = new AbortController();
+    setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const rows = await searchNearby(q, center, controller.signal, 6)
-        setResults(rows)
-        setHighlight(0)
-        setOpen(true)
+        const rows = hasGoogleKey()
+          ? await autocompleteGooglePlaces(q, {
+              center,
+              signal: controller.signal,
+              limit: 6,
+            }).catch(() => searchNearby(q, center, controller.signal, 6))
+          : await searchNearby(q, center, controller.signal, 6);
+        setResults(rows);
+        setHighlight(0);
+        setOpen(true);
       } catch (err) {
-        if (err.name !== 'AbortError') setResults([])
+        if (err.name !== "AbortError") setResults([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }, 400)
+    }, 400);
 
     return () => {
-      controller.abort()
-      clearTimeout(timer)
-    }
-  }, [query, center])
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query, center]);
 
   useEffect(() => {
     const onAway = (e) => {
-      if (!boxRef.current?.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onAway)
-    return () => document.removeEventListener('mousedown', onAway)
-  }, [])
+      if (!boxRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onAway);
+    return () => document.removeEventListener("mousedown", onAway);
+  }, []);
 
-  function choose(place) {
-    dirtyRef.current = false
-    setQuery(place.name)
-    setResults([])
-    setOpen(false)
-    onChange({ name: place.name, lat: place.lat, lng: place.lng })
+  async function choose(place) {
+    dirtyRef.current = false;
+    setQuery(place.name);
+    setResults([]);
+    setOpen(false);
+
+    const resolved =
+      place.source === "google" && place.placeId
+        ? await resolveGooglePlace(place.placeId).catch(() => place)
+        : place;
+
+    onChange({ name: resolved.name, lat: resolved.lat, lng: resolved.lng });
   }
 
   /** Free text keeps the name but drops any stale coordinates. */
   function commitTyped() {
-    if (!dirtyRef.current) return
-    dirtyRef.current = false
-    const name = query.trim()
-    if (name === (value?.name ?? '')) return
-    onChange({ name, lat: 0, lng: 0 })
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    const name = query.trim();
+    if (name === (value?.name ?? "")) return;
+    onChange({ name, lat: 0, lng: 0 });
   }
 
   function onKeyDown(e) {
     if (!open || results.length === 0) {
-      if (e.key === 'Enter') commitTyped()
-      return
+      if (e.key === "Enter") commitTyped();
+      return;
     }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setHighlight((h) => (h + 1) % results.length)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setHighlight((h) => (h - 1 + results.length) % results.length)
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      choose(results[highlight])
-    } else if (e.key === 'Escape') {
-      setOpen(false)
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlight((h) => (h + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => (h - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      choose(results[highlight]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
     }
   }
 
-  const located = Boolean(value?.lat || value?.lng)
+  const located = Boolean(value?.lat || value?.lng);
 
   return (
     <div ref={boxRef} className={`relative ${className}`}>
@@ -111,8 +128,8 @@ export default function PlaceSearchInput({
         <input
           value={query}
           onChange={(e) => {
-            dirtyRef.current = true
-            setQuery(e.target.value)
+            dirtyRef.current = true;
+            setQuery(e.target.value);
           }}
           onBlur={commitTyped}
           onKeyDown={onKeyDown}
@@ -146,11 +163,11 @@ export default function PlaceSearchInput({
                 // mousedown fires before the input's blur, which would
                 // otherwise commit the typed text and close the list first.
                 onMouseDown={(e) => {
-                  e.preventDefault()
-                  choose(place)
+                  e.preventDefault();
+                  choose(place);
                 }}
                 className={`flex w-full items-start gap-2 px-2.5 py-1.5 text-start text-xs transition ${
-                  i === highlight ? 'bg-accent-soft' : 'hover:bg-raised'
+                  i === highlight ? "bg-accent-soft" : "hover:bg-raised"
                 }`}
               >
                 <MapPin size={12} className="mt-0.5 shrink-0 text-accent" />
@@ -170,5 +187,5 @@ export default function PlaceSearchInput({
         </ul>
       )}
     </div>
-  )
+  );
 }
