@@ -39,9 +39,9 @@ export default function DestinationSearch({ onSelect }) {
         // Autocomplete predictions carry no coordinates yet; `choose` resolves
         // them (one billed Details call) only for the option actually picked.
         const remote = hasGoogleKey()
-          ? await autocompleteGooglePlaces(q, { signal: controller.signal }).catch(
-              () => searchRemote(q, controller.signal),
-            )
+          ? await autocompleteGooglePlaces(q, {
+              signal: controller.signal,
+            }).catch(() => searchRemote(q, controller.signal))
           : await searchRemote(q, controller.signal);
         const seen = new Set(local.map((r) => `${r.name}|${r.country}`));
         const merged = [

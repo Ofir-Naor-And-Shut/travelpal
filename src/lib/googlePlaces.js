@@ -151,16 +151,20 @@ export async function resolveGooglePlace(placeId, { details = false } = {}) {
   const { placesService } = await legacyServices();
 
   const fields = ["place_id", "name", "formatted_address", "geometry", "types"];
-  if (details) fields.push("formatted_phone_number", "website", "opening_hours");
+  if (details)
+    fields.push("formatted_phone_number", "website", "opening_hours");
 
   const place = await new Promise((resolve, reject) => {
-    placesService.getDetails({ placeId, fields, sessionToken }, (row, status) => {
-      if (!statusOk(status)) {
-        reject(new Error(`Place details failed: ${status}`));
-        return;
-      }
-      resolve(row);
-    });
+    placesService.getDetails(
+      { placeId, fields, sessionToken },
+      (row, status) => {
+        if (!statusOk(status)) {
+          reject(new Error(`Place details failed: ${status}`));
+          return;
+        }
+        resolve(row);
+      },
+    );
   });
 
   // The session is spent once Details has been billed against it.
@@ -236,4 +240,3 @@ export async function searchGooglePlaces(
     };
   });
 }
-

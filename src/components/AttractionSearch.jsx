@@ -63,7 +63,10 @@ export default function AttractionSearch({ center, onSelect }) {
         // Autocomplete carries no coordinates/contact info yet — `choose`
         // resolves those (one billed Details call) only for the pick made.
         const rows = hasGoogleKey()
-          ? await autocompleteGooglePlaces(q, { center, signal: controller.signal })
+          ? await autocompleteGooglePlaces(q, {
+              center,
+              signal: controller.signal,
+            })
           : (await searchNearby(q, center, controller.signal)).map((r) => ({
               ...r,
               source: "osm",
@@ -253,7 +256,9 @@ export default function AttractionSearch({ center, onSelect }) {
           {results.map((place, i) => {
             const isBiz = place.source === "bizdata";
             const sourceKey =
-              place.source === "osm" ? "source.nominatim" : `source.${place.source}`;
+              place.source === "osm"
+                ? "source.nominatim"
+                : `source.${place.source}`;
             const hasContactInfo = place.openingHours || place.phone;
             return (
               <li key={place.id} role="option" aria-selected={i === highlight}>
