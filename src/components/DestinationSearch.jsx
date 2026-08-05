@@ -1,101 +1,114 @@
-import { useEffect, useRef, useState } from 'react'
-import { Loader2, MapPin, Search } from 'lucide-react'
-import { searchLocal, searchRemote } from '../lib/places.js'
-import { hasGoogleKey, searchGooglePlaces } from '../lib/googlePlaces.js'
-import { useI18n } from '../lib/i18n.js'
+import { useEffect, useRef, useState } from "react";
+import { Loader2, MapPin, Search } from "lucide-react";
+import { searchLocal, searchRemote } from "../lib/places.js";
+import {
+  autocompleteGooglePlaces,
+  hasGoogleKey,
+  resolveGooglePlace,
+} from "../lib/googlePlaces.js";
+import { useI18n } from "../lib/i18n.js";
 
 export default function DestinationSearch({ onSelect }) {
-  const { t } = useI18n()
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [highlight, setHighlight] = useState(0)
-  const boxRef = useRef(null)
+  const { t } = useI18n();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const boxRef = useRef(null);
 
   useEffect(() => {
-    const q = query.trim()
+    const q = query.trim();
     if (q.length < 2) {
-      setResults([])
-      setLoading(false)
-      return
+      setResults([]);
+      setLoading(false);
+      return;
     }
 
     // Show the built-in matches immediately, then top up from the geocoder.
-    const local = searchLocal(q)
-    setResults(local)
-    setHighlight(0)
+    const local = searchLocal(q);
+    setResults(local);
+    setHighlight(0);
 
-    const controller = new AbortController()
-    setLoading(true)
+    const controller = new AbortController();
+    setLoading(true);
     const timer = setTimeout(async () => {
       try {
         // Google, when a key is present, is the far better geocoder — fall
         // back to the free OSM lookup if it errors or there's no key.
+        // Autocomplete predictions carry no coordinates yet; `choose` resolves
+        // them (one billed Details call) only for the option actually picked.
         const remote = hasGoogleKey()
-          ? await searchGooglePlaces(q, { signal: controller.signal }).catch(
+          ? await autocompleteGooglePlaces(q, { signal: controller.signal }).catch(
               () => searchRemote(q, controller.signal),
             )
-          : await searchRemote(q, controller.signal)
-        const seen = new Set(local.map((r) => `${r.name}|${r.country}`))
+          : await searchRemote(q, controller.signal);
+        const seen = new Set(local.map((r) => `${r.name}|${r.country}`));
         const merged = [
           ...local,
           ...remote.filter((r) => !seen.has(`${r.name}|${r.country}`)),
-        ]
-        setResults(merged.slice(0, 8))
+        ];
+        setResults(merged.slice(0, 8));
       } catch {
         // Offline or rate-limited — the local list still stands.
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }, 350)
+    }, 350);
 
     return () => {
-      controller.abort()
-      clearTimeout(timer)
-      setLoading(false)
-    }
-  }, [query])
+      controller.abort();
+      clearTimeout(timer);
+      setLoading(false);
+    };
+  }, [query]);
 
   useEffect(() => {
     const onClickAway = (e) => {
-      if (!boxRef.current?.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onClickAway)
-    return () => document.removeEventListener('mousedown', onClickAway)
-  }, [])
+      if (!boxRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClickAway);
+    return () => document.removeEventListener("mousedown", onClickAway);
+  }, []);
 
-  function choose(place) {
+  async function choose(place) {
+    // Autocomplete predictions have no coordinates yet — resolve them now,
+    // the one Details call this pick actually costs.
+    const resolved =
+      place.source === "google" && place.placeId
+        ? await resolveGooglePlace(place.placeId).catch(() => place)
+        : place;
+
     onSelect({
-      name: place.name,
-      country: place.country,
-      lat: place.lat,
-      lng: place.lng,
-    })
-    setQuery('')
-    setResults([])
-    setOpen(false)
+      name: resolved.name,
+      country: resolved.country || place.address,
+      lat: resolved.lat,
+      lng: resolved.lng,
+    });
+    setQuery("");
+    setResults([]);
+    setOpen(false);
   }
 
   function onKeyDown(e) {
     if (!open || results.length === 0) {
-      if (e.key === 'Enter' && query.trim()) {
+      if (e.key === "Enter" && query.trim()) {
         // No match to pick — add a free-text stop the user can place later.
-        choose({ name: query.trim(), country: '', lat: 0, lng: 0 })
+        choose({ name: query.trim(), country: "", lat: 0, lng: 0 });
       }
-      return
+      return;
     }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setHighlight((h) => (h + 1) % results.length)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setHighlight((h) => (h - 1 + results.length) % results.length)
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      choose(results[highlight])
-    } else if (e.key === 'Escape') {
-      setOpen(false)
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlight((h) => (h + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => (h - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      choose(results[highlight]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
     }
   }
 
@@ -106,13 +119,13 @@ export default function DestinationSearch({ onSelect }) {
         <input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value)
-            setOpen(true)
+            setQuery(e.target.value);
+            setOpen(true);
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder={t('plan.addPlaceholder')}
-          aria-label={t('plan.searchLabel')}
+          placeholder={t("plan.addPlaceholder")}
+          aria-label={t("plan.searchLabel")}
           aria-expanded={open && results.length > 0}
           role="combobox"
           aria-controls="destination-results"
@@ -136,7 +149,7 @@ export default function DestinationSearch({ onSelect }) {
                 onMouseEnter={() => setHighlight(i)}
                 onClick={() => choose(place)}
                 className={`flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm transition ${
-                  i === highlight ? 'bg-accent-soft' : 'hover:bg-raised'
+                  i === highlight ? "bg-accent-soft" : "hover:bg-raised"
                 }`}
               >
                 <MapPin size={15} className="shrink-0 text-muted" />
@@ -154,5 +167,5 @@ export default function DestinationSearch({ onSelect }) {
         </ul>
       )}
     </div>
-  )
+  );
 }

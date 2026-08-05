@@ -9,17 +9,17 @@
  * never searches never pays for the download.
  */
 
-const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim()
+const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
 
-export const hasGoogleKey = () => Boolean(KEY)
+export const hasGoogleKey = () => Boolean(KEY);
 /** The raw key, for `<APIProvider>` — the map surface needs it directly. */
-export const googleMapsKey = () => KEY
+export const googleMapsKey = () => KEY;
 
 /** Set once the SDK has actually loaded, so callers can show attribution. */
-let ready = false
-export const googleReady = () => ready
+let ready = false;
+export const googleReady = () => ready;
 
-let loader = null
+let loader = null;
 
 /**
  * Loads the Maps JS SDK once and caches the promise.
@@ -29,100 +29,211 @@ let loader = null
  * one key, shared between search and the map surface.
  */
 export function loadGoogleMaps() {
-  if (loader) return loader
-  if (!KEY) return Promise.reject(new Error('No Google Maps API key'))
+  if (loader) return loader;
+  if (!KEY) return Promise.reject(new Error("No Google Maps API key"));
 
   loader = new Promise((resolve, reject) => {
     if (window.google?.maps?.importLibrary) {
-      resolve()
-      return
+      resolve();
+      return;
     }
 
-    const script = document.createElement('script')
-    script.async = true
+    const script = document.createElement("script");
+    script.async = true;
     script.src =
-      'https://maps.googleapis.com/maps/api/js' +
-      `?key=${encodeURIComponent(KEY)}&v=weekly&libraries=places,marker&loading=async`
-    script.onerror = () =>
-      reject(new Error('Google Maps SDK failed to load'))
+      "https://maps.googleapis.com/maps/api/js" +
+      `?key=${encodeURIComponent(KEY)}&v=weekly&libraries=places,marker&loading=async`;
+    script.onerror = () => reject(new Error("Google Maps SDK failed to load"));
     // The bootstrap defines importLibrary before the load event fires.
     script.onload = () =>
       window.google?.maps?.importLibrary
         ? resolve()
-        : reject(new Error('Google Maps SDK loaded without importLibrary'))
+        : reject(new Error("Google Maps SDK loaded without importLibrary"));
 
-    document.head.appendChild(script)
+    document.head.appendChild(script);
   }).catch((err) => {
     // Let a later attempt retry rather than caching the failure forever.
-    loader = null
-    throw err
-  })
+    loader = null;
+    throw err;
+  });
 
-  return loader
-}
-
-/** Normalise a Place into the same shape the OSM/BizData searches return. */
-function toResult(place) {
-  const address = place.formattedAddress ?? ''
-  return {
-    id: `g:${place.id}`,
-    source: 'google',
-    name: place.displayName ?? address.split(',')[0] ?? '',
-    // Callers use `country` (destinations) or `address` (stations, attractions);
-    // the last address part is the country in Google's formatting.
-    country: address.split(',').pop()?.trim() ?? '',
-    address: address.split(',').slice(1, 3).join(', ').trim(),
-    fullAddress: address,
-    category: (place.types?.[0] ?? '').replace(/_/g, ' '),
-    lat: place.location?.lat() ?? 0,
-    lng: place.location?.lng() ?? 0,
-    phone: place.nationalPhoneNumber ?? '',
-    website: place.websiteUri ?? '',
-    openingHours: place.regularOpeningHours?.weekdayDescriptions?.join('; ') ?? '',
-  }
+  return loader;
 }
 
 /**
- * Text search, optionally biased towards a centre.
- *
- * `signal` mirrors the fetch-based path: the SDK has no abort support, so a
- * cancelled search is discarded on return instead.
- *
- * `details` pulls phone/website/hours too — those cost more per Google's
- * pricing (Contact Data), so callers only ask for them where BizData used to
- * supply them (attraction search), not for plain destination/station lookups.
+ * Legacy `google.maps.places` classes, not the "Places API (New)" `Place`
+ * class — this project's key has the classic Places API enabled, and unlike
+ * that API's REST endpoints (blocked by CORS for browser callers), these JS
+ * classes reach the same backend through a channel Google allows in-browser.
+ */
+let autocompleteService = null;
+let placesService = null;
+let sessionToken = null;
+
+async function legacyServices() {
+  await loadGoogleMaps();
+  const { AutocompleteService, PlacesService, AutocompleteSessionToken } =
+    await window.google.maps.importLibrary("places");
+  ready = true;
+
+  autocompleteService ??= new AutocompleteService();
+  // PlacesService needs *a* map or node to attach to; it never renders into it.
+  placesService ??= new PlacesService(document.createElement("div"));
+  // One token per "typing session" batches predictions + the final Details
+  // call into a single billing unit, same as Google's own Autocomplete widget.
+  sessionToken ??= new AutocompleteSessionToken();
+
+  return { autocompleteService, placesService };
+}
+
+/** Clears the session token once a place has been chosen, starting a fresh one. */
+function resetSession() {
+  sessionToken = null;
+}
+
+function statusOk(status) {
+  const OK = window.google.maps.places.PlacesServiceStatus.OK;
+  const ZERO = window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS;
+  return status === OK || status === ZERO;
+}
+
+/**
+ * Autocomplete predictions for a query — name + rough address only, no
+ * coordinates yet. Call `resolveGooglePlace` once the caller picks one.
+ */
+export async function autocompleteGooglePlaces(
+  query,
+  { center, signal, limit = 8, radiusMeters = 35000 } = {},
+) {
+  const { autocompleteService } = await legacyServices();
+
+  const request = { input: query, sessionToken };
+  if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
+    request.location = new window.google.maps.LatLng(center.lat, center.lng);
+    request.radius = radiusMeters;
+  }
+
+  const predictions = await new Promise((resolve, reject) => {
+    autocompleteService.getPlacePredictions(request, (rows, status) => {
+      if (!statusOk(status)) {
+        reject(new Error(`Autocomplete failed: ${status}`));
+        return;
+      }
+      resolve(rows ?? []);
+    });
+  });
+
+  if (signal?.aborted) {
+    const error = new Error("Aborted");
+    error.name = "AbortError";
+    throw error;
+  }
+
+  return predictions.slice(0, limit).map((p) => ({
+    id: `g:${p.place_id}`,
+    source: "google",
+    placeId: p.place_id,
+    name: p.structured_formatting?.main_text ?? p.description,
+    address: p.structured_formatting?.secondary_text ?? "",
+    // No lat/lng/contact info until resolved — the legacy API only returns
+    // those from a separate, billed Place Details call.
+    lat: 0,
+    lng: 0,
+  }));
+}
+
+/**
+ * Full Place Details for a prediction's `placeId` — coordinates always,
+ * phone/website/hours only when `details` is true (each field costs extra
+ * under Google's pricing, so callers only ask where they're actually shown).
+ */
+export async function resolveGooglePlace(placeId, { details = false } = {}) {
+  const { placesService } = await legacyServices();
+
+  const fields = ["place_id", "name", "formatted_address", "geometry", "types"];
+  if (details) fields.push("formatted_phone_number", "website", "opening_hours");
+
+  const place = await new Promise((resolve, reject) => {
+    placesService.getDetails({ placeId, fields, sessionToken }, (row, status) => {
+      if (!statusOk(status)) {
+        reject(new Error(`Place details failed: ${status}`));
+        return;
+      }
+      resolve(row);
+    });
+  });
+
+  // The session is spent once Details has been billed against it.
+  resetSession();
+
+  const address = place.formatted_address ?? "";
+  return {
+    id: `g:${place.place_id}`,
+    source: "google",
+    name: place.name ?? address.split(",")[0] ?? "",
+    country: address.split(",").pop()?.trim() ?? "",
+    address: address.split(",").slice(1, 3).join(", ").trim(),
+    fullAddress: address,
+    category: (place.types?.[0] ?? "").replace(/_/g, " "),
+    lat: place.geometry?.location?.lat() ?? 0,
+    lng: place.geometry?.location?.lng() ?? 0,
+    phone: place.formatted_phone_number ?? "",
+    website: place.website ?? "",
+    openingHours: place.opening_hours?.weekday_text?.join("; ") ?? "",
+  };
+}
+
+/**
+ * Text search — for category browsing, where results need coordinates up
+ * front rather than a pick-then-resolve flow. Same legacy Places API; phone/
+ * website/hours still require a per-result Details call, so those are left
+ * blank here and filled in by `resolveGooglePlace` if the result is chosen.
  */
 export async function searchGooglePlaces(
   query,
-  { center, signal, limit = 8, radiusMeters = 35000, details = false } = {},
+  { center, signal, limit = 8, radiusMeters = 35000 } = {},
 ) {
-  await loadGoogleMaps()
-  const { Place } = await window.google.maps.importLibrary('places')
-  ready = true
+  const { placesService } = await legacyServices();
 
-  const fields = ['id', 'displayName', 'formattedAddress', 'location', 'types']
-  if (details) fields.push('nationalPhoneNumber', 'websiteUri', 'regularOpeningHours')
-
-  const request = {
-    textQuery: query,
-    fields,
-    maxResultCount: Math.min(limit, 20),
-  }
-
+  const request = { query };
   if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
-    request.locationBias = {
-      center: { lat: center.lat, lng: center.lng },
-      radius: radiusMeters,
-    }
+    request.location = new window.google.maps.LatLng(center.lat, center.lng);
+    request.radius = radiusMeters;
   }
 
-  const { places } = await Place.searchByText(request)
+  const rows = await new Promise((resolve, reject) => {
+    placesService.textSearch(request, (results, status) => {
+      if (!statusOk(status)) {
+        reject(new Error(`Text search failed: ${status}`));
+        return;
+      }
+      resolve(results ?? []);
+    });
+  });
 
   if (signal?.aborted) {
-    const error = new Error('Aborted')
-    error.name = 'AbortError'
-    throw error
+    const error = new Error("Aborted");
+    error.name = "AbortError";
+    throw error;
   }
 
-  return (places ?? []).map(toResult)
+  return rows.slice(0, limit).map((place) => {
+    const address = place.formatted_address ?? "";
+    return {
+      id: `g:${place.place_id}`,
+      source: "google",
+      placeId: place.place_id,
+      name: place.name ?? address.split(",")[0] ?? "",
+      country: address.split(",").pop()?.trim() ?? "",
+      address: address.split(",").slice(1, 3).join(", ").trim(),
+      fullAddress: address,
+      category: (place.types?.[0] ?? "").replace(/_/g, " "),
+      lat: place.geometry?.location?.lat() ?? 0,
+      lng: place.geometry?.location?.lng() ?? 0,
+      phone: "",
+      website: "",
+      openingHours: "",
+    };
+  });
 }
+

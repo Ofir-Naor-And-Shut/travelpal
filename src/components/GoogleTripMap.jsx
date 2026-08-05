@@ -1,22 +1,39 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { APIProvider, AdvancedMarker, Map, useMap } from '@vis.gl/react-google-maps'
-import { arcPoints, splitArc } from '../lib/arc.js'
-import { TransportIcon } from './TransportLeg.jsx'
-import { formatDay, isPlaced, legOf, modeColor } from '../lib/store.js'
-import { googleMapsKey } from '../lib/googlePlaces.js'
-import { useI18n } from '../lib/i18n.js'
-import { useTheme } from '../lib/theme.js'
+import { useEffect, useMemo, useRef } from "react";
+import {
+  APIProvider,
+  AdvancedMarker,
+  Map,
+  useMap,
+} from "@vis.gl/react-google-maps";
+import { arcPoints, splitArc } from "../lib/arc.js";
+import { TransportIcon } from "./TransportLeg.jsx";
+import { formatDay, isPlaced, legOf, modeColor } from "../lib/store.js";
+import { googleMapsKey } from "../lib/googlePlaces.js";
+import { useI18n } from "../lib/i18n.js";
+import { useTheme } from "../lib/theme.js";
 
 // A minimal dark styling so the "Google" basemap choice still respects the
 // app's theme rather than always rendering Google's default light roadmap.
 const DARK_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8a8aa3' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2a45' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d0c1a' }] },
-  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-]
+  { elementType: "geometry", stylers: [{ color: "#1a1a2e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a2e" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#8a8aa3" }] },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#2a2a45" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#0d0c1a" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels",
+    stylers: [{ visibility: "off" }],
+  },
+];
 
 /**
  * One imperative `google.maps.Polyline` per leg.
@@ -26,11 +43,11 @@ const DARK_STYLE = [
  * from a `useMap()` handle.
  */
 function GooglePolyline({ path, color, casing }) {
-  const map = useMap()
-  const lineRef = useRef(null)
+  const map = useMap();
+  const lineRef = useRef(null);
 
   useEffect(() => {
-    if (!map || !window.google) return undefined
+    if (!map || !window.google) return undefined;
 
     const line = new window.google.maps.Polyline({
       path: path.map(([lat, lng]) => ({ lat, lng })),
@@ -39,46 +56,59 @@ function GooglePolyline({ path, color, casing }) {
       strokeWeight: casing ? 8 : 4,
       zIndex: casing ? 1 : 2,
       map,
-    })
-    lineRef.current = line
+    });
+    lineRef.current = line;
 
-    return () => line.setMap(null)
+    return () => line.setMap(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, color, casing, JSON.stringify(path)])
+  }, [map, color, casing, JSON.stringify(path)]);
 
-  return null
+  return null;
 }
 
 function ModeBadge({ position, mode, color }) {
   return (
-    <AdvancedMarker position={{ lat: position[0], lng: position[1] }} zIndex={1}>
+    <AdvancedMarker
+      position={{ lat: position[0], lng: position[1] }}
+      zIndex={1}
+    >
       <div className="leg-badge" style={{ color, width: 22, height: 22 }}>
         <TransportIcon mode={mode} size={12} strokeWidth={2.4} />
       </div>
     </AdvancedMarker>
-  )
+  );
 }
 
-function StopPin({ stop, index, active, onHover, onOpenDetails, inDayMode, t }) {
+function StopPin({
+  stop,
+  index,
+  active,
+  onHover,
+  onOpenDetails,
+  inDayMode,
+  t,
+}) {
   return (
     <AdvancedMarker
       position={{ lat: stop.lat, lng: stop.lng }}
       onClick={() => {
-        if (!inDayMode) onOpenDetails?.(stop.id)
+        if (!inDayMode) onOpenDetails?.(stop.id);
       }}
       onMouseEnter={() => onHover?.(stop.id)}
       onMouseLeave={() => onHover?.(null)}
       title={
         inDayMode
-          ? stop.name || t('attractions.fallback')
+          ? stop.name || t("attractions.fallback")
           : `${stop.name} — ${formatDay(stop.startDate)} – ${formatDay(stop.endDate)}`
       }
     >
-      <div className={`pin ${inDayMode ? 'pin-sm' : ''} ${active ? 'pin-active' : ''}`}>
+      <div
+        className={`pin ${inDayMode ? "pin-sm" : ""} ${active ? "pin-active" : ""}`}
+      >
         {index + 1}
       </div>
     </AdvancedMarker>
-  )
+  );
 }
 
 /**
@@ -95,92 +125,104 @@ export default function GoogleTripMap({
   dayRoute,
   onOpenDetails,
 }) {
-  const { t } = useI18n()
-  const { theme } = useTheme()
+  const { t } = useI18n();
+  const { theme } = useTheme();
 
-  const inDayMode = Boolean(dayRoute)
+  const inDayMode = Boolean(dayRoute);
   const stops = useMemo(
     () => (inDayMode ? dayRoute.stops : destinations.filter(isPlaced)),
     [inDayMode, dayRoute, destinations],
-  )
+  );
 
   // A stable primitive key so the geometry only rebuilds when the route
   // itself changes, not on every unrelated render.
   const routeKey = stops
-    .map((s) => `${s.id}:${s.lat},${s.lng}:${s.legOut?.mode ?? ''}`)
-    .join('|')
+    .map((s) => `${s.id}:${s.lat},${s.lng}:${s.legOut?.mode ?? ""}`)
+    .join("|");
 
   const legs = useMemo(() => {
-    const out = []
+    const out = [];
     for (let i = 0; i < stops.length - 1; i += 1) {
-      const from = stops[i]
-      const to = stops[i + 1]
-      const a = [from.lat, from.lng]
-      const b = [to.lat, to.lng]
-      const curvature = inDayMode ? 0.08 : 0.18
+      const from = stops[i];
+      const to = stops[i + 1];
+      const a = [from.lat, from.lng];
+      const b = [to.lat, to.lng];
+      const curvature = inDayMode ? 0.08 : 0.18;
       const segments = inDayMode
-        ? [{ id: 'day', mode: from.legOut?.mode ?? 'walk' }]
-        : legOf(from)
+        ? [{ id: "day", mode: from.legOut?.mode ?? "walk" }]
+        : legOf(from);
 
       if (segments.length === 0) {
-        const points = arcPoints(a, b, { curvature })
+        const points = arcPoints(a, b, { curvature });
         out.push({
           id: `${from.id}->${to.id}`,
-          mode: 'train',
-          color: modeColor('train'),
+          mode: "train",
+          color: modeColor("train"),
           points,
           midpoint: points[Math.floor(points.length / 2)],
-        })
-        continue
+        });
+        continue;
       }
 
       const wholeArc = arcPoints(a, b, {
         curvature,
         segments: Math.max(96, segments.length * 48),
-      })
-      const pieces = splitArc(wholeArc, segments.length)
+      });
+      const pieces = splitArc(wholeArc, segments.length);
 
       segments.forEach((segment, s) => {
-        const points = pieces[s]
+        const points = pieces[s];
         out.push({
           id: `${from.id}->${to.id}#${segment.id}`,
           mode: segment.mode,
           color: modeColor(segment.mode),
           points,
           midpoint: points[Math.floor(points.length / 2)],
-        })
-      })
+        });
+      });
     }
-    return out
+    return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inDayMode, routeKey])
+  }, [inDayMode, routeKey]);
 
   const center = stops.length
     ? { lat: stops[0].lat, lng: stops[0].lng }
-    : { lat: 45.4642, lng: 9.19 }
+    : { lat: 45.4642, lng: 9.19 };
 
   return (
-    <APIProvider apiKey={googleMapsKey()} libraries={['marker']}>
+    <APIProvider apiKey={googleMapsKey()} libraries={["marker"]}>
       <Map
         mapId="project-travel-trip"
         defaultCenter={center}
         defaultZoom={inDayMode ? 13 : 5}
         gestureHandling="greedy"
         disableDefaultUI={false}
-        styles={theme === 'dark' ? DARK_STYLE : undefined}
+        styles={theme === "dark" ? DARK_STYLE : undefined}
         className="h-full w-full"
       >
         {legs.map((leg) => (
-          <GooglePolyline key={`casing-${leg.id}`} path={leg.points} color="#ffffff" casing />
+          <GooglePolyline
+            key={`casing-${leg.id}`}
+            path={leg.points}
+            color="#ffffff"
+            casing
+          />
         ))}
         {legs.map((leg) => (
           <GooglePolyline key={leg.id} path={leg.points} color={leg.color} />
         ))}
         {legs.map((leg) => (
-          <ModeBadge key={`badge-${leg.id}`} position={leg.midpoint} mode={leg.mode} color={leg.color} />
+          <ModeBadge
+            key={`badge-${leg.id}`}
+            position={leg.midpoint}
+            mode={leg.mode}
+            color={leg.color}
+          />
         ))}
         {stops.map((stop, i) => {
-          const index = inDayMode ? i : destinations.findIndex((d) => d.id === stop.id)
+          const index = inDayMode
+            ? i
+            : destinations.findIndex((d) => d.id === stop.id);
           return (
             <StopPin
               key={stop.id}
@@ -192,9 +234,9 @@ export default function GoogleTripMap({
               inDayMode={inDayMode}
               t={t}
             />
-          )
+          );
         })}
       </Map>
     </APIProvider>
-  )
+  );
 }
