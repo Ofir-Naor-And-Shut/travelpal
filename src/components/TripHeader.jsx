@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { Check, LayoutGrid, Pencil } from 'lucide-react'
+import { Check, LayoutGrid, LogOut, Pencil } from 'lucide-react'
 import ProgressRing from './ProgressRing.jsx'
 import AppControls from './AppControls.jsx'
 import TripSwitcher from './TripSwitcher.jsx'
 import { CURRENCIES, updateTrip } from '../lib/store.js'
+import { signOut, useSession } from '../lib/auth.js'
 import { currencySymbol, formatMoney } from '../lib/money.js'
 import { useI18n } from '../lib/i18n.js'
 
 export default function TripHeader({ trip, stats, onBackToTrips }) {
   const [editing, setEditing] = useState(false)
   const { t, dateLocale } = useI18n()
+  const { session } = useSession()
 
   const opts = { locale: dateLocale }
   const range = `${format(parseISO(trip.startDate), 'dd MMM', opts)} – ${format(
@@ -35,6 +37,18 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
             </button>
           )}
           <AppControls />
+          {/* Only signed-in users have a session to end; local-only users sign
+              in from the picker instead. */}
+          {session && (
+            <button
+              type="button"
+              className="btn-ghost !px-2.5 !py-1.5 text-xs"
+              onClick={signOut}
+            >
+              <LogOut size={14} />
+              {t('picker.signOut')}
+            </button>
+          )}
         </div>
         <TripSwitcher />
       </div>

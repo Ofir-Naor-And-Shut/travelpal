@@ -17,13 +17,19 @@ trip lives in the browser and works offline, instantly, and privately.
 **Stack:** React + Vite + Tailwind v4 (`@theme` with a semantic-token layer),
 oxlint, Leaflet for maps. No component library — components are hand-built.
 
-**Data model.** A trip is one serializable object held in a `useSyncExternalStore`
-store (`src/lib/store.js`), persisted to `localStorage` under
-`project-travel:trip:v2` (with a v1 → v2 migration). Uploaded files — passports,
-booking PDFs — are blobs in **IndexedDB** via `idb-keyval`, keyed `doc:<id>`;
-they never go in localStorage, and never in Postgres. `makeAttraction`,
-`makeReservation`, `makeSegment`, `makeDayAccommodation` are the shape factories,
-and load-time normalization keeps old saves valid.
+**Data model.** The app holds *several* trips. Each is one serializable object;
+the **active** trip lives in a `useSyncExternalStore` store (`src/lib/store.js`)
+and is what every screen reads via `useTrip`, so features stay oblivious to there
+being more than one. Trips persist one-per-key under `project-travel:trip:<id>`
+with a small `project-travel:index` (`{ activeId, ids }`); the old single-trip
+`:v2`/`:v1` keys are migrated into this on first load and left intact as a
+fallback. Every trip carries a UUID `id` and an `updatedAt` — the Supabase row
+key and the last-write-wins clock. `useTripList`, `createTrip`, `switchTrip` and
+`deleteTrip` manage the set (the store always keeps at least one trip). Uploaded
+files — passports, booking PDFs — are blobs in **IndexedDB** via `idb-keyval`,
+keyed `doc:<id>`; they never go in localStorage, and never in Postgres.
+`makeAttraction`, `makeReservation`, `makeSegment`, `makeDayAccommodation` are the
+shape factories, and load-time normalization keeps old saves valid.
 
 **Features.**
 - **Destinations** — ordered stops, nights stepper, drag-to-reorder with live
@@ -41,15 +47,32 @@ and load-time normalization keeps old saves valid.
   coloured piece per transport segment with a mode badge, zooming to city level
   in day-planner mode. Clicking a destination pin opens its Details.
 - A floating bottom **nav bar**; the active item expands into a pill.
+- **Accounts & trips** — a passwordless (magic-link) sign-in screen and a
+  trip-picker landing screen let you keep several trips and open one at a time.
+  Inside the editor the header carries a quick trip switcher, an "All trips"
+  button back to the picker, and sign-out. Signing in is optional — a "continue
+  without an account" escape runs the app fully local-only.
 
 **In progress — a Supabase backend** layered *under* the local-first store for
 cross-device sync and sharing. A trip is stored as one JSONB row in `public.trips`
-with owner-only RLS; magic-link auth; documents will move to a Storage bucket;
-sharing via a `trip_members` table comes later. **Local-first stays the working
-copy — Supabase is the durable, syncable backup, not a replacement.** Client in
-`src/lib/supabase.js`, schema in `supabase/schema.sql`, credentials in
-`.env.local` (gitignored). Phased: auth + sync → documents to Storage → sharing →
-realtime.
+with owner-only RLS. **Local-first stays the working copy — Supabase is the
+durable, syncable backup, not a replacement.** Client in `src/lib/supabase.js`,
+auth/session in `src/lib/auth.js`, schema in `supabase/schema.sql`, credentials in
+`.env.local` (gitignored).
+
+*Done so far:* **magic-link (passwordless) auth** and the **screen flow** —
+`AuthScreen` → `TripPicker` (the landing screen) → the editor (`TripEditor`),
+gated in `App.jsx`. `auth.js` exposes `useSession`, `sendMagicLink`, `signOut`,
+`useLocalOnly`/`setLocalOnly`, all no-ops when Supabase isn't configured. A
+"continue without an account" choice keeps the app usable local-only; sign-out
+returns to the login screen. Multiple trips are still **local only** at this point.
+
+*Still to do:* the actual cloud read/write — pull a user's trips on sign-in,
+debounced push on edit, reconcile by `updatedAt` (last-write-wins), and adopt any
+existing local trips into the account on first login. Then documents to a Storage
+bucket, sharing via a `trip_members` table, and realtime. Phased so the app is
+never left broken; the authenticated path can only be verified once a real
+magic-link login has happened (the DB refuses anonymous access by design).
 
 ## First-class constraints — true of every change
 

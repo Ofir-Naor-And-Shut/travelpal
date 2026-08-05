@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -58,6 +59,12 @@ export default function App() {
   const { session, ready } = useSession()
   const localOnly = useLocalOnly()
   const [inEditor, setInEditor] = useState(false)
+
+  // Signing out (session gone) drops back to the gate, so a later sign-in lands
+  // on the picker rather than jumping straight into the last-open editor.
+  useEffect(() => {
+    if (!session) setInEditor(false)
+  }, [session])
 
   // Wait for the initial session check so we don't flash the sign-in screen
   // over a persisted session that's a beat away from loading.
