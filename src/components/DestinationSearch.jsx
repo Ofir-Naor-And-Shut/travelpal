@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, MapPin, Search } from 'lucide-react'
 import { searchLocal, searchRemote } from '../lib/places.js'
+import { hasGoogleKey, searchGooglePlaces } from '../lib/googlePlaces.js'
 import { useI18n } from '../lib/i18n.js'
 
 export default function DestinationSearch({ onSelect }) {
@@ -29,7 +30,13 @@ export default function DestinationSearch({ onSelect }) {
     setLoading(true)
     const timer = setTimeout(async () => {
       try {
-        const remote = await searchRemote(q, controller.signal)
+        // Google, when a key is present, is the far better geocoder — fall
+        // back to the free OSM lookup if it errors or there's no key.
+        const remote = hasGoogleKey()
+          ? await searchGooglePlaces(q, { signal: controller.signal }).catch(
+              () => searchRemote(q, controller.signal),
+            )
+          : await searchRemote(q, controller.signal)
         const seen = new Set(local.map((r) => `${r.name}|${r.country}`))
         const merged = [
           ...local,

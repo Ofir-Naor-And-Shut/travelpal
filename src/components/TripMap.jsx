@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import {
   MapContainer,
   Marker,
@@ -19,6 +19,7 @@ import {
   legOf,
   modeColor,
 } from '../lib/store.js'
+import { hasGoogleKey } from '../lib/googlePlaces.js'
 import { useI18n } from '../lib/i18n.js'
 import { useTheme } from '../lib/theme.js'
 
@@ -65,7 +66,18 @@ const BASEMAPS = [
   },
 ]
 
+// A separate, non-Leaflet entry: picking it swaps the whole map surface for
+// the Google Maps JS API instead of adding a tile layer. Google's terms don't
+// allow pulling its raster tiles into a third-party map library directly, so
+// this is the only way to offer it — gated on a key being present at all,
+// same graceful-degradation rule as Google Places search.
+const GOOGLE_BASEMAP = { id: 'google', key: 'map.google', google: true }
+
 const STYLE_KEY = 'project-travel:basemap'
+
+// Code-split: @vis.gl/react-google-maps (and the Maps JS SDK it loads) should
+// only ever be downloaded by someone who actually has a Google key configured.
+const GoogleTripMap = lazy(() => import('./GoogleTripMap.jsx'))
 
 const SPRITE_ID = (mode) => `mode-icon-${mode}`
 
@@ -225,7 +237,14 @@ export default function TripMap({
   )
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  const basemap = BASEMAPS.find((b) => b.id === styleId) ?? BASEMAPS[0]
+  // Google only shows up as a choice once a key is configured — same
+  // graceful-degradation rule the search inputs follow.
+  const availableBasemaps = hasGoogleKey()
+    ? [...BASEMAPS, GOOGLE_BASEMAP]
+    : BASEMAPS
+
+  const basemap =
+    availableBasemaps.find((b) => b.id === styleId) ?? availableBasemaps[0]
   const isDark = theme === 'dark'
   const tileUrl = (isDark && basemap.darkUrl) || basemap.url
   // True when the tiles themselves are dark, so pins and casings need to flip.
@@ -367,6 +386,17 @@ export default function TripMap({
     <div className="relative h-full w-full">
       <ModeIconSprite />
 
+      {basemap.google ? (
+        <Suspense fallback={<div className="h-full w-full bg-canvas" />}>
+          <GoogleTripMap
+            destinations={destinations}
+            activeId={activeId}
+            onHover={onHover}
+            dayRoute={dayRoute}
+            onOpenDetails={onOpenDetails}
+          />
+        </Suspense>
+      ) : (
       <MapContainer
         center={[45.4642, 9.19]}
         zoom={5}
@@ -521,6 +551,7 @@ export default function TripMap({
           }
         />
       </MapContainer>
+      )}
 
       {/* --- Basemap picker ------------------------------------------------ */}
       <div className="absolute end-3 top-3 z-[600] flex flex-col items-end gap-2">
@@ -540,7 +571,7 @@ export default function TripMap({
             aria-label={t('map.style')}
             className="overflow-hidden rounded-xl bg-surface/95 shadow-lg backdrop-blur"
           >
-            {BASEMAPS.map((b) => (
+            {availableBasemaps.map((b) => (
               <button
                 key={b.id}
                 type="button"
@@ -579,12 +610,17 @@ export default function TripMap({
         </ul>
       )}
 
-      <p
-        dir="ltr"
-        className="pointer-events-none absolute bottom-20 end-1 z-[600] rounded bg-surface/80 px-1.5 py-0.5 text-[10px] text-muted"
-      >
-        {basemap.attribution}
-      </p>
+      {/* Google renders its own "Google" wordmark/ToS link on the map itself;
+          a second attribution line would be redundant and, for the other
+          basemaps, wrong. */}
+      {!basemap.google && (
+        <p
+          dir="ltr"
+          className="pointer-events-none absolute bottom-20 end-1 z-[600] rounded bg-surface/80 px-1.5 py-0.5 text-[10px] text-muted"
+        >
+          {basemap.attribution}
+        </p>
+      )}
 
       {/* Badge naming the day being shown, so the narrowed view is obvious. */}
       {inDayMode && (

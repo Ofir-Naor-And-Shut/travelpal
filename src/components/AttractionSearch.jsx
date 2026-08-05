@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Clock, Globe, Loader2, MapPin, Phone, Search, Store, X } from 'lucide-react'
 import { searchNearby } from '../lib/places.js'
 import { BIZ_CATEGORIES, searchBusinesses } from '../lib/bizdata.js'
+import { hasGoogleKey, searchGooglePlaces } from '../lib/googlePlaces.js'
 import { useI18n } from '../lib/i18n.js'
 
 /**
@@ -45,8 +46,21 @@ export default function AttractionSearch({ center, onSelect }) {
     // Nominatim asks for at most one request a second; debounce and abort.
     const timer = setTimeout(async () => {
       try {
-        const rows = await searchNearby(q, center, controller.signal)
-        setPlaceHits(rows.map((r) => ({ ...r, source: 'osm' })))
+        const rows = hasGoogleKey()
+          ? await searchGooglePlaces(q, {
+              center,
+              signal: controller.signal,
+              details: true,
+            }).catch(() =>
+              searchNearby(q, center, controller.signal).then((r) =>
+                r.map((x) => ({ ...x, source: 'osm' })),
+              ),
+            )
+          : (await searchNearby(q, center, controller.signal)).map((r) => ({
+              ...r,
+              source: 'osm',
+            }))
+        setPlaceHits(rows)
         setOpen(true)
       } catch (err) {
         if (err.name !== 'AbortError') setPlaceHits([])
@@ -74,7 +88,24 @@ export default function AttractionSearch({ center, onSelect }) {
     setBizError(false)
     setOpen(true)
 
-    searchBusinesses(center.name, category, { signal: controller.signal })
+    // Google's own category text search replaces BizData when a key is
+    // present — same "every museum in this city" job, no separate free API.
+    const run = hasGoogleKey()
+      ? searchGooglePlaces(category, {
+          center,
+          signal: controller.signal,
+          details: true,
+          limit: 12,
+        }).catch(() =>
+          searchBusinesses(center.name, category, {
+            signal: controller.signal,
+          }),
+        )
+      : searchBusinesses(center.name, category, {
+          signal: controller.signal,
+        })
+
+    run
       .then((rows) => setBizHits(rows))
       .catch((err) => {
         if (err.name !== 'AbortError') {
@@ -85,6 +116,9 @@ export default function AttractionSearch({ center, onSelect }) {
       .finally(() => setLoadingBiz(false))
 
     return () => controller.abort()
+    // `center` is intentionally excluded — a new object with the same name
+    // shouldn't re-trigger the search, only actually switching destination should.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, center?.name])
 
   useEffect(() => {
@@ -204,6 +238,7 @@ export default function AttractionSearch({ center, onSelect }) {
         >
           {results.map((place, i) => {
             const isBiz = place.source === 'bizdata'
+            const hasContactInfo = place.openingHours || place.phone
             return (
               <li key={place.id} role="option" aria-selected={i === highlight}>
                 <button
@@ -240,8 +275,9 @@ export default function AttractionSearch({ center, onSelect }) {
                       </span>
                     )}
 
-                    {/* The reason to use BizData at all. */}
-                    {isBiz && (place.openingHours || place.phone) && (
+                    {/* Contact details from BizData, or from Google when the
+                        category search asked for them. */}
+                    {hasContactInfo && (
                       <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-subtle">
                         {place.openingHours && (
                           <span className="inline-flex items-center gap-1">

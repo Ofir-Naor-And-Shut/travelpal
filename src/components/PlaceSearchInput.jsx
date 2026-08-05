@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Loader2, MapPin } from 'lucide-react'
 import { searchNearby } from '../lib/places.js'
+import { hasGoogleKey, searchGooglePlaces } from '../lib/googlePlaces.js'
 
 /**
  * A text field that doubles as a place lookup.
@@ -42,7 +43,13 @@ export default function PlaceSearchInput({
     setLoading(true)
     const timer = setTimeout(async () => {
       try {
-        const rows = await searchNearby(q, center, controller.signal, 6)
+        const rows = hasGoogleKey()
+          ? await searchGooglePlaces(q, {
+              center,
+              signal: controller.signal,
+              limit: 6,
+            }).catch(() => searchNearby(q, center, controller.signal, 6))
+          : await searchNearby(q, center, controller.signal, 6)
         setResults(rows)
         setHighlight(0)
         setOpen(true)
