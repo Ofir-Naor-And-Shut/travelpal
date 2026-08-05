@@ -8,6 +8,20 @@ const LEGACY_KEY = 'project-travel:trip:v1'
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 /**
+ * A trip's id doubles as its Supabase primary key, so it must be a real UUID
+ * rather than the short `uid` used for in-trip entities. `crypto.randomUUID`
+ * covers every modern browser on http(s)/localhost; the fallback keeps the app
+ * working if it's ever opened from a bare `file://` URL (a non-secure context).
+ */
+const newId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
+
+/**
  * Each mode carries its own colour so a leg reads the same way in the list, on
  * the map and in the legend. Train keeps the brand teal; the rest fan out into
  * hues that stay legible on top of a colourful basemap.
@@ -213,6 +227,28 @@ function seedTrip() {
   }
 }
 
+/**
+ * The baseline fields every trip carries. Kept separate from the demo
+ * `seedTrip` so a stored trip that predates a field is filled in with empty
+ * defaults, never with demo content — only a genuinely first-run app (no
+ * storage at all) is handed the sample trip.
+ */
+function tripDefaults() {
+  return {
+    id: newId(),
+    title: 'New trip',
+    emoji: '🌍',
+    startDate: '2026-06-09',
+    endDate: '2026-06-16',
+    currency: 'EUR',
+    days: {},
+    destinations: [],
+    // Client write-time, compared against the Supabase row's updated_at for
+    // last-write-wins sync. Bumped on every commit.
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Persistence                                                                */
 /* -------------------------------------------------------------------------- */
@@ -234,7 +270,7 @@ function normalize(trip) {
   )
 
   return {
-    ...seedTrip(),
+    ...tripDefaults(),
     ...trip,
     days,
     destinations: (trip.destinations ?? []).map((d) => ({
@@ -291,35 +327,106 @@ function migrateV1(old) {
   return normalize({ ...old, destinations, days })
 }
 
-function load() {
+/*
+ * Multi-trip storage.
+ *
+ * Each trip is persisted under its own key (`project-travel:trip:<id>`) and a
+ * small index (`project-travel:index`) records their order and which one is
+ * active. The active trip is mirrored in `state`, so every screen — which reads
+ * `useTrip()` and calls the mutations below — is untouched by there now being
+ * more than one trip; it only ever sees the active one.
+ */
+const INDEX_KEY = 'project-travel:index'
+const tripKey = (id) => `project-travel:trip:${id}`
+
+function persistTrip(trip) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed && Array.isArray(parsed.destinations)) return normalize(parsed)
-      return seedTrip()
-    }
-
-    const legacy = localStorage.getItem(LEGACY_KEY)
-    if (legacy) {
-      const migrated = migrateV1(JSON.parse(legacy))
-      // Write straight away so the migration is durable even if the user only
-      // reads the trip. The v1 payload is left untouched as a fallback.
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
-      } catch {
-        // Non-fatal — the in-memory trip is still correct.
-      }
-      return migrated
-    }
-
-    return seedTrip()
+    localStorage.setItem(tripKey(trip.id), JSON.stringify(trip))
   } catch {
-    return seedTrip()
+    // Quota or private-mode failure — the in-memory copy stays usable.
   }
 }
 
-let state = load()
+function persistIndex() {
+  try {
+    localStorage.setItem(INDEX_KEY, JSON.stringify({ activeId, ids: order }))
+  } catch {
+    // Non-fatal: ordering/active just won't survive a reload.
+  }
+}
+
+/**
+ * Load every stored trip, or migrate the old single-trip keys (v2, then v1) on
+ * the first run of the multi-trip build. As with the earlier v1→v2 migration,
+ * the legacy keys are left in place as a fallback rather than deleted.
+ */
+function loadAll() {
+  try {
+    const index = JSON.parse(localStorage.getItem(INDEX_KEY) ?? 'null')
+    if (index && Array.isArray(index.ids) && index.ids.length > 0) {
+      const map = new Map()
+      const ids = []
+      for (const id of index.ids) {
+        const raw = localStorage.getItem(tripKey(id))
+        if (!raw) continue
+        try {
+          const trip = normalize(JSON.parse(raw))
+          map.set(trip.id, trip)
+          ids.push(trip.id)
+        } catch {
+          // Skip one corrupt trip rather than losing the whole set.
+        }
+      }
+      if (map.size > 0) {
+        const active = map.has(index.activeId) ? index.activeId : ids[0]
+        return { map, order: ids, activeId: active }
+      }
+    }
+    return migrateLegacy()
+  } catch {
+    return migrateLegacy()
+  }
+}
+
+function migrateLegacy() {
+  let base = null
+  try {
+    const v2 = localStorage.getItem(STORAGE_KEY)
+    if (v2) {
+      const parsed = JSON.parse(v2)
+      if (parsed && Array.isArray(parsed.destinations)) base = normalize(parsed)
+    }
+    if (!base) {
+      const v1 = localStorage.getItem(LEGACY_KEY)
+      if (v1) base = migrateV1(JSON.parse(v1))
+    }
+  } catch {
+    // Fall through to a freshly seeded trip.
+  }
+  if (!base) base = normalize(seedTrip())
+
+  // Write the new format straight away so the migration is durable, keeping the
+  // legacy v1/v2 keys untouched as a safety net.
+  persistTrip(base)
+  try {
+    localStorage.setItem(
+      INDEX_KEY,
+      JSON.stringify({ activeId: base.id, ids: [base.id] }),
+    )
+  } catch {
+    // Non-fatal.
+  }
+  return { map: new Map([[base.id, base]]), order: [base.id], activeId: base.id }
+}
+
+const loaded = loadAll()
+const trips = loaded.map
+let order = loaded.order
+let activeId = loaded.activeId
+let state = trips.get(activeId)
+
+/* --- active-trip store: what every screen reads --------------------------- */
+
 const listeners = new Set()
 
 function subscribe(listener) {
@@ -328,13 +435,13 @@ function subscribe(listener) {
 }
 
 function commit(next) {
-  state = next
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // Quota or private-mode failure — keep the in-memory state usable.
-  }
+  const stamped = { ...next, updatedAt: new Date().toISOString() }
+  state = stamped
+  trips.set(activeId, stamped)
+  persistTrip(stamped)
   listeners.forEach((l) => l())
+  // A commit can change the title/emoji/dates shown in the switcher.
+  refreshRegistry()
 }
 
 export function useTrip() {
@@ -343,6 +450,105 @@ export function useTrip() {
     () => state,
     () => state,
   )
+}
+
+/* --- trip-registry store: the list of trips + which one is active --------- */
+
+const registryListeners = new Set()
+
+function computeRegistry() {
+  return {
+    activeId,
+    trips: order.map((id) => {
+      const trip = trips.get(id)
+      return {
+        id,
+        title: trip.title,
+        emoji: trip.emoji,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+      }
+    }),
+  }
+}
+
+let registry = computeRegistry()
+
+/**
+ * Rebuild the registry snapshot, notifying only when it actually changed, so a
+ * keystroke in an unrelated field of the active trip doesn't re-render the
+ * whole switcher. useSyncExternalStore also requires a stable reference while
+ * nothing changed, which this preserves.
+ */
+function refreshRegistry() {
+  const next = computeRegistry()
+  if (JSON.stringify(next) === JSON.stringify(registry)) return
+  registry = next
+  registryListeners.forEach((l) => l())
+}
+
+function subscribeRegistry(listener) {
+  registryListeners.add(listener)
+  return () => registryListeners.delete(listener)
+}
+
+export function useTripList() {
+  return useSyncExternalStore(
+    subscribeRegistry,
+    () => registry,
+    () => registry,
+  )
+}
+
+/** Create a new trip and switch to it; returns its id. */
+export function createTrip(partial = {}) {
+  const trip = normalize({ ...tripDefaults(), ...partial, id: newId() })
+  trips.set(trip.id, trip)
+  order = [...order, trip.id]
+  activeId = trip.id
+  state = trip
+  persistTrip(trip)
+  persistIndex()
+  listeners.forEach((l) => l())
+  refreshRegistry()
+  return trip.id
+}
+
+export function switchTrip(id) {
+  if (id === activeId || !trips.has(id)) return
+  activeId = id
+  state = trips.get(id)
+  persistIndex()
+  listeners.forEach((l) => l())
+  refreshRegistry()
+}
+
+export function deleteTrip(id) {
+  if (!trips.has(id)) return
+  trips.delete(id)
+  order = order.filter((x) => x !== id)
+  try {
+    localStorage.removeItem(tripKey(id))
+  } catch {
+    // Non-fatal: the row is gone from the index either way.
+  }
+
+  if (activeId === id) {
+    if (order.length === 0) {
+      // Never leave the app with no trip at all — seed a fresh one.
+      const seed = normalize(seedTrip())
+      trips.set(seed.id, seed)
+      order = [seed.id]
+      activeId = seed.id
+      persistTrip(seed)
+    } else {
+      activeId = order[0]
+    }
+    state = trips.get(activeId)
+    listeners.forEach((l) => l())
+  }
+  persistIndex()
+  refreshRegistry()
 }
 
 /* -------------------------------------------------------------------------- */
@@ -688,7 +894,9 @@ export function removeDayAccommodationDoc(key, docId) {
 }
 
 export function resetTrip() {
-  commit(seedTrip())
+  // Reset the active trip's contents in place — same id, so it stays the same
+  // stored (and, once synced, the same remote) trip.
+  commit(normalize({ ...seedTrip(), id: activeId }))
 }
 
 /* -------------------------------------------------------------------------- */

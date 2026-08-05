@@ -14,7 +14,18 @@ import BudgetView from './components/BudgetView.jsx'
 import DetailsView from './components/DetailsView.jsx'
 import TripMap from './components/TripMap.jsx'
 import ResizeHandle from './components/ResizeHandle.jsx'
-import { isPlaced, tripDays, tripStats, useTrip, withDates } from './lib/store.js'
+import AuthScreen from './components/AuthScreen.jsx'
+import TripPicker from './components/TripPicker.jsx'
+import {
+  isPlaced,
+  switchTrip,
+  tripDays,
+  tripStats,
+  useTrip,
+  withDates,
+} from './lib/store.js'
+import { useLocalOnly, useSession } from './lib/auth.js'
+import { hasSupabase } from './lib/supabase.js'
 import { useI18n } from './lib/i18n.js'
 
 // The map only earns its space where the route is the subject.
@@ -32,7 +43,51 @@ const TABS = [
   { id: 'budget', key: 'tab.budget' },
 ]
 
+/**
+ * Screen gate. Three states, in order:
+ *   1. Supabase configured but not signed in (and not opted into local-only)
+ *      → the auth screen.
+ *   2. Signed in (or local-only, or no Supabase at all) but no trip opened yet
+ *      → the trip picker.
+ *   3. A trip opened → the editor.
+ *
+ * All hooks run before any branch, so the rules of hooks hold; the heavy
+ * editor and its map only mount once a trip is actually open.
+ */
 export default function App() {
+  const { session, ready } = useSession()
+  const localOnly = useLocalOnly()
+  const [inEditor, setInEditor] = useState(false)
+
+  // Wait for the initial session check so we don't flash the sign-in screen
+  // over a persisted session that's a beat away from loading.
+  if (hasSupabase && !ready) {
+    return (
+      <div className="grid min-h-full place-items-center bg-canvas">
+        <span className="animate-pulse text-3xl" aria-hidden>
+          🌍
+        </span>
+      </div>
+    )
+  }
+
+  if (hasSupabase && !session && !localOnly) return <AuthScreen />
+
+  if (!inEditor) {
+    return (
+      <TripPicker
+        onSelect={(id) => {
+          switchTrip(id)
+          setInEditor(true)
+        }}
+      />
+    )
+  }
+
+  return <TripEditor onBackToTrips={() => setInEditor(false)} />
+}
+
+function TripEditor({ onBackToTrips }) {
   const trip = useTrip()
   const { t, rtl } = useI18n()
   const [view, setView] = useState('plan')
@@ -187,7 +242,7 @@ export default function App() {
         }`}
       >
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface">
-          <TripHeader trip={trip} stats={stats} />
+          <TripHeader trip={trip} stats={stats} onBackToTrips={onBackToTrips} />
 
           <nav
             aria-label={t('nav.sections')}

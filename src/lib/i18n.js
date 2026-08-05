@@ -29,6 +29,42 @@ const STRINGS = {
     'tab.dayByDay': 'Daily planner',
     'tab.budget': 'Budget',
 
+    // trips (multi-trip switcher)
+    'trips.switch': 'Switch trip',
+    'trips.label': 'Your trips',
+    'trips.new': 'New trip',
+    'trips.newTitle': 'New trip',
+    'trips.delete': 'Delete {name}',
+    'trips.confirmDelete':
+      'Delete “{name}” and everything in it? This can’t be undone.',
+
+    // auth (magic-link sign in / sign up)
+    'auth.tagline': 'Plan trips that live in your browser — and in your account.',
+    'auth.emailLabel': 'Email address',
+    'auth.emailPlaceholder': 'you@example.com',
+    'auth.send': 'Send magic link',
+    'auth.sending': 'Sending…',
+    'auth.sentTitle': 'Check your inbox',
+    'auth.sentBody':
+      'We emailed a sign-in link to {email}. Open it on this device to continue.',
+    'auth.differentEmail': 'Use a different email',
+    'auth.localOnly': 'Continue without an account',
+    'auth.localOnlyHint': 'Your trips stay on this device and won’t sync.',
+    'auth.invalidEmail': 'Enter a valid email address.',
+    'auth.error': 'Couldn’t send the link. Please try again.',
+
+    // trip picker (the landing screen after signing in)
+    'picker.title': 'Your trips',
+    'picker.subtitle': 'Pick a trip to open, or start a new one.',
+    'picker.new': 'New trip',
+    'picker.open': 'Open {name}',
+    'picker.nights': '{count} nights',
+    'picker.signedInAs': 'Signed in as {email}',
+    'picker.signOut': 'Sign out',
+    'picker.localMode': 'Using without an account',
+    'picker.signInToSync': 'Sign in to sync',
+    'header.allTrips': 'All trips',
+
     // language + theme
     'lang.label': 'Language',
     'lang.change': 'Change language',
@@ -254,6 +290,41 @@ const STRINGS = {
     'tab.details': 'פרטים',
     'tab.dayByDay': 'תכנון יומי',
     'tab.budget': 'תקציב',
+
+    // trips (multi-trip switcher)
+    'trips.switch': 'החלפת טיול',
+    'trips.label': 'הטיולים שלך',
+    'trips.new': 'טיול חדש',
+    'trips.newTitle': 'טיול חדש',
+    'trips.delete': 'מחיקת {name}',
+    'trips.confirmDelete': 'למחוק את „{name}“ ואת כל התוכן שלו? לא ניתן לבטל.',
+
+    // auth (magic-link sign in / sign up)
+    'auth.tagline': 'לתכנן טיולים שנשמרים בדפדפן — ועכשיו גם בחשבון שלך.',
+    'auth.emailLabel': 'כתובת אימייל',
+    'auth.emailPlaceholder': 'you@example.com',
+    'auth.send': 'שליחת קישור כניסה',
+    'auth.sending': 'שולח…',
+    'auth.sentTitle': 'בדקו את תיבת הדואר',
+    'auth.sentBody':
+      'שלחנו קישור כניסה אל {email}. פתחו אותו במכשיר הזה כדי להמשיך.',
+    'auth.differentEmail': 'שימוש בכתובת אחרת',
+    'auth.localOnly': 'המשך ללא חשבון',
+    'auth.localOnlyHint': 'הטיולים יישארו במכשיר הזה ולא יסונכרנו.',
+    'auth.invalidEmail': 'הזינו כתובת אימייל תקינה.',
+    'auth.error': 'שליחת הקישור נכשלה. נסו שוב.',
+
+    // trip picker (the landing screen after signing in)
+    'picker.title': 'הטיולים שלך',
+    'picker.subtitle': 'בחרו טיול לפתיחה, או התחילו טיול חדש.',
+    'picker.new': 'טיול חדש',
+    'picker.open': 'פתיחת {name}',
+    'picker.nights': '{count} לילות',
+    'picker.signedInAs': 'מחוברים כ־{email}',
+    'picker.signOut': 'התנתקות',
+    'picker.localMode': 'שימוש ללא חשבון',
+    'picker.signInToSync': 'התחברו לסנכרון',
+    'header.allTrips': 'כל הטיולים',
 
     'lang.label': 'שפה',
     'lang.change': 'שינוי שפה',

@@ -13,7 +13,12 @@
       "PowerShell(cmd /c \"`\"C:\\\\Users\\\\naor1\\\\OneDrive\\\\??????\\\\Project Travel\\\\Open Project Travel.bat`\"\")",
       "PowerShell(cd \"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\"; & \"$env:ProgramFiles\\\\nodejs\\\\node.exe\" \"node_modules\\\\vite\\\\bin\\\\vite.js\" --port 5173 --strictPort --version 2>&1 | Select-Object -First 20)",
       "PowerShell(cd \"C:\\\\Users\\\\naor1\\\\OneDrive\\\\מסמכים\\\\Project Travel\"; $p = Start-Process -FilePath \"$env:ProgramFiles\\\\nodejs\\\\node.exe\" -ArgumentList '\"node_modules\\\\vite\\\\bin\\\\vite.js\"','--port','5173','--strictPort' -PassThru -RedirectStandardOutput \"$env:TEMP\\\\vite-out.txt\" -RedirectStandardError \"$env:TEMP\\\\vite-err.txt\" -WindowStyle Hidden; Start-Sleep -Seconds 6; \"exited=$\\($p.HasExited\\)\"; \"--- stdout ---\"; Get-Content \"$env:TEMP\\\\vite-out.txt\" -ErrorAction SilentlyContinue | Select-Object -First 20; \"--- stderr ---\"; Get-Content \"$env:TEMP\\\\vite-err.txt\" -ErrorAction SilentlyContinue | Select-Object -First 20)",
-      "Bash(grep -n \"AttractionsSection$\\\\|<AttractionsSection\\\\|<ReservationsSection\" -A 12 src/components/ItineraryView.jsx)"
+      "Bash(grep -n \"AttractionsSection$\\\\|<AttractionsSection\\\\|<ReservationsSection\" -A 12 src/components/ItineraryView.jsx)",
+      "Bash(node -e \"process.stdout.write\\(Object.entries\\(require\\('./package.json'\\).scripts\\).map\\(\\([k,v]\\)=>k+': '+v\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" -e \"process.stdout.write\\(Object.keys\\(require\\('./package.json'\\).scripts\\).join\\(','\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(npx oxlint *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

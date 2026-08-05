@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { Check, Pencil } from 'lucide-react'
+import { Check, LayoutGrid, Pencil } from 'lucide-react'
 import ProgressRing from './ProgressRing.jsx'
 import AppControls from './AppControls.jsx'
+import TripSwitcher from './TripSwitcher.jsx'
 import { CURRENCIES, updateTrip } from '../lib/store.js'
 import { currencySymbol, formatMoney } from '../lib/money.js'
 import { useI18n } from '../lib/i18n.js'
 
-export default function TripHeader({ trip, stats }) {
+export default function TripHeader({ trip, stats, onBackToTrips }) {
   const [editing, setEditing] = useState(false)
   const { t, dateLocale } = useI18n()
 
@@ -22,7 +23,20 @@ export default function TripHeader({ trip, stats }) {
     <header className="border-b border-line bg-surface px-5 pt-4 md:px-8">
       {/* Language + theme sit at the inline-start of the header. */}
       <div className="mb-3 flex items-center justify-between gap-3">
-        <AppControls />
+        <div className="flex items-center gap-2">
+          {onBackToTrips && (
+            <button
+              type="button"
+              className="btn-ghost !px-2.5 !py-1.5 text-xs"
+              onClick={onBackToTrips}
+            >
+              <LayoutGrid size={14} />
+              {t('header.allTrips')}
+            </button>
+          )}
+          <AppControls />
+        </div>
+        <TripSwitcher />
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
