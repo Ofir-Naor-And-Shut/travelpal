@@ -127,9 +127,11 @@ function TripEditor({ onBackToTrips }) {
   const clearDetailsFocus = useCallback(() => setDetailsDestId(null), []);
 
   // Only the day that is actually open drives the map; collapsing the current
-  // one releases it rather than leaving the map stuck on a hidden day.
-  const handleDayFocus = useCallback((key, isOpen) => {
-    setOpenDayKey((prev) => (isOpen ? key : prev === key ? null : prev));
+  // one (or switching to another) releases it rather than leaving the map
+  // stuck on a hidden day. ItineraryView enforces that at most one day is
+  // open at a time and reports the current key (or null) here.
+  const handleDayFocus = useCallback((key) => {
+    setOpenDayKey(key);
   }, []);
 
   const splitRef = useRef(null);

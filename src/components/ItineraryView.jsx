@@ -1,5 +1,5 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { format, isSameDay } from 'date-fns'
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { format, isSameDay } from "date-fns";
 import {
   Bed,
   CalendarCheck,
@@ -10,12 +10,12 @@ import {
   Paperclip,
   Plus,
   Trash2,
-} from 'lucide-react'
-import { TransportIcon } from './TransportLeg.jsx'
-import DocumentsPanel from './DocumentsPanel.jsx'
-import AttractionSearch from './AttractionSearch.jsx'
-import AttractionLeg from './AttractionLeg.jsx'
-import TimeField from './TimeField.jsx'
+} from "lucide-react";
+import { TransportIcon } from "./TransportLeg.jsx";
+import DocumentsPanel from "./DocumentsPanel.jsx";
+import AttractionSearch from "./AttractionSearch.jsx";
+import AttractionLeg from "./AttractionLeg.jsx";
+import TimeField from "./TimeField.jsx";
 import {
   addAttraction,
   addDayAccommodation,
@@ -34,11 +34,11 @@ import {
   updateAttraction,
   updateDayAccommodation,
   updateReservation,
-} from '../lib/store.js'
-import { distanceShort } from '../lib/places.js'
-import { useDragReorder } from '../lib/useDragReorder.js'
-import { formatDuration, formatMoney } from '../lib/money.js'
-import { useI18n } from '../lib/i18n.js'
+} from "../lib/store.js";
+import { distanceShort } from "../lib/places.js";
+import { useDragReorder } from "../lib/useDragReorder.js";
+import { formatDuration, formatMoney } from "../lib/money.js";
+import { useI18n } from "../lib/i18n.js";
 
 /**
  * Day-by-day view: the itinerary expanded into one card per night, each of
@@ -51,21 +51,46 @@ export default function ItineraryView({
   onFocusHandled,
   onDayFocus,
 }) {
-  const { t } = useI18n()
+  const { t } = useI18n();
+
+  // Exactly one day open at a time — opening another closes whichever was
+  // open. Starts on the first day that already has something planned, so the
+  // view isn't all-collapsed on a trip that's already filled in.
+  const [openKey, setOpenKey] = useState(
+    () =>
+      days.find(
+        (d) => d.entry.attractions.length + d.entry.reservations.length > 0,
+      )?.key ?? null,
+  );
+
+  const toggleDay = useCallback((key) => {
+    setOpenKey((prev) => (prev === key ? null : key));
+  }, []);
+
+  // The map follows whichever single day is open.
+  useEffect(() => {
+    onDayFocus?.(openKey);
+  }, [openKey, onDayFocus]);
+
+  // Double-clicking a destination lands on its first night.
+  const focusKey = focusDestId
+    ? days.find((d) => d.dest.id === focusDestId)?.key
+    : null;
+
+  // Arriving via double-click reveals that day, closing whichever was open.
+  useEffect(() => {
+    if (focusKey) setOpenKey(focusKey);
+  }, [focusKey]);
 
   if (days.length === 0) {
     return (
       <p className="px-8 py-12 text-center text-sm text-muted">
-        {t('day.empty')}
+        {t("day.empty")}
       </p>
-    )
+    );
   }
 
-  const today = new Date()
-  // Double-clicking a destination lands on its first night.
-  const focusKey = focusDestId
-    ? days.find((d) => d.dest.id === focusDestId)?.key
-    : null
+  const today = new Date();
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-5 md:px-8">
@@ -78,8 +103,9 @@ export default function ItineraryView({
               currency={currency}
               isToday={isSameDay(day.date, today)}
               focused={day.key === focusKey}
+              isOpen={openKey === day.key}
+              onToggle={toggleDay}
               onFocusHandled={onFocusHandled}
-              onDayFocus={onDayFocus}
             />
 
             {day.leg.length > 0 && day.next && (
@@ -106,12 +132,12 @@ export default function ItineraryView({
                   </span>
                 ))}
                 <span className="tabular">
-                  {t('day.to', { name: day.next.name })}
+                  {t("day.to", { name: day.next.name })}
                   {day.leg.reduce((s, x) => s + num(x.durationMin), 0)
                     ? ` · ${formatDuration(
                         day.leg.reduce((s, x) => s + num(x.durationMin), 0),
                       )}`
-                    : ''}
+                    : ""}
                 </span>
               </p>
             )}
@@ -119,7 +145,7 @@ export default function ItineraryView({
         ))}
       </ol>
     </div>
-  )
+  );
 }
 
 function DayCard({
@@ -128,62 +154,57 @@ function DayCard({
   currency,
   isToday,
   focused,
+  isOpen,
+  onToggle,
   onFocusHandled,
-  onDayFocus,
 }) {
-  const { t, dateLocale } = useI18n()
-  const { attractions, reservations, accommodation } = day.entry
-  const totalItems = attractions.length + reservations.length
+  const { t, dateLocale } = useI18n();
+  const { attractions, reservations, accommodation } = day.entry;
+  const totalItems = attractions.length + reservations.length;
   const doneItems =
     attractions.filter((a) => a.done).length +
-    reservations.filter((r) => r.done).length
+    reservations.filter((r) => r.done).length;
 
-  const [open, setOpen] = useState(totalItems > 0)
-  const cardRef = useRef(null)
+  const cardRef = useRef(null);
 
-  // Arriving from a double-click: reveal the day, scroll it into view and let
-  // the map switch to this day's route.
+  // Whichever day opens — by its own toggle, or by double-clicking a
+  // destination — scrolls to the middle of the screen; only one is ever
+  // open at once, so this always means "the one that just opened".
   useEffect(() => {
-    if (!focused) return
-    setOpen(true)
-    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    const timer = setTimeout(() => onFocusHandled?.(), 2000)
-    return () => clearTimeout(timer)
-  }, [focused, onFocusHandled])
+    if (!isOpen) return;
+    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [isOpen]);
 
-  // Keep the map in step with whichever day is open — and hand it back when
-  // this day collapses.
+  // Clears the double-click highlight/focus a beat after landing.
   useEffect(() => {
-    onDayFocus?.(day.key, open)
-  }, [open, day.key, onDayFocus])
+    if (!focused) return;
+    const timer = setTimeout(() => onFocusHandled?.(), 2000);
+    return () => clearTimeout(timer);
+  }, [focused, onFocusHandled]);
 
   return (
     <div
       ref={cardRef}
       className={`card transition-shadow ${
-        focused
-          ? 'ring-2 ring-accent'
-          : isToday
-            ? 'ring-2 ring-accent/40'
-            : ''
+        focused ? "ring-2 ring-accent" : isToday ? "ring-2 ring-accent/40" : ""
       }`}
     >
       <div className="flex items-start gap-4 p-4">
         <div className="tabular w-12 shrink-0 text-center">
           <p className="text-[11px] font-medium uppercase text-muted">
-            {format(day.date, 'EEE', { locale: dateLocale })}
+            {format(day.date, "EEE", { locale: dateLocale })}
           </p>
           <p className="text-xl font-semibold leading-tight">
-            {format(day.date, 'd', { locale: dateLocale })}
+            {format(day.date, "d", { locale: dateLocale })}
           </p>
           <p className="text-[11px] text-muted">
-            {format(day.date, 'MMM', { locale: dateLocale })}
+            {format(day.date, "MMM", { locale: dateLocale })}
           </p>
         </div>
 
         <div className="min-w-0 flex-1 border-s border-line ps-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
-            {t('day.number', { n: dayNumber })}
+            {t("day.number", { n: dayNumber })}
           </p>
           <p className="truncate text-[15px] font-semibold">{day.dest.name}</p>
 
@@ -195,7 +216,7 @@ function DayCard({
                 {accommodation?.name || day.dest.sleeping.name}
                 {accommodation?.name && (
                   <span className="rounded-full bg-accent-soft px-1.5 text-[9px] font-bold uppercase text-accent">
-                    {t('dayStay.badge')}
+                    {t("dayStay.badge")}
                   </span>
                 )}
               </span>
@@ -207,8 +228,8 @@ function DayCard({
             )}
             {totalItems > 0 && (
               <span className="tabular inline-flex items-center gap-1.5">
-                <CalendarCheck size={13} />{' '}
-                {t('day.done', { done: doneItems, total: totalItems })}
+                <CalendarCheck size={13} />{" "}
+                {t("day.done", { done: doneItems, total: totalItems })}
               </span>
             )}
           </div>
@@ -216,22 +237,22 @@ function DayCard({
 
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={t('day.toggle', {
-            action: open ? t('day.hide') : t('day.show'),
+          onClick={() => onToggle(day.key)}
+          aria-expanded={isOpen}
+          aria-label={t("day.toggle", {
+            action: isOpen ? t("day.hide") : t("day.show"),
             n: dayNumber,
           })}
           className="btn-ghost !px-2 shrink-0"
         >
           <ChevronDown
             size={18}
-            className={`transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
           />
         </button>
       </div>
 
-      {open && (
+      {isOpen && (
         <div className="space-y-3 border-t border-line p-4 pt-3">
           <AttractionsSection
             dayKeyValue={day.key}
@@ -253,7 +274,7 @@ function DayCard({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -270,53 +291,53 @@ function AccommodationSection({
   inherited,
   currency,
 }) {
-  const { t } = useI18n()
+  const { t } = useI18n();
 
   const handleAdd = useCallback(
     (meta) => addDayAccommodationDoc(dayKeyValue, meta),
     [dayKeyValue],
-  )
+  );
   const handleRemove = useCallback(
     (doc) => removeDayAccommodationDoc(dayKeyValue, doc.id),
     [dayKeyValue],
-  )
+  );
 
   if (!accommodation) {
     return (
       <section className="rounded-xl border border-line bg-raised p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h4 className="col-head">
-            <Bed size={13} /> {t('dayStay.title')}
+            <Bed size={13} /> {t("dayStay.title")}
           </h4>
           <button
             type="button"
             className="btn-soft !py-1 !text-xs"
             onClick={() => addDayAccommodation(dayKeyValue)}
           >
-            <Plus size={14} /> {t('dayStay.add')}
+            <Plus size={14} /> {t("dayStay.add")}
           </button>
         </div>
         <p className="mt-1.5 text-[11px] text-subtle">
           {inherited?.name
-            ? t('dayStay.inherited', { name: inherited.name })
-            : t('dayStay.inheritedNone')}
+            ? t("dayStay.inherited", { name: inherited.name })
+            : t("dayStay.inheritedNone")}
         </p>
       </section>
-    )
+    );
   }
 
   return (
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h4 className="col-head">
-          <Bed size={13} /> {t('dayStay.title')}
+          <Bed size={13} /> {t("dayStay.title")}
         </h4>
         <button
           type="button"
           className="btn-ghost !px-2 !py-0.5"
           onClick={() => removeDayAccommodation(dayKeyValue)}
-          aria-label={t('dayStay.remove')}
-          title={t('dayStay.remove')}
+          aria-label={t("dayStay.remove")}
+          title={t("dayStay.remove")}
         >
           <Trash2 size={14} />
         </button>
@@ -324,10 +345,10 @@ function AccommodationSection({
 
       <div className="grid gap-2 sm:grid-cols-[2fr_1fr]">
         <label className="text-[11px] font-medium text-muted">
-          {t('dayStay.name')}
+          {t("dayStay.name")}
           <input
             className="field mt-1 !py-1 !text-xs"
-            placeholder={t('sleeping.placeholder')}
+            placeholder={t("sleeping.placeholder")}
             value={accommodation.name}
             onChange={(e) =>
               updateDayAccommodation(dayKeyValue, { name: e.target.value })
@@ -335,14 +356,14 @@ function AccommodationSection({
           />
         </label>
         <label className="text-[11px] font-medium text-muted">
-          {t('dayStay.cost')} ({currency})
+          {t("dayStay.cost")} ({currency})
           <input
             type="number"
             min="0"
             step="0.01"
             className="field tabular mt-1 !py-1 !text-xs"
             placeholder="0"
-            value={accommodation.cost || ''}
+            value={accommodation.cost || ""}
             onChange={(e) =>
               updateDayAccommodation(dayKeyValue, { cost: num(e.target.value) })
             }
@@ -351,10 +372,10 @@ function AccommodationSection({
       </div>
 
       <label className="mt-2 block text-[11px] font-medium text-muted">
-        {t('dayStay.address')}
+        {t("dayStay.address")}
         <input
           className="field mt-1 !py-1 !text-xs"
-          placeholder={t('dayStay.addressPlaceholder')}
+          placeholder={t("dayStay.addressPlaceholder")}
           value={accommodation.address}
           onChange={(e) =>
             updateDayAccommodation(dayKeyValue, { address: e.target.value })
@@ -367,31 +388,31 @@ function AccommodationSection({
           docs={accommodation.documents}
           onAdd={handleAdd}
           onRemove={handleRemove}
-          label={t('dayStay.docs')}
-          hint={t('dayStay.docsHint')}
+          label={t("dayStay.docs")}
+          hint={t("dayStay.docsHint")}
           icon={Bed}
           compact
         />
       </div>
     </section>
-  )
+  );
 }
 
 function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
-  const { t } = useI18n()
-  const total = attractions.reduce((s, a) => s + num(a.cost), 0)
+  const { t } = useI18n();
+  const total = attractions.reduce((s, a) => s + num(a.cost), 0);
 
   const reorder = useCallback(
     (from, to) => reorderAttraction(dayKeyValue, from, to),
     [dayKeyValue],
-  )
-  const drag = useDragReorder(reorder)
+  );
+  const drag = useDragReorder(reorder);
 
   return (
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="col-head">
-          <Landmark size={13} /> {t('attractions.title')}
+          <Landmark size={13} /> {t("attractions.title")}
         </h4>
         {total > 0 && (
           <span className="tabular text-xs font-semibold text-fg">
@@ -402,30 +423,30 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
 
       <ol className="mb-2">
         {attractions.map((a, i) => {
-          const next = attractions[i + 1]
+          const next = attractions[i + 1];
           const suggestedKm =
-            next && isPlaced(a) && isPlaced(next) ? distanceShort(a, next) : 0
+            next && isPlaced(a) && isPlaced(next) ? distanceShort(a, next) : 0;
 
           return (
             <Fragment key={a.id}>
               <li
                 {...drag.itemProps(i)}
                 className={`relative rounded-lg p-1.5 transition-colors ${
-                  drag.dragIndex === i ? 'opacity-40' : ''
+                  drag.dragIndex === i ? "opacity-40" : ""
                 }`}
               >
                 {drag.dragging && drag.overIndex === i && (
                   <span
                     aria-hidden
                     className={`pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full bg-accent ${
-                      drag.overAfter ? '-bottom-px' : '-top-px'
+                      drag.overAfter ? "-bottom-px" : "-top-px"
                     }`}
                   />
                 )}
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     {...drag.gripProps()}
-                    title={t('attractions.dragHint')}
+                    title={t("attractions.dragHint")}
                     aria-hidden
                     className="cursor-grab text-subtle transition hover:text-fg active:cursor-grabbing"
                   >
@@ -444,12 +465,12 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                     onChange={(done) =>
                       updateAttraction(dayKeyValue, a.id, { done })
                     }
-                    label={a.name || t('attractions.fallback')}
+                    label={a.name || t("attractions.fallback")}
                   />
 
                   <input
-                    className={`field min-w-0 flex-1 ${a.done ? 'text-subtle line-through' : ''}`}
-                    placeholder={t('attractions.placeholder')}
+                    className={`field min-w-0 flex-1 ${a.done ? "text-subtle line-through" : ""}`}
+                    placeholder={t("attractions.placeholder")}
                     value={a.name}
                     onChange={(e) =>
                       updateAttraction(dayKeyValue, a.id, {
@@ -462,7 +483,7 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                     onChange={(time) =>
                       updateAttraction(dayKeyValue, a.id, { time })
                     }
-                    label={t('attractions.time')}
+                    label={t("attractions.time")}
                     className="!w-20"
                   />
                   <input
@@ -471,20 +492,20 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                     step="0.01"
                     className="field tabular !w-24"
                     placeholder="0"
-                    value={a.cost || ''}
+                    value={a.cost || ""}
                     onChange={(e) =>
                       updateAttraction(dayKeyValue, a.id, {
                         cost: num(e.target.value),
                       })
                     }
-                    aria-label={t('attractions.cost')}
+                    aria-label={t("attractions.cost")}
                   />
                   <button
                     type="button"
                     className="btn-ghost !px-2"
                     onClick={() => removeAttraction(dayKeyValue, a.id)}
-                    aria-label={t('attractions.remove', {
-                      name: a.name || t('attractions.fallback'),
+                    aria-label={t("attractions.remove", {
+                      name: a.name || t("attractions.fallback"),
                     })}
                   >
                     <Trash2 size={15} />
@@ -502,7 +523,11 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
               {/* Stays mounted while dragging so rows don't shift underneath
                   the cursor mid-gesture. */}
               {next && (
-                <li className={drag.dragging ? 'pointer-events-none opacity-30' : ''}>
+                <li
+                  className={
+                    drag.dragging ? "pointer-events-none opacity-30" : ""
+                  }
+                >
                   <AttractionLeg
                     dayKeyValue={dayKeyValue}
                     from={a}
@@ -511,7 +536,7 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                 </li>
               )}
             </Fragment>
-          )
+          );
         })}
       </ol>
 
@@ -525,21 +550,21 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
         className="btn-soft mt-2"
         onClick={() => addAttraction(dayKeyValue)}
       >
-        <Plus size={15} /> {t('attractions.addBlank')}
+        <Plus size={15} /> {t("attractions.addBlank")}
       </button>
     </section>
-  )
+  );
 }
 
 function ReservationsSection({ dayKeyValue, reservations, currency }) {
-  const { t } = useI18n()
-  const total = reservations.reduce((s, r) => s + num(r.cost), 0)
+  const { t } = useI18n();
+  const total = reservations.reduce((s, r) => s + num(r.cost), 0);
 
   return (
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="col-head">
-          <CalendarCheck size={13} /> {t('reserved.title')}
+          <CalendarCheck size={13} /> {t("reserved.title")}
         </h4>
         {total > 0 && (
           <span className="tabular text-xs font-semibold text-fg">
@@ -563,25 +588,25 @@ function ReservationsSection({ dayKeyValue, reservations, currency }) {
         className="btn-soft mt-2"
         onClick={() => addReservation(dayKeyValue)}
       >
-        <Plus size={15} /> {t('reserved.add')}
+        <Plus size={15} /> {t("reserved.add")}
       </button>
     </section>
-  )
+  );
 }
 
 function ReservationRow({ dayKeyValue, reservation: r }) {
-  const { t } = useI18n()
-  const [showDocs, setShowDocs] = useState(false)
-  const name = r.name || t('reserved.fallback')
+  const { t } = useI18n();
+  const [showDocs, setShowDocs] = useState(false);
+  const name = r.name || t("reserved.fallback");
 
   const handleAdd = useCallback(
     (meta) => addReservationDoc(dayKeyValue, r.id, meta),
     [dayKeyValue, r.id],
-  )
+  );
   const handleRemove = useCallback(
     (doc) => removeReservationDoc(dayKeyValue, r.id, doc.id),
     [dayKeyValue, r.id],
-  )
+  );
 
   return (
     <li className="rounded-lg border border-line bg-surface p-2">
@@ -592,8 +617,8 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
           label={name}
         />
         <input
-          className={`field min-w-0 flex-1 ${r.done ? 'text-subtle line-through' : ''}`}
-          placeholder={t('reserved.placeholder')}
+          className={`field min-w-0 flex-1 ${r.done ? "text-subtle line-through" : ""}`}
+          placeholder={t("reserved.placeholder")}
           value={r.name}
           onChange={(e) =>
             updateReservation(dayKeyValue, r.id, { name: e.target.value })
@@ -602,7 +627,7 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
         <TimeField
           value={r.time}
           onChange={(time) => updateReservation(dayKeyValue, r.id, { time })}
-          label={t('reserved.time')}
+          label={t("reserved.time")}
           className="!w-20"
         />
         <input
@@ -611,25 +636,25 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
           step="0.01"
           className="field tabular !w-24"
           placeholder="0"
-          value={r.cost || ''}
+          value={r.cost || ""}
           onChange={(e) =>
             updateReservation(dayKeyValue, r.id, { cost: num(e.target.value) })
           }
-          aria-label={t('reserved.cost')}
+          aria-label={t("reserved.cost")}
         />
         <button
           type="button"
           onClick={() => setShowDocs((v) => !v)}
           aria-expanded={showDocs}
-          aria-label={t('reserved.docs', { name })}
-          title={t('reserved.docLabel')}
+          aria-label={t("reserved.docs", { name })}
+          title={t("reserved.docLabel")}
           className={`relative grid size-8 shrink-0 place-items-center rounded-full border transition
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               showDocs
-                ? 'border-accent bg-accent text-on-accent'
+                ? "border-accent bg-accent text-on-accent"
                 : r.documents.length > 0
-                  ? 'border-line-strong bg-accent-soft text-fg'
-                  : 'border-line-strong bg-surface text-subtle hover:border-accent'
+                  ? "border-line-strong bg-accent-soft text-fg"
+                  : "border-line-strong bg-surface text-subtle hover:border-accent"
             }`}
         >
           <Paperclip size={14} />
@@ -643,7 +668,7 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
           type="button"
           className="btn-ghost !px-2"
           onClick={() => removeReservation(dayKeyValue, r.id)}
-          aria-label={t('reserved.remove', { name })}
+          aria-label={t("reserved.remove", { name })}
         >
           <Trash2 size={15} />
         </button>
@@ -655,27 +680,27 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
             docs={r.documents}
             onAdd={handleAdd}
             onRemove={handleRemove}
-            label={t('reserved.docLabel')}
-            hint={t('reserved.docHint')}
+            label={t("reserved.docLabel")}
+            hint={t("reserved.docHint")}
             compact
           />
         </div>
       )}
     </li>
-  )
+  );
 }
 
 function DoneCheckbox({ checked, onChange, label }) {
-  const { t } = useI18n()
+  const { t } = useI18n();
   return (
     <label className="grid shrink-0 cursor-pointer place-items-center">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        aria-label={t('reserved.markDone', { name: label })}
+        aria-label={t("reserved.markDone", { name: label })}
         className="size-4 cursor-pointer accent-[var(--color-accent)]"
       />
     </label>
-  )
+  );
 }

@@ -66,6 +66,38 @@ function GooglePolyline({ path, color, casing }) {
   return null;
 }
 
+/**
+ * `defaultCenter`/`defaultZoom` on `<Map>` only apply once, at initial mount —
+ * this is the reactive counterpart, keeping the viewport in step every time
+ * the geometry (whole trip vs. one day's route) actually changes.
+ */
+function FitBounds({ stops, fallbackCenter, soloZoom, fitZoom, fitKey }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    if (stops.length === 0) {
+      if (fallbackCenter) map.panTo(fallbackCenter);
+      map.setZoom(fitZoom);
+      return;
+    }
+
+    if (stops.length === 1) {
+      map.panTo({ lat: stops[0].lat, lng: stops[0].lng });
+      map.setZoom(soloZoom);
+      return;
+    }
+
+    const bounds = new window.google.maps.LatLngBounds();
+    stops.forEach((s) => bounds.extend({ lat: s.lat, lng: s.lng }));
+    map.fitBounds(bounds, 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, fitKey]);
+
+  return null;
+}
+
 function ModeBadge({ position, mode, color }) {
   return (
     <AdvancedMarker
@@ -135,10 +167,14 @@ export default function GoogleTripMap({
   );
 
   // A stable primitive key so the geometry only rebuilds when the route
-  // itself changes, not on every unrelated render.
-  const routeKey = stops
-    .map((s) => `${s.id}:${s.lat},${s.lng}:${s.legOut?.mode ?? ""}`)
-    .join("|");
+  // itself changes, not on every unrelated render. The centre rides along too
+  // so moving between two still-empty days still re-frames the map.
+  const routeKey = [
+    inDayMode && dayRoute.center
+      ? `@${dayRoute.center.lat},${dayRoute.center.lng}`
+      : "",
+    ...stops.map((s) => `${s.id}:${s.lat},${s.lng}:${s.legOut?.mode ?? ""}`),
+  ].join("|");
 
   const legs = useMemo(() => {
     const out = [];
@@ -236,6 +272,13 @@ export default function GoogleTripMap({
             />
           );
         })}
+        <FitBounds
+          stops={stops}
+          fitKey={routeKey}
+          soloZoom={inDayMode ? 15 : 9}
+          fitZoom={inDayMode ? 13 : 5}
+          fallbackCenter={inDayMode && dayRoute.center ? dayRoute.center : null}
+        />
       </Map>
     </APIProvider>
   );
