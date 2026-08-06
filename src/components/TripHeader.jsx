@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Check, Download, LayoutGrid, LogOut, Pencil } from "lucide-react";
+import { Check, Download, FileDown, LayoutGrid, LogOut, Pencil } from "lucide-react";
 import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
 import TripSwitcher from "./TripSwitcher.jsx";
@@ -13,6 +13,7 @@ import {
 } from "../lib/store.js";
 import { signOut, useSession } from "../lib/auth.js";
 import { currencySymbol, formatMoney } from "../lib/money.js";
+import { exportTripPdf } from "../lib/exportPdf.js";
 import { useI18n } from "../lib/i18n.js";
 
 export default function TripHeader({ trip, stats, onBackToTrips }) {
@@ -21,6 +22,7 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
   const { session } = useSession();
   const cloudMode = useCloudMode();
   const [downloaded, setDownloaded] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!cloudMode) return;
@@ -36,6 +38,17 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
   const handleDownload = async () => {
     await downloadTripOffline(trip.id);
     setDownloaded(true);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportTripPdf(trip);
+    } catch (err) {
+      console.error("PDF export failed", err);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const opts = { locale: dateLocale };
@@ -61,6 +74,16 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
             </button>
           )}
           <AppControls />
+          <button
+            type="button"
+            className="btn-ghost !px-2.5 !py-1.5 text-xs"
+            onClick={handleExport}
+            disabled={exporting}
+            aria-label={t("header.exportPdf")}
+          >
+            <FileDown size={14} />
+            {t("header.exportPdf")}
+          </button>
           {cloudMode && (
             <button
               type="button"

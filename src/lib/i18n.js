@@ -86,6 +86,7 @@ const STRINGS = {
     "header.nights": "Nights",
     "header.planned": "planned",
     "header.nightsPlanned": "{value} of {total} nights planned",
+    "header.exportPdf": "Export PDF",
     "header.overplanned":
       "You’ve planned {planned} nights but the trip is only {total} nights long. Extend the end date or trim a stop.",
 
@@ -287,6 +288,24 @@ const STRINGS = {
     "misc.comingNext": "Coming next",
     "discover.body":
       "Browse recommended stops and add them straight to your route.",
+
+    // PDF export
+    "pdf.untitledTrip": "Trip",
+    "pdf.generatedBy": "Generated {date} by {username}",
+    "pdf.localDevice": "Local device",
+    "pdf.country": "Country",
+    "pdf.from": "From",
+    "pdf.to": "To",
+    "pdf.cost": "Cost",
+    "pdf.onwardTransport": "Onward transport",
+    "pdf.date": "Date",
+    "pdf.stop": "Stop",
+    "pdf.plan": "Plan",
+    "pdf.noPlans": "No plans",
+    "pdf.attraction": "Attraction",
+    "pdf.reservation": "Reservation",
+    "pdf.category": "Category",
+    "pdf.footer": "{app} — Trip Summary",
   },
 
   he: {
@@ -358,6 +377,7 @@ const STRINGS = {
     "header.nights": "לילות",
     "header.planned": "מתוכננים",
     "header.nightsPlanned": "{value} מתוך {total} לילות מתוכננים",
+    "header.exportPdf": "ייצוא ל-PDF",
     "header.overplanned":
       "תכננת {planned} לילות אך הטיול נמשך {total} לילות בלבד. הארך את תאריך הסיום או קצר עצירה.",
     "offline.download": "הורדה לשימוש לא מקוון",
@@ -537,6 +557,23 @@ const STRINGS = {
 
     "misc.comingNext": "בקרוב",
     "discover.body": "עיינו בעצירות מומלצות והוסיפו אותן ישירות למסלול.",
+
+    "pdf.untitledTrip": "טיול",
+    "pdf.generatedBy": "נוצר בתאריך {date} על ידי {username}",
+    "pdf.localDevice": "מכשיר מקומי",
+    "pdf.country": "מדינה",
+    "pdf.from": "מתאריך",
+    "pdf.to": "עד תאריך",
+    "pdf.cost": "עלות",
+    "pdf.onwardTransport": "המשך הנסיעה",
+    "pdf.date": "תאריך",
+    "pdf.stop": "עצירה",
+    "pdf.plan": "תוכנית",
+    "pdf.noPlans": "אין תוכניות",
+    "pdf.attraction": "אטר֧ציה",
+    "pdf.reservation": "הזמנה",
+    "pdf.category": "קטגוריה",
+    "pdf.footer": "{app} — סיכום טיול",
   },
 };
 
