@@ -81,11 +81,15 @@ export const sessionEmail = (s) => s?.user?.email ?? null;
  */
 export async function sendMagicLink(email) {
   if (!hasSupabase) throw new Error("Supabase is not configured");
+  // VITE_SITE_URL pins the redirect target explicitly (needed for deployed
+  // environments — see .env.local); falls back to wherever the page is
+  // actually running, which is what local dev needs.
+  const siteUrl = import.meta.env.VITE_SITE_URL?.trim();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     // The link returns to the app; supabase.js has detectSessionInUrl on to
     // pick the session out of the URL hash when it lands.
-    options: { emailRedirectTo: window.location.origin },
+    options: { emailRedirectTo: siteUrl || window.location.origin },
   });
   if (error) throw error;
 }
