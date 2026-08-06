@@ -2,13 +2,16 @@ import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 
 /**
- * Walks through the dual-write cloud sync added to src/lib/store.js — create,
- * edit, delete, and sign-in reconcile — against a fake localStorage and a
- * fake Supabase `trips` table (no network, no real credentials needed).
+ * Walks through store.js's cloud-only architecture: signed-in trips live
+ * only in Supabase (never localStorage); local-only (no account) trips keep
+ * using localStorage exactly as before; sign-in adopts local trips into the
+ * account and wipes their local copies; sign-out falls back to local-only
+ * again; and a failed cloud fetch falls back to an explicitly downloaded
+ * offline copy. All against fakes — no network, no real credentials, no
+ * real IndexedDB.
  *
  * Scenarios run in order and build on each other (not isolated unit tests) —
- * it's a scripted run-through of the feature, closer to how the app is
- * actually used than a pile of independent unit tests would be.
+ * a scripted run-through of the feature.
  *
  * Run with: npm test
  */
@@ -29,6 +32,7 @@ globalThis.document = { documentElement: { lang: "", dir: "" } };
 
 // ---- fake Supabase `trips` table -------------------------------------------
 const cloudRows = []; // stands in for the Postgres table
+let failNextFetch = false;
 
 function fakeSupabase() {
   return {
@@ -38,6 +42,13 @@ function fakeSupabase() {
         select() {
           return {
             eq(col, val) {
+              if (failNextFetch) {
+                failNextFetch = false;
+                return Promise.resolve({
+                  data: null,
+                  error: { message: "network error" },
+                });
+              }
               const data = cloudRows
                 .filter((r) => r[col] === val)
                 .map((r) => ({ ...r }));
@@ -65,19 +76,24 @@ function fakeSupabase() {
   };
 }
 
-// ---- fake auth session -----------------------------------------------------
+// ---- fake auth: session + local-only choice --------------------------------
 let currentSession = null;
-const sessionListeners = new Set();
+let localOnlyFlag = true; // "continue without an account", chosen from the start
+const listeners = new Set();
+const notify = () => listeners.forEach((l) => l());
 
 function signIn(userId = "user-1") {
   currentSession = { user: { id: userId } };
-  sessionListeners.forEach((l) => l());
+  notify();
 }
 
 function signOut() {
   currentSession = null;
-  sessionListeners.forEach((l) => l());
+  notify();
 }
+
+// ---- fake offline cache (stands in for IndexedDB via offlineCache.js) -----
+const offlineMap = new Map();
 
 // Must be registered before store.js (which imports these) is ever loaded.
 mock.module(new URL("../src/lib/supabase.js", import.meta.url), {
@@ -88,9 +104,24 @@ mock.module(new URL("../src/lib/auth.js", import.meta.url), {
   exports: {
     getSession: () => currentSession,
     subscribeSession: (cb) => {
-      sessionListeners.add(cb);
-      return () => sessionListeners.delete(cb);
+      listeners.add(cb);
+      return () => listeners.delete(cb);
     },
+    getLocalOnly: () => localOnlyFlag,
+    subscribeLocalOnly: (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+  },
+});
+
+mock.module(new URL("../src/lib/offlineCache.js", import.meta.url), {
+  exports: {
+    saveTripOffline: async (trip) => {
+      offlineMap.set(trip.id, trip);
+    },
+    isTripDownloaded: async (id) => offlineMap.has(id),
+    loadAllOfflineTrips: async () => [...offlineMap.values()],
   },
 });
 
@@ -98,109 +129,103 @@ const store = await import("../src/lib/store.js");
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-test("signed out: creating a trip saves locally only, no cloud push", async () => {
+test("local-only: creating a trip saves to localStorage, no cloud calls", async () => {
+  assert.equal(store.isCloudMode(), false);
   const before = cloudRows.length;
-  const id = store.createTrip({ title: "Offline trip" });
+  const id = store.createTrip({ title: "Offline-first trip" });
   await wait(20);
   assert.ok(
     localStorage.getItem(`project-travel:trip:${id}`),
     "saved to localStorage",
   );
-  assert.equal(
-    cloudRows.length,
-    before,
-    "no cloud row created while signed out",
-  );
-  store.deleteTrip(id);
+  assert.equal(cloudRows.length, before, "no cloud row while local-only");
 });
 
-test("sign-in reconcile adopts a pre-existing local trip into the cloud", async () => {
-  const id = store.createTrip({ title: "Made before signing in" });
+test("signing in adopts local trips into the cloud and clears localStorage", async () => {
+  const { trips } = store.getTripRegistry();
+  const localIds = trips.map((t) => t.id);
+  assert.ok(localIds.length > 0);
+
   signIn();
   await wait(50);
-  const row = cloudRows.find((r) => r.id === id);
-  assert.ok(row, "local trip got pushed to the cloud on sign-in");
-  assert.equal(row.owner_id, "user-1");
-  assert.equal(row.data.title, "Made before signing in");
+
+  assert.equal(store.isCloudMode(), true);
+  for (const id of localIds) {
+    assert.ok(
+      cloudRows.some((r) => r.id === id),
+      `trip ${id} was pushed to the cloud`,
+    );
+    assert.equal(
+      localStorage.getItem(`project-travel:trip:${id}`),
+      null,
+      "local copy was cleared once adopted",
+    );
+  }
 });
 
-test("editing a trip pushes to the cloud, debounced", async () => {
+test("editing while signed in pushes to the cloud, debounced, never touches localStorage", async () => {
   const { activeId } = store.getTripRegistry();
-  store.updateTrip({ title: "Edited title" });
+  store.updateTrip({ title: "Edited while signed in" });
 
-  const rowSoonAfter = cloudRows.find((r) => r.id === activeId);
+  const soonAfter = cloudRows.find((r) => r.id === activeId);
   assert.notEqual(
-    rowSoonAfter?.data.title,
-    "Edited title",
+    soonAfter?.data.title,
+    "Edited while signed in",
     "push is debounced, not immediate",
   );
+  assert.equal(localStorage.getItem(`project-travel:trip:${activeId}`), null);
 
   await wait(1700); // > the 1500ms debounce window
-  const rowAfterDebounce = cloudRows.find((r) => r.id === activeId);
-  assert.equal(
-    rowAfterDebounce.data.title,
-    "Edited title",
-    "debounced push landed",
-  );
-});
-
-test("deleting a trip removes it from the cloud too", async () => {
-  const { activeId } = store.getTripRegistry();
-  store.deleteTrip(activeId);
-  await wait(20);
-  assert.ok(!cloudRows.some((r) => r.id === activeId), "cloud row removed");
+  const afterDebounce = cloudRows.find((r) => r.id === activeId);
+  assert.equal(afterDebounce.data.title, "Edited while signed in");
   assert.equal(localStorage.getItem(`project-travel:trip:${activeId}`), null);
 });
 
-test("reconcile adopts a cloud-only trip made on another device", async () => {
-  const cloudOnlyId = "cloud-only-trip-1";
-  cloudRows.push({
-    id: cloudOnlyId,
-    owner_id: "user-1",
-    updated_at: new Date().toISOString(),
-    data: {
-      id: cloudOnlyId,
-      title: "From my phone",
-      destinations: [],
-      days: {},
-      updatedAt: new Date().toISOString(),
-    },
-  });
+test("creating a trip while signed in goes straight to the cloud, not localStorage", async () => {
+  const id = store.createTrip({ title: "Made while signed in" });
+  await wait(20);
+  const row = cloudRows.find((r) => r.id === id);
+  assert.ok(row, "pushed immediately");
+  assert.equal(row.data.title, "Made while signed in");
+  assert.equal(localStorage.getItem(`project-travel:trip:${id}`), null);
+});
 
-  // Re-trigger the false -> true sign-in transition to run reconcile again.
+test("deleting a trip while signed in removes the cloud row", async () => {
+  const { activeId } = store.getTripRegistry();
+  store.deleteTrip(activeId);
+  await wait(20);
+  assert.ok(!cloudRows.some((r) => r.id === activeId));
+});
+
+test("signing out falls back to local-only mode", async () => {
   signOut();
-  signIn();
-  await wait(50);
-
-  const { trips } = store.getTripRegistry();
+  await wait(20);
+  assert.equal(store.isCloudMode(), false);
+  const { activeId } = store.getTripRegistry();
   assert.ok(
-    trips.some((t) => t.id === cloudOnlyId),
-    "cloud-only trip adopted locally",
-  );
-  assert.ok(
-    localStorage.getItem(`project-travel:trip:${cloudOnlyId}`),
-    "and persisted locally",
+    localStorage.getItem(`project-travel:trip:${activeId}`),
+    "local-only trip set is persisted again",
   );
 });
 
-test("reconcile keeps a newer local edit over a stale cloud row", async () => {
-  const id = store.createTrip({ title: "Local wins" });
-  await wait(20); // let the immediate create-push land
+test("a failed cloud fetch on sign-in falls back to a downloaded offline copy", async () => {
+  const offlineId = "offline-cached-trip";
+  offlineMap.set(offlineId, {
+    id: offlineId,
+    title: "Downloaded before going offline",
+    destinations: [],
+    days: {},
+    updatedAt: new Date().toISOString(),
+  });
 
-  // Simulate a stale cloud row for this trip: older updated_at, different title.
-  const row = cloudRows.find((r) => r.id === id);
-  row.updated_at = new Date(Date.now() - 60_000).toISOString();
-  row.data = { ...row.data, title: "Stale cloud title" };
-
-  signOut();
+  failNextFetch = true;
   signIn();
   await wait(50);
 
+  assert.equal(store.isCloudMode(), true);
   const { trips } = store.getTripRegistry();
-  const entry = trips.find((t) => t.id === id);
-  assert.equal(
-    entry.title,
-    "Local wins",
-    "newer local title was not overwritten by stale cloud data",
+  assert.ok(
+    trips.some((t) => t.id === offlineId),
+    "showing the downloaded copy since the live fetch failed",
   );
 });

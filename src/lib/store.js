@@ -2,19 +2,20 @@ import { useSyncExternalStore } from "react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { currentDateLocale } from "./i18n.js";
 import { hasSupabase, supabase } from "./supabase.js";
-import { getSession, subscribeSession } from "./auth.js";
+import {
+  getLocalOnly,
+  getSession,
+  subscribeLocalOnly,
+  subscribeSession,
+} from "./auth.js";
+import {
+  loadAllOfflineTrips,
+  isTripDownloaded,
+  saveTripOffline,
+} from "./offlineCache.js";
 
 const STORAGE_KEY = "project-travel:trip:v2";
 const LEGACY_KEY = "project-travel:trip:v1";
-
-/**
- * Dual-write phase: every trip is saved to localStorage AND Supabase. Flip
- * this to `false` (once cloud sync is trusted) to stop writing to
- * localStorage — trips then live only in memory + Supabase. Reads at boot
- * still check localStorage first for a smooth transition; cloud reconciliation
- * (see `reconcileWithCloud`) fills in the rest once signed in.
- */
-const SYNC_LOCAL_STORAGE = true;
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -352,7 +353,7 @@ const INDEX_KEY = "project-travel:index";
 const tripKey = (id) => `project-travel:trip:${id}`;
 
 function persistTrip(trip) {
-  if (!SYNC_LOCAL_STORAGE) return;
+  if (cloudModeActive) return;
   try {
     localStorage.setItem(tripKey(trip.id), JSON.stringify(trip));
   } catch {
@@ -361,7 +362,7 @@ function persistTrip(trip) {
 }
 
 function persistIndex() {
-  if (!SYNC_LOCAL_STORAGE) return;
+  if (cloudModeActive) return;
   try {
     localStorage.setItem(INDEX_KEY, JSON.stringify({ activeId, ids: order }));
   } catch {
@@ -372,44 +373,53 @@ function persistIndex() {
 /* -------------------------------------------------------------------------- */
 /*  Cloud sync (Supabase)                                                      */
 /*                                                                              */
-/*  Dual-write phase: pushes mirror every local commit to `public.trips` when  */
-/*  signed in. Pushes are debounced per trip so a burst of keystrokes becomes  */
-/*  one network write; discrete actions (create/delete) push immediately.     */
-/*  On sign-in, `reconcileWithCloud` merges the cloud's trips with whatever is */
-/*  local by `updatedAt` (last-write-wins) — this is also how a local-only     */
-/*  trip made before signing in gets adopted into the account.                */
+/*  Signed in: `public.trips` is the only source of truth — nothing is ever   */
+/*  written to localStorage (see `cloudModeActive` guards on persistTrip /     */
+/*  persistIndex above). Local-only (no account): unchanged, localStorage as   */
+/*  always. `enterCloudMode`/`enterLocalMode` swap the in-memory trip set      */
+/*  when that boundary is crossed; `downloadTripOffline` is the one explicit   */
+/*  escape hatch for using a cloud trip without a network connection.         */
 /* -------------------------------------------------------------------------- */
 
 const PUSH_DEBOUNCE_MS = 1500;
 const pushTimers = new Map();
 
-function pushTrip(trip, { immediate = false } = {}) {
-  if (!hasSupabase) return;
+function isOnline() {
+  // Only an explicit `false` counts as offline — environments without a real
+  // Navigator (Node, tests) leave this undefined and should be treated as online.
+  return typeof navigator === "undefined" || navigator.onLine !== false;
+}
+
+async function upsertTripNow(trip) {
   const session = getSession();
-  if (!session) return;
+  if (!hasSupabase || !session) return;
+  const { error } = await supabase.from("trips").upsert({
+    id: trip.id,
+    owner_id: session.user.id,
+    data: trip,
+    updated_at: trip.updatedAt,
+  });
+  if (error) console.error("Cloud sync: failed to push trip", error);
+}
+
+function pushTrip(trip, { immediate = false } = {}) {
+  if (!hasSupabase || !getSession()) return;
 
   const existing = pushTimers.get(trip.id);
   if (existing) clearTimeout(existing);
 
-  const run = () => {
+  if (immediate) {
     pushTimers.delete(trip.id);
-    supabase
-      .from("trips")
-      .upsert({
-        id: trip.id,
-        owner_id: session.user.id,
-        data: trip,
-        updated_at: trip.updatedAt,
-      })
-      .then(({ error }) => {
-        if (error) console.error("Cloud sync: failed to push trip", error);
-        // Non-fatal either way — local-first stays authoritative and the
-        // next edit (or the next reconcile) retries the write.
-      });
-  };
-
-  if (immediate) run();
-  else pushTimers.set(trip.id, setTimeout(run, PUSH_DEBOUNCE_MS));
+    upsertTripNow(trip);
+  } else {
+    pushTimers.set(
+      trip.id,
+      setTimeout(() => {
+        pushTimers.delete(trip.id);
+        upsertTripNow(trip);
+      }, PUSH_DEBOUNCE_MS),
+    );
+  }
 }
 
 function deleteTripRemote(id) {
@@ -430,65 +440,102 @@ function deleteTripRemote(id) {
     });
 }
 
-/** Merge the signed-in user's cloud trips with the local set. Runs on sign-in. */
-async function reconcileWithCloud() {
-  if (!hasSupabase) return;
+/**
+ * Cross into cloud mode (sign-in): if there was a real local-only trip set,
+ * adopt it into the account (push, then wipe it from localStorage — it now
+ * lives in the cloud only), then load the authoritative list from the DB. If
+ * the fetch itself fails (offline), fall back to whatever's been explicitly
+ * downloaded for offline use rather than showing nothing.
+ */
+async function enterCloudMode(previousMode) {
   const session = getSession();
   if (!session) return;
+
+  const adopting = previousMode === "local";
+  if (adopting) {
+    await Promise.all(order.map((id) => upsertTripNow(trips.get(id))));
+  }
 
   const { data, error } = await supabase
     .from("trips")
     .select("id, data, updated_at")
     .eq("owner_id", session.user.id);
+
   if (error) {
     console.error("Cloud sync: failed to fetch trips", error);
+    const offline = await loadAllOfflineTrips();
+    if (offline.length > 0) {
+      trips = new Map(offline.map((t) => [t.id, normalize(t)]));
+      order = offline.map((t) => t.id);
+      activeId = trips.has(activeId) ? activeId : order[0];
+      state = trips.get(activeId);
+    }
+    // Otherwise leave whatever was already showing (e.g. the placeholder) —
+    // it's stale but better than a blank app.
+    cloudModeActive = true;
+    listeners.forEach((l) => l());
+    refreshRegistry();
     return;
   }
 
-  let changed = false;
-  for (const row of data ?? []) {
-    const local = trips.get(row.id);
-    if (!local) {
-      // Cloud-only trip (made on another device) — adopt it locally.
-      const cloudTrip = normalize(row.data);
-      trips.set(row.id, cloudTrip);
-      order = order.includes(row.id) ? order : [...order, row.id];
-      persistTrip(cloudTrip);
-      changed = true;
-    } else if (new Date(row.updated_at) > new Date(local.updatedAt)) {
-      // Cloud has a newer write (e.g. edited on another device) — it wins.
-      const cloudTrip = normalize(row.data);
-      trips.set(row.id, cloudTrip);
-      persistTrip(cloudTrip);
-      if (row.id === activeId) state = cloudTrip;
-      changed = true;
-    }
-    // Otherwise the local copy is newer or equal — it wins and gets pushed below.
+  if (adopting) clearLocalStorage();
+  cloudModeActive = true;
+
+  if (!data || data.length === 0) {
+    // Brand-new account, nothing adopted and nothing in the cloud yet.
+    const seed = normalize(seedTrip());
+    trips = new Map([[seed.id, seed]]);
+    order = [seed.id];
+    activeId = seed.id;
+    state = seed;
+    pushTrip(seed, { immediate: true });
+  } else {
+    trips = new Map(data.map((row) => [row.id, normalize(row.data)]));
+    order = data.map((row) => row.id);
+    activeId = trips.has(activeId) ? activeId : order[0];
+    state = trips.get(activeId);
   }
 
-  const cloudById = new Map((data ?? []).map((row) => [row.id, row]));
-  for (const id of order) {
-    const local = trips.get(id);
-    const row = cloudById.get(id);
-    if (!row || new Date(local.updatedAt) > new Date(row.updated_at)) {
-      pushTrip(local, { immediate: true });
-    }
-  }
+  listeners.forEach((l) => l());
+  refreshRegistry();
+}
 
-  if (changed) {
-    persistIndex();
-    listeners.forEach((l) => l());
-    refreshRegistry();
+/** Cross into (or back into) local-only mode: reload straight from localStorage. */
+function enterLocalMode() {
+  cloudModeActive = false;
+  const loaded = loadAll();
+  trips = loaded.map;
+  order = loaded.order;
+  activeId = loaded.activeId;
+  state = trips.get(activeId);
+  listeners.forEach((l) => l());
+  refreshRegistry();
+}
+
+function clearLocalStorage() {
+  try {
+    for (const id of order) localStorage.removeItem(tripKey(id));
+    localStorage.removeItem(INDEX_KEY);
+  } catch {
+    // Non-fatal — the cloud copy is authoritative from here on regardless.
   }
 }
 
-if (hasSupabase) {
-  let wasSignedIn = false;
-  subscribeSession(() => {
-    const signedIn = Boolean(getSession());
-    if (signedIn && !wasSignedIn) reconcileWithCloud();
-    wasSignedIn = signedIn;
-  });
+function currentAuthMode() {
+  if (getSession()) return "cloud";
+  if (!hasSupabase || getLocalOnly()) return "local";
+  return "pending"; // AuthScreen is showing; no trip data is needed yet.
+}
+
+let activeMode = hasSupabase ? "pending" : "local";
+
+function syncAuthMode() {
+  const next = currentAuthMode();
+  if (next === activeMode) return;
+  const previous = activeMode;
+  activeMode = next;
+  if (next === "cloud") enterCloudMode(previous);
+  else if (next === "local") enterLocalMode();
 }
 
 /**
@@ -545,7 +592,7 @@ function migrateLegacy() {
   // Write the new format straight away so the migration is durable, keeping the
   // legacy v1/v2 keys untouched as a safety net.
   persistTrip(base);
-  if (SYNC_LOCAL_STORAGE) {
+  if (!cloudModeActive) {
     try {
       localStorage.setItem(
         INDEX_KEY,
@@ -562,11 +609,31 @@ function migrateLegacy() {
   };
 }
 
-const loaded = loadAll();
-const trips = loaded.map;
-let order = loaded.order;
-let activeId = loaded.activeId;
-let state = trips.get(activeId);
+/**
+ * Boot state. When Supabase isn't configured at all this is the final state
+ * (pure local-only, as before). Otherwise it's a placeholder — never written
+ * to localStorage — until `syncAuthMode`, triggered right below, learns
+ * whether to load from localStorage (local-only) or the cloud.
+ */
+let cloudModeActive = false;
+let trips;
+let order;
+let activeId;
+let state;
+
+if (hasSupabase) {
+  const placeholder = normalize(seedTrip());
+  trips = new Map([[placeholder.id, placeholder]]);
+  order = [placeholder.id];
+  activeId = placeholder.id;
+  state = placeholder;
+} else {
+  const loaded = loadAll();
+  trips = loaded.map;
+  order = loaded.order;
+  activeId = loaded.activeId;
+  state = trips.get(activeId);
+}
 
 /* --- active-trip store: what every screen reads --------------------------- */
 
@@ -577,7 +644,24 @@ function subscribe(listener) {
   return () => listeners.delete(listener);
 }
 
+/** Whether trips currently come from the cloud (vs. localStorage). */
+export function useCloudMode() {
+  return useSyncExternalStore(
+    subscribe,
+    () => cloudModeActive,
+    () => cloudModeActive,
+  );
+}
+
+/** Non-hook snapshot of cloud mode, for callers outside React (tests). */
+export function isCloudMode() {
+  return cloudModeActive;
+}
+
 function commit(next) {
+  // Cloud mode with no connection is read-only — nothing could be saved
+  // anyway, and the UI disables input for the same reason.
+  if (cloudModeActive && !isOnline()) return;
   const stamped = { ...next, updatedAt: new Date().toISOString() };
   state = stamped;
   trips.set(activeId, stamped);
@@ -654,8 +738,17 @@ export function getTripRegistry() {
   return registry;
 }
 
+// Only now (registry + listeners exist) is it safe to let syncAuthMode run —
+// enterLocalMode/enterCloudMode can fire synchronously and touch both.
+if (hasSupabase) {
+  subscribeSession(syncAuthMode);
+  subscribeLocalOnly(syncAuthMode);
+  syncAuthMode(); // localOnly is known synchronously; session may resolve later.
+}
+
 /** Create a new trip and switch to it; returns its id. */
 export function createTrip(partial = {}) {
+  if (cloudModeActive && !isOnline()) return activeId;
   const trip = normalize({ ...tripDefaults(), ...partial, id: newId() });
   trips.set(trip.id, trip);
   order = [...order, trip.id];
@@ -680,10 +773,11 @@ export function switchTrip(id) {
 
 export function deleteTrip(id) {
   if (!trips.has(id)) return;
+  if (cloudModeActive && !isOnline()) return;
   trips.delete(id);
   order = order.filter((x) => x !== id);
   deleteTripRemote(id);
-  if (SYNC_LOCAL_STORAGE) {
+  if (!cloudModeActive) {
     try {
       localStorage.removeItem(tripKey(id));
     } catch {
@@ -708,6 +802,24 @@ export function deleteTrip(id) {
   }
   persistIndex();
   refreshRegistry();
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Offline downloads (cloud mode only)                                        */
+/*                                                                              */
+/*  An explicit, per-trip opt-in cache in IndexedDB (see offlineCache.js) so   */
+/*  a cloud trip stays usable if the connection drops — separate from (and     */
+/*  not kept in sync with) localStorage, which cloud-mode trips never touch.   */
+/* -------------------------------------------------------------------------- */
+
+export async function downloadTripOffline(id = activeId) {
+  const trip = trips.get(id);
+  if (!trip) return;
+  await saveTripOffline(trip);
+}
+
+export async function checkTripDownloaded(id = activeId) {
+  return isTripDownloaded(id);
 }
 
 /* -------------------------------------------------------------------------- */

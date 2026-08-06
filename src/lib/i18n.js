@@ -89,6 +89,12 @@ const STRINGS = {
     "header.overplanned":
       "You’ve planned {planned} nights but the trip is only {total} nights long. Extend the end date or trim a stop.",
 
+    // offline downloads (cloud mode)
+    "offline.download": "Download for offline",
+    "offline.downloaded": "Available offline",
+    "offline.banner":
+      "You’re offline — showing the last available copy. Changes won’t be saved until you’re back online.",
+
     // plan
     "plan.destination": "Destination",
     "plan.nights": "Nights",
@@ -354,7 +360,10 @@ const STRINGS = {
     "header.nightsPlanned": "{value} מתוך {total} לילות מתוכננים",
     "header.overplanned":
       "תכננת {planned} לילות אך הטיול נמשך {total} לילות בלבד. הארך את תאריך הסיום או קצר עצירה.",
-
+    "offline.download": "הורדה לשימוש לא מקוון",
+    "offline.downloaded": "זמין גם לא מקוון",
+    "offline.banner":
+      "אתם לא מחוברים לרשת — מוצג העותק האחרון הזמין. שינויים לא יישמרו עד שתחזרו להיות מחוברים.",
     "plan.destination": "יעד",
     "plan.nights": "לילות",
     "plan.accommodationCol": "לינה",

@@ -131,3 +131,11 @@ export function useLocalOnly() {
     () => localOnly,
   );
 }
+
+/** The current local-only choice outside React (store.js's mode switch). */
+export function getLocalOnly() {
+  return localOnly;
+}
+
+/** Subscribe to local-only changes outside React. Returns an unsubscribe fn. */
+export { subscribeLocalOnly };
