@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from 'react'
-import { hasSupabase, supabase } from './supabase.js'
+import { useSyncExternalStore } from "react";
+import { hasSupabase, supabase } from "./supabase.js";
 
 /**
  * Auth state, layered so the rest of the app can stay oblivious to Supabase.
@@ -16,40 +16,40 @@ import { hasSupabase, supabase } from './supabase.js'
  * true from the start — the app runs local-only, the graceful-degradation path.
  */
 
-const LOCAL_ONLY_KEY = 'project-travel:local-only'
+const LOCAL_ONLY_KEY = "project-travel:local-only";
 
 /* --- Supabase session ------------------------------------------------------ */
 
-let session = null
-let ready = !hasSupabase
-let sessionSnapshot = { session, ready }
-const sessionListeners = new Set()
+let session = null;
+let ready = !hasSupabase;
+let sessionSnapshot = { session, ready };
+const sessionListeners = new Set();
 
 function emitSession() {
-  sessionSnapshot = { session, ready }
-  sessionListeners.forEach((l) => l())
+  sessionSnapshot = { session, ready };
+  sessionListeners.forEach((l) => l());
 }
 
 if (hasSupabase) {
   // Prime from any persisted session, then track every later change.
   supabase.auth.getSession().then(({ data }) => {
-    session = data.session ?? null
-    ready = true
-    emitSession()
-  })
+    session = data.session ?? null;
+    ready = true;
+    emitSession();
+  });
 
   supabase.auth.onAuthStateChange((_event, next) => {
-    session = next ?? null
-    ready = true
+    session = next ?? null;
+    ready = true;
     // A real sign-in overrides an earlier "use without an account" choice.
-    if (session) setLocalOnly(false)
-    emitSession()
-  })
+    if (session) setLocalOnly(false);
+    emitSession();
+  });
 }
 
 function subscribeSession(listener) {
-  sessionListeners.add(listener)
-  return () => sessionListeners.delete(listener)
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
 }
 
 /** `{ session, ready }`. `ready` gates the initial splash. */
@@ -58,11 +58,19 @@ export function useSession() {
     subscribeSession,
     () => sessionSnapshot,
     () => sessionSnapshot,
-  )
+  );
 }
 
+/** The current Supabase session outside React (store.js's cloud sync). */
+export function getSession() {
+  return session;
+}
+
+/** Subscribe to session changes outside React. Returns an unsubscribe fn. */
+export { subscribeSession };
+
 /** The signed-in user's email, or null. */
-export const sessionEmail = (s) => s?.user?.email ?? null
+export const sessionEmail = (s) => s?.user?.email ?? null;
 
 /* --- magic-link actions ---------------------------------------------------- */
 
@@ -72,48 +80,48 @@ export const sessionEmail = (s) => s?.user?.email ?? null
  * on its way; the session itself only arrives when the link is opened.
  */
 export async function sendMagicLink(email) {
-  if (!hasSupabase) throw new Error('Supabase is not configured')
+  if (!hasSupabase) throw new Error("Supabase is not configured");
   const { error } = await supabase.auth.signInWithOtp({
     email,
     // The link returns to the app; supabase.js has detectSessionInUrl on to
     // pick the session out of the URL hash when it lands.
     options: { emailRedirectTo: window.location.origin },
-  })
-  if (error) throw error
+  });
+  if (error) throw error;
 }
 
 export async function signOut() {
-  if (hasSupabase) await supabase.auth.signOut()
+  if (hasSupabase) await supabase.auth.signOut();
 }
 
 /* --- local-only preference ------------------------------------------------- */
 
 function readLocalOnly() {
   try {
-    return localStorage.getItem(LOCAL_ONLY_KEY) === '1'
+    return localStorage.getItem(LOCAL_ONLY_KEY) === "1";
   } catch {
-    return false
+    return false;
   }
 }
 
-let localOnly = readLocalOnly()
-const localOnlyListeners = new Set()
+let localOnly = readLocalOnly();
+const localOnlyListeners = new Set();
 
 export function setLocalOnly(value) {
-  if (localOnly === value) return
-  localOnly = value
+  if (localOnly === value) return;
+  localOnly = value;
   try {
-    if (value) localStorage.setItem(LOCAL_ONLY_KEY, '1')
-    else localStorage.removeItem(LOCAL_ONLY_KEY)
+    if (value) localStorage.setItem(LOCAL_ONLY_KEY, "1");
+    else localStorage.removeItem(LOCAL_ONLY_KEY);
   } catch {
     // Non-fatal: the choice just won't survive a reload.
   }
-  localOnlyListeners.forEach((l) => l())
+  localOnlyListeners.forEach((l) => l());
 }
 
 function subscribeLocalOnly(listener) {
-  localOnlyListeners.add(listener)
-  return () => localOnlyListeners.delete(listener)
+  localOnlyListeners.add(listener);
+  return () => localOnlyListeners.delete(listener);
 }
 
 export function useLocalOnly() {
@@ -121,5 +129,5 @@ export function useLocalOnly() {
     subscribeLocalOnly,
     () => localOnly,
     () => localOnly,
-  )
+  );
 }
