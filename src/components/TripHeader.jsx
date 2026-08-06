@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Check, Download, FileDown, LayoutGrid, LogOut, Pencil } from "lucide-react";
+import {
+  Check,
+  Download,
+  FileDown,
+  LayoutGrid,
+  LogOut,
+  Pencil,
+} from "lucide-react";
 import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
 import TripSwitcher from "./TripSwitcher.jsx";
