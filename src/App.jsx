@@ -24,6 +24,7 @@ import {
   tripStats,
   useCloudMode,
   useTrip,
+  useTripsReady,
   withDates,
 } from "./lib/store.js";
 import { useLocalOnly, useSession } from "./lib/auth.js";
@@ -47,12 +48,15 @@ const TABS = [
 ];
 
 /**
- * Screen gate. Three states, in order:
+ * Screen gate. Four states, in order:
  *   1. Supabase configured but not signed in (and not opted into local-only)
  *      → the auth screen.
- *   2. Signed in (or local-only, or no Supabase at all) but no trip opened yet
- *      → the trip picker.
- *   3. A trip opened → the editor.
+ *   2. Signed in (or local-only, or no Supabase at all) but the real trip
+ *      data hasn't loaded yet → the loading splash. Without this, the
+ *      picker/editor would briefly show the in-memory placeholder trip
+ *      (store.js's demo seed) while the cloud fetch is still in flight.
+ *   3. Real data loaded, but no trip opened yet → the trip picker.
+ *   4. A trip opened → the editor.
  *
  * All hooks run before any branch, so the rules of hooks hold; the heavy
  * editor and its map only mount once a trip is actually open.
@@ -60,6 +64,7 @@ const TABS = [
 export default function App() {
   const { session, ready } = useSession();
   const localOnly = useLocalOnly();
+  const tripsReady = useTripsReady();
   const [inEditor, setInEditor] = useState(false);
 
   // Signing out (session gone) drops back to the gate, so a later sign-in lands
@@ -68,9 +73,12 @@ export default function App() {
     if (!session) setInEditor(false);
   }, [session]);
 
-  // Wait for the initial session check so we don't flash the sign-in screen
-  // over a persisted session that's a beat away from loading.
-  if (hasSupabase && !ready) {
+  const showSplash =
+    hasSupabase && (!ready || ((session || localOnly) && !tripsReady));
+
+  // Wait for the initial session check, and then for the real trip data, so
+  // we don't flash the sign-in screen or the placeholder demo trip.
+  if (showSplash) {
     return (
       <div className="grid min-h-full place-items-center bg-canvas">
         <span className="animate-pulse text-3xl" aria-hidden>

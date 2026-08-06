@@ -473,6 +473,7 @@ async function enterCloudMode(previousMode) {
     // Otherwise leave whatever was already showing (e.g. the placeholder) —
     // it's stale but better than a blank app.
     cloudModeActive = true;
+    tripsReady = true;
     listeners.forEach((l) => l());
     refreshRegistry();
     return;
@@ -480,6 +481,7 @@ async function enterCloudMode(previousMode) {
 
   if (adopting) clearLocalStorage();
   cloudModeActive = true;
+  tripsReady = true;
 
   if (!data || data.length === 0) {
     // Brand-new account, nothing adopted and nothing in the cloud yet.
@@ -508,6 +510,7 @@ function enterLocalMode() {
   order = loaded.order;
   activeId = loaded.activeId;
   state = trips.get(activeId);
+  tripsReady = true;
   listeners.forEach((l) => l());
   refreshRegistry();
 }
@@ -616,6 +619,11 @@ function migrateLegacy() {
  * whether to load from localStorage (local-only) or the cloud.
  */
 let cloudModeActive = false;
+// True once the ACTIVE trip set is real data rather than the placeholder
+// below — local-only apps have real data immediately; cloud apps flip this
+// once the first fetch (or fallback) completes. Never reset afterwards, so a
+// later sign-in/out swap doesn't re-blank the screen.
+let tripsReady = !hasSupabase;
 let trips;
 let order;
 let activeId;
@@ -656,6 +664,19 @@ export function useCloudMode() {
 /** Non-hook snapshot of cloud mode, for callers outside React (tests). */
 export function isCloudMode() {
   return cloudModeActive;
+}
+
+/**
+ * True once the active trip set is real (loaded from the cloud, or local-only
+ * data) rather than the boot-time placeholder. Gates the initial screen so
+ * the placeholder demo trip is never shown while the real fetch is in flight.
+ */
+export function useTripsReady() {
+  return useSyncExternalStore(
+    subscribe,
+    () => tripsReady,
+    () => tripsReady,
+  );
 }
 
 function commit(next) {
