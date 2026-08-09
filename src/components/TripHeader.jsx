@@ -25,7 +25,7 @@ import { useI18n } from "../lib/i18n.js";
 
 export default function TripHeader({ trip, stats, onBackToTrips }) {
   const [editing, setEditing] = useState(false);
-  const { t, dateLocale } = useI18n();
+  const { t } = useI18n();
   const { session } = useSession();
   const cloudMode = useCloudMode();
   const [downloaded, setDownloaded] = useState(false);
@@ -58,11 +58,11 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
     }
   };
 
-  const opts = { locale: dateLocale };
-  const range = `${format(parseISO(trip.startDate), "dd MMM", opts)} – ${format(
+  // Fixed dd/MM/yy on purpose — the trip range reads the same in both
+  // languages (the digits carry it), so it isn't run through dateLocale.
+  const range = `${format(parseISO(trip.startDate), "dd/MM/yy")} – ${format(
     parseISO(trip.endDate),
-    "dd MMM yyyy",
-    opts,
+    "dd/MM/yy",
   )}`;
 
   return (
@@ -133,7 +133,7 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
         <div className="min-w-0">
           {editing ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               <input
                 className="field !w-auto max-w-[16rem] text-lg font-semibold"
                 value={trip.title}
@@ -142,22 +142,26 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
                 onKeyDown={(e) => e.key === "Enter" && setEditing(false)}
                 aria-label={t("header.title")}
               />
-              <input
-                type="date"
-                className="field !w-auto"
-                value={trip.startDate}
-                max={trip.endDate}
-                onChange={(e) => updateTrip({ startDate: e.target.value })}
-                aria-label={t("header.startDate")}
-              />
-              <input
-                type="date"
-                className="field !w-auto"
-                value={trip.endDate}
-                min={trip.startDate}
-                onChange={(e) => updateTrip({ endDate: e.target.value })}
-                aria-label={t("header.endDate")}
-              />
+              <label className="flex flex-col text-xs font-medium text-muted">
+                {t("header.startDate")}
+                <input
+                  type="date"
+                  className="field tabular mt-1 !w-auto"
+                  value={trip.startDate}
+                  max={trip.endDate}
+                  onChange={(e) => updateTrip({ startDate: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col text-xs font-medium text-muted">
+                {t("header.endDate")}
+                <input
+                  type="date"
+                  className="field tabular mt-1 !w-auto"
+                  value={trip.endDate}
+                  min={trip.startDate}
+                  onChange={(e) => updateTrip({ endDate: e.target.value })}
+                />
+              </label>
               <button
                 type="button"
                 className="btn-soft"
