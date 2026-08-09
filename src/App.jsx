@@ -272,7 +272,13 @@ function TripEditor({ onBackToTrips }) {
         } ${readOnly ? "pointer-events-none select-none opacity-90" : ""}`}
       >
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface">
-          <TripHeader trip={trip} stats={stats} onBackToTrips={onBackToTrips} />
+          <TripHeader
+            trip={trip}
+            stats={stats}
+            view={view}
+            onChangeView={setView}
+            onBackToTrips={onBackToTrips}
+          />
 
           {/* Duplicates the floating bottom nav, so it's only worth its
               vertical space on desktop; phones navigate from the bottom bar. */}

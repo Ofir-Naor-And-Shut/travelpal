@@ -1,62 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import {
-  Check,
-  Download,
-  FileDown,
-  LayoutGrid,
-  LogOut,
-  Pencil,
-} from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
 import TripSwitcher from "./TripSwitcher.jsx";
-import {
-  CURRENCIES,
-  checkTripDownloaded,
-  downloadTripOffline,
-  updateTrip,
-  useCloudMode,
-} from "../lib/store.js";
-import { signOut, useSession } from "../lib/auth.js";
+import TripMenu from "./TripMenu.jsx";
+import { CURRENCIES, updateTrip } from "../lib/store.js";
 import { currencySymbol, formatMoney } from "../lib/money.js";
-import { exportTripPdf } from "../lib/exportPdf.js";
 import { useI18n } from "../lib/i18n.js";
 
-export default function TripHeader({ trip, stats, onBackToTrips }) {
+export default function TripHeader({ trip, stats, view, onChangeView, onBackToTrips }) {
   const [editing, setEditing] = useState(false);
   const { t } = useI18n();
-  const { session } = useSession();
-  const cloudMode = useCloudMode();
-  const [downloaded, setDownloaded] = useState(false);
-  const [exporting, setExporting] = useState(false);
-
-  useEffect(() => {
-    if (!cloudMode) return;
-    let cancelled = false;
-    checkTripDownloaded(trip.id).then((v) => {
-      if (!cancelled) setDownloaded(v);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [cloudMode, trip.id]);
-
-  const handleDownload = async () => {
-    await downloadTripOffline(trip.id);
-    setDownloaded(true);
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportTripPdf(trip);
-    } catch (err) {
-      console.error("PDF export failed", err);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   // Fixed dd/MM/yy on purpose — the trip range reads the same in both
   // languages (the digits carry it), so it isn't run through dateLocale.
@@ -72,56 +27,13 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
           clipped off the edge; on desktop it stays a single row. */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 lg:flex-nowrap">
         <div className="flex items-center gap-2">
-          {onBackToTrips && (
-            <button
-              type="button"
-              className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
-              onClick={onBackToTrips}
-              aria-label={t("header.allTrips")}
-            >
-              <LayoutGrid size={14} />
-              <span className="hidden lg:inline">{t("header.allTrips")}</span>
-            </button>
-          )}
+          <TripMenu
+            trip={trip}
+            view={view}
+            onChangeView={onChangeView}
+            onBackToTrips={onBackToTrips}
+          />
           <AppControls />
-          <button
-            type="button"
-            className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
-            onClick={handleExport}
-            disabled={exporting}
-            aria-label={t("header.exportPdf")}
-          >
-            <FileDown size={14} />
-            <span className="hidden lg:inline">{t("header.exportPdf")}</span>
-          </button>
-          {cloudMode && (
-            <button
-              type="button"
-              className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
-              onClick={handleDownload}
-              aria-label={t(
-                downloaded ? "offline.downloaded" : "offline.download",
-              )}
-            >
-              {downloaded ? <Check size={14} /> : <Download size={14} />}
-              <span className="hidden lg:inline">
-                {t(downloaded ? "offline.downloaded" : "offline.download")}
-              </span>
-            </button>
-          )}
-          {/* Only signed-in users have a session to end; local-only users sign
-              in from the picker instead. */}
-          {session && (
-            <button
-              type="button"
-              className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
-              onClick={signOut}
-              aria-label={t("picker.signOut")}
-            >
-              <LogOut size={14} />
-              <span className="hidden lg:inline">{t("picker.signOut")}</span>
-            </button>
-          )}
         </div>
         {/* Full-width on its own wrapped line on phones; natural width inline
             on desktop. */}

@@ -49,6 +49,9 @@ const STRINGS = {
     "auth.sentBody":
       "We emailed a sign-in link to {email}. Open it on this device to continue.",
     "auth.differentEmail": "Use a different email",
+    "auth.resend": "Resend link",
+    "auth.resending": "Resending…",
+    "auth.resent": "Link sent",
     "auth.localOnly": "Continue without an account",
     "auth.localOnlyHint": "Your trips stay on this device and won’t sync.",
     "auth.invalidEmail": "Enter a valid email address.",
@@ -65,6 +68,8 @@ const STRINGS = {
     "picker.localMode": "Using without an account",
     "picker.signInToSync": "Sign in to sync",
     "header.allTrips": "All trips",
+    "header.menu": "Menu",
+    "header.goTo": "Go to",
 
     // language + theme
     "lang.label": "Language",
@@ -342,6 +347,9 @@ const STRINGS = {
     "auth.sentBody":
       "שלחנו קישור כניסה אל {email}. פתחו אותו במכשיר הזה כדי להמשיך.",
     "auth.differentEmail": "שימוש בכתובת אחרת",
+    "auth.resend": "שליחת הקישור שוב",
+    "auth.resending": "שולח שוב…",
+    "auth.resent": "הקישור נשלח",
     "auth.localOnly": "המשך ללא חשבון",
     "auth.localOnlyHint": "הטיולים יישארו במכשיר הזה ולא יסונכרנו.",
     "auth.invalidEmail": "הזינו כתובת אימייל תקינה.",
@@ -358,6 +366,8 @@ const STRINGS = {
     "picker.localMode": "שימוש ללא חשבון",
     "picker.signInToSync": "התחברו לסנכרון",
     "header.allTrips": "כל הטיולים",
+    "header.menu": "תפריט",
+    "header.goTo": "מעבר אל",
 
     "lang.label": "שפה",
     "lang.change": "שינוי שפה",

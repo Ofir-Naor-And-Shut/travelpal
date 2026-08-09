@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { MailCheck, Send } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, MailCheck, RefreshCw, Send } from 'lucide-react'
 import AppControls from './AppControls.jsx'
 import { sendMagicLink, setLocalOnly } from '../lib/auth.js'
 import { useI18n } from '../lib/i18n.js'
@@ -18,7 +18,16 @@ export default function AuthScreen() {
   const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('idle') // idle | sending | sent | error
+  const [resend, setResend] = useState('idle') // idle | sending | sent | error
   const sent = status === 'sent'
+
+  // Let the "Link sent" confirmation settle, then re-arm the button so a second
+  // resend is possible if the first mail still hasn't arrived.
+  useEffect(() => {
+    if (resend !== 'sent') return undefined
+    const id = setTimeout(() => setResend('idle'), 4000)
+    return () => clearTimeout(id)
+  }, [resend])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -33,6 +42,19 @@ export default function AuthScreen() {
       setStatus('sent')
     } catch {
       setStatus('error')
+    }
+  }
+
+  const resendLink = async () => {
+    if (resend === 'sending') return
+    setResend('sending')
+    try {
+      await sendMagicLink(email.trim())
+      setResend('sent')
+    } catch {
+      // Keep the confirmation screen — the address is still valid, only the
+      // send failed — and report it inline rather than dropping to the form.
+      setResend('error')
     }
   }
 
@@ -60,16 +82,44 @@ export default function AuthScreen() {
             <p className="mt-1 text-sm text-muted">
               {t('auth.sentBody', { email: email.trim() })}
             </p>
-            <button
-              type="button"
-              className="btn-ghost mt-3 !py-1 text-xs"
-              onClick={() => {
-                setStatus('idle')
-                setEmail('')
-              }}
-            >
-              {t('auth.differentEmail')}
-            </button>
+            <div className="mt-4 flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                className="btn-soft !py-1.5 text-xs"
+                onClick={resendLink}
+                disabled={resend === 'sending'}
+              >
+                {resend === 'sent' ? (
+                  <Check size={14} className="text-accent" />
+                ) : (
+                  <RefreshCw
+                    size={14}
+                    className={resend === 'sending' ? 'animate-spin' : ''}
+                  />
+                )}
+                {resend === 'sending'
+                  ? t('auth.resending')
+                  : resend === 'sent'
+                    ? t('auth.resent')
+                    : t('auth.resend')}
+              </button>
+              {resend === 'error' && (
+                <p role="alert" className="text-xs text-accent">
+                  {t('auth.error')}
+                </p>
+              )}
+              <button
+                type="button"
+                className="btn-ghost !py-1 text-xs"
+                onClick={() => {
+                  setStatus('idle')
+                  setResend('idle')
+                  setEmail('')
+                }}
+              >
+                {t('auth.differentEmail')}
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={submit} noValidate>
