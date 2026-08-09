@@ -274,9 +274,11 @@ function TripEditor({ onBackToTrips }) {
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface">
           <TripHeader trip={trip} stats={stats} onBackToTrips={onBackToTrips} />
 
+          {/* Duplicates the floating bottom nav, so it's only worth its
+              vertical space on desktop; phones navigate from the bottom bar. */}
           <nav
             aria-label={t("nav.sections")}
-            className="flex shrink-0 gap-1 border-b border-line bg-surface px-5 md:px-8"
+            className="hidden shrink-0 gap-1 border-b border-line bg-surface px-5 md:px-8 lg:flex"
           >
             {TABS.map((tab) => (
               <button

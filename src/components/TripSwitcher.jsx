@@ -54,7 +54,7 @@ export default function TripSwitcher() {
         aria-haspopup="listbox"
         aria-label={t('trips.switch')}
         className="inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-line-strong
-                   bg-surface px-2.5 py-1.5 text-xs font-semibold text-fg transition hover:border-accent
+                   bg-surface px-2.5 py-2 text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <span aria-hidden>{active?.emoji}</span>

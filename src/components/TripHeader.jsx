@@ -73,35 +73,38 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
           {onBackToTrips && (
             <button
               type="button"
-              className="btn-ghost !px-2.5 !py-1.5 text-xs"
+              className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
               onClick={onBackToTrips}
+              aria-label={t("header.allTrips")}
             >
               <LayoutGrid size={14} />
-              {t("header.allTrips")}
+              <span className="hidden lg:inline">{t("header.allTrips")}</span>
             </button>
           )}
           <AppControls />
           <button
             type="button"
-            className="btn-ghost !px-2.5 !py-1.5 text-xs"
+            className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
             onClick={handleExport}
             disabled={exporting}
             aria-label={t("header.exportPdf")}
           >
             <FileDown size={14} />
-            {t("header.exportPdf")}
+            <span className="hidden lg:inline">{t("header.exportPdf")}</span>
           </button>
           {cloudMode && (
             <button
               type="button"
-              className="btn-ghost !px-2.5 !py-1.5 text-xs"
+              className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
               onClick={handleDownload}
               aria-label={t(
                 downloaded ? "offline.downloaded" : "offline.download",
               )}
             >
               {downloaded ? <Check size={14} /> : <Download size={14} />}
-              {t(downloaded ? "offline.downloaded" : "offline.download")}
+              <span className="hidden lg:inline">
+                {t(downloaded ? "offline.downloaded" : "offline.download")}
+              </span>
             </button>
           )}
           {/* Only signed-in users have a session to end; local-only users sign
@@ -109,11 +112,12 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
           {session && (
             <button
               type="button"
-              className="btn-ghost !px-2.5 !py-1.5 text-xs"
+              className="btn-ghost !px-2.5 !py-2 text-xs lg:!py-1.5"
               onClick={signOut}
+              aria-label={t("picker.signOut")}
             >
               <LogOut size={14} />
-              {t("picker.signOut")}
+              <span className="hidden lg:inline">{t("picker.signOut")}</span>
             </button>
           )}
         </div>
@@ -185,7 +189,7 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
               <select
                 value={trip.currency}
                 onChange={(e) => updateTrip({ currency: e.target.value })}
-                className="cursor-pointer rounded border-none bg-transparent font-medium text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="cursor-pointer rounded border-none bg-transparent py-1 font-medium text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 lg:py-0"
                 aria-label={t("header.currency")}
               >
                 {CURRENCIES.map((c) => (

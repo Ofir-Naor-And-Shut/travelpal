@@ -95,6 +95,17 @@ but it needs reconciling before real conflict resolution.
   ramp steps or `dark:` twins.
 - **Graceful degradation.** Optional services (BizData, Google, Supabase) are
   gated on presence — the app runs fully without any of them.
+- **Responsive — one adaptive layout, not two.** The same layout reshapes from
+  phone to desktop; there is no separate mobile build. It is mobile-first
+  (Tailwind): the base styles *are* the phone layout, and desktop is pinned
+  behind `lg:` (matching the two-pane map split boundary). The desktop look is
+  considered good and must not regress — when improving mobile, change the base
+  and restore the current desktop value at `lg:`, never the other way round.
+  Phone specifics: the top tab bar is hidden below `lg` (the floating bottom nav
+  covers those views); header toolbar buttons collapse to icon-only; day-planner
+  attraction/reservation rows reflow to two lines (name + actions, then a
+  full-width time+cost row) via flex `order`; tap targets are enlarged. Verify
+  both widths (≈375px and ≥1280px) on any layout change.
 
 ## How you work — the principles that have actually held up here
 

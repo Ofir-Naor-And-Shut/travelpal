@@ -42,8 +42,8 @@ export default function AppControls() {
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-label={t('lang.change')}
-          className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-1.5
-                     text-xs font-semibold text-fg transition hover:border-accent
+          className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-2
+                     text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <Globe size={14} />
@@ -97,7 +97,7 @@ export default function AppControls() {
               aria-pressed={selected}
               title={t(`theme.${mode}`)}
               aria-label={t(`theme.${mode}`)}
-              className={`grid size-6 place-items-center rounded-full transition
+              className={`grid size-8 place-items-center rounded-full transition lg:size-6
                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   selected
                     ? 'bg-accent text-on-accent'

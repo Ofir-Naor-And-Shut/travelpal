@@ -469,7 +469,7 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                   />
 
                   <input
-                    className={`field min-w-0 flex-1 ${a.done ? "text-subtle line-through" : ""}`}
+                    className={`field order-1 min-w-0 flex-1 lg:order-none ${a.done ? "text-subtle line-through" : ""}`}
                     placeholder={t("attractions.placeholder")}
                     value={a.name}
                     onChange={(e) =>
@@ -478,31 +478,9 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                       })
                     }
                   />
-                  <TimeField
-                    value={a.time}
-                    onChange={(time) =>
-                      updateAttraction(dayKeyValue, a.id, { time })
-                    }
-                    label={t("attractions.time")}
-                    className="!w-20"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="field tabular !w-24"
-                    placeholder="0"
-                    value={a.cost || ""}
-                    onChange={(e) =>
-                      updateAttraction(dayKeyValue, a.id, {
-                        cost: num(e.target.value),
-                      })
-                    }
-                    aria-label={t("attractions.cost")}
-                  />
                   <button
                     type="button"
-                    className="btn-ghost !px-2"
+                    className="btn-ghost order-2 !px-2 lg:order-none"
                     onClick={() => removeAttraction(dayKeyValue, a.id)}
                     aria-label={t("attractions.remove", {
                       name: a.name || t("attractions.fallback"),
@@ -510,6 +488,32 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                   >
                     <Trash2 size={15} />
                   </button>
+                  {/* Time + cost drop to their own full-width row on phones, so
+                      neither is squeezed; on desktop they sit inline as before. */}
+                  <div className="order-3 flex basis-full items-center gap-2 lg:order-none lg:basis-auto">
+                    <TimeField
+                      value={a.time}
+                      onChange={(time) =>
+                        updateAttraction(dayKeyValue, a.id, { time })
+                      }
+                      label={t("attractions.time")}
+                      className="flex-1 lg:!w-20 lg:flex-none"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="field tabular flex-1 lg:!w-24 lg:flex-none"
+                      placeholder="0"
+                      value={a.cost || ""}
+                      onChange={(e) =>
+                        updateAttraction(dayKeyValue, a.id, {
+                          cost: num(e.target.value),
+                        })
+                      }
+                      aria-label={t("attractions.cost")}
+                    />
+                  </div>
                 </div>
 
                 {a.address && (
@@ -617,38 +621,42 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
           label={name}
         />
         <input
-          className={`field min-w-0 flex-1 ${r.done ? "text-subtle line-through" : ""}`}
+          className={`field order-1 min-w-0 flex-1 lg:order-none ${r.done ? "text-subtle line-through" : ""}`}
           placeholder={t("reserved.placeholder")}
           value={r.name}
           onChange={(e) =>
             updateReservation(dayKeyValue, r.id, { name: e.target.value })
           }
         />
-        <TimeField
-          value={r.time}
-          onChange={(time) => updateReservation(dayKeyValue, r.id, { time })}
-          label={t("reserved.time")}
-          className="!w-20"
-        />
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          className="field tabular !w-24"
-          placeholder="0"
-          value={r.cost || ""}
-          onChange={(e) =>
-            updateReservation(dayKeyValue, r.id, { cost: num(e.target.value) })
-          }
-          aria-label={t("reserved.cost")}
-        />
+        {/* Time + cost drop to their own full-width row on phones; inline on
+            desktop as before. */}
+        <div className="order-4 flex basis-full items-center gap-2 lg:order-none lg:basis-auto">
+          <TimeField
+            value={r.time}
+            onChange={(time) => updateReservation(dayKeyValue, r.id, { time })}
+            label={t("reserved.time")}
+            className="flex-1 lg:!w-20 lg:flex-none"
+          />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="field tabular flex-1 lg:!w-24 lg:flex-none"
+            placeholder="0"
+            value={r.cost || ""}
+            onChange={(e) =>
+              updateReservation(dayKeyValue, r.id, { cost: num(e.target.value) })
+            }
+            aria-label={t("reserved.cost")}
+          />
+        </div>
         <button
           type="button"
           onClick={() => setShowDocs((v) => !v)}
           aria-expanded={showDocs}
           aria-label={t("reserved.docs", { name })}
           title={t("reserved.docLabel")}
-          className={`relative grid size-8 shrink-0 place-items-center rounded-full border transition
+          className={`relative order-2 grid size-8 shrink-0 place-items-center rounded-full border transition lg:order-none
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               showDocs
                 ? "border-accent bg-accent text-on-accent"
@@ -666,7 +674,7 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
         </button>
         <button
           type="button"
-          className="btn-ghost !px-2"
+          className="btn-ghost order-3 !px-2 lg:order-none"
           onClick={() => removeReservation(dayKeyValue, r.id)}
           aria-label={t("reserved.remove", { name })}
         >
