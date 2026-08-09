@@ -390,16 +390,22 @@ function isOnline() {
   return typeof navigator === "undefined" || navigator.onLine !== false;
 }
 
+/** Push a trip to the cloud. Returns true only on a confirmed write — the
+ *  adoption path relies on this to know a local trip is safe to drop. */
 async function upsertTripNow(trip) {
   const session = getSession();
-  if (!hasSupabase || !session) return;
+  if (!hasSupabase || !session) return false;
   const { error } = await supabase.from("trips").upsert({
     id: trip.id,
     owner_id: session.user.id,
     data: trip,
     updated_at: trip.updatedAt,
   });
-  if (error) console.error("Cloud sync: failed to push trip", error);
+  if (error) {
+    console.error("Cloud sync: failed to push trip", error);
+    return false;
+  }
+  return true;
 }
 
 function pushTrip(trip, { immediate = false } = {}) {
@@ -452,8 +458,16 @@ async function enterCloudMode(previousMode) {
   if (!session) return;
 
   const adopting = previousMode === "local";
+  // Which local trips the cloud has *confirmed* it stored. Only these may be
+  // dropped from localStorage below; a swallowed push failure must never cost
+  // the user a trip.
+  let adoptedIds = new Set();
   if (adopting) {
-    await Promise.all(order.map((id) => upsertTripNow(trips.get(id))));
+    const ids = [...order];
+    const results = await Promise.all(
+      ids.map((id) => upsertTripNow(trips.get(id))),
+    );
+    adoptedIds = new Set(ids.filter((_, i) => results[i]));
   }
 
   const { data, error } = await supabase
@@ -479,7 +493,7 @@ async function enterCloudMode(previousMode) {
     return;
   }
 
-  if (adopting) clearLocalStorage();
+  if (adopting) clearAdoptedLocalStorage(adoptedIds);
   cloudModeActive = true;
   tripsReady = true;
 
@@ -515,10 +529,27 @@ function enterLocalMode() {
   refreshRegistry();
 }
 
-function clearLocalStorage() {
+/**
+ * After adopting local trips into a freshly signed-in account, drop from
+ * localStorage only the trips the cloud confirmed it stored (`adoptedIds`). Any
+ * trip whose push failed is left in place — and if even one failed, the index
+ * is kept too — so a later sign-out still finds the survivors (loadAll simply
+ * skips the adopted keys that are now gone). This closes the earlier data-loss
+ * path where a swallowed push error still wiped the trip locally.
+ */
+function clearAdoptedLocalStorage(adoptedIds) {
   try {
-    for (const id of order) localStorage.removeItem(tripKey(id));
-    localStorage.removeItem(INDEX_KEY);
+    for (const id of order) {
+      if (adoptedIds.has(id)) localStorage.removeItem(tripKey(id));
+    }
+    if (order.every((id) => adoptedIds.has(id))) {
+      localStorage.removeItem(INDEX_KEY);
+    } else {
+      const failed = order.filter((id) => !adoptedIds.has(id)).length;
+      console.warn(
+        `Cloud sync: ${failed} trip(s) failed to adopt into the account; kept in local storage as a fallback.`,
+      );
+    }
   } catch {
     // Non-fatal — the cloud copy is authoritative from here on regardless.
   }

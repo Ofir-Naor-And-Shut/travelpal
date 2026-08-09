@@ -33,6 +33,7 @@ globalThis.document = { documentElement: { lang: "", dir: "" } };
 // ---- fake Supabase `trips` table -------------------------------------------
 const cloudRows = []; // stands in for the Postgres table
 let failNextFetch = false;
+let failUpsertForId = null; // simulate one trip's push failing (e.g. a blip)
 
 function fakeSupabase() {
   return {
@@ -57,6 +58,9 @@ function fakeSupabase() {
           };
         },
         upsert(row) {
+          if (row.id === failUpsertForId) {
+            return Promise.resolve({ error: { message: "upsert failed" } });
+          }
           const i = cloudRows.findIndex((r) => r.id === row.id);
           if (i >= 0) cloudRows[i] = { ...row };
           else cloudRows.push({ ...row });
@@ -227,5 +231,55 @@ test("a failed cloud fetch on sign-in falls back to a downloaded offline copy", 
   assert.ok(
     trips.some((t) => t.id === offlineId),
     "showing the downloaded copy since the live fetch failed",
+  );
+});
+
+test("adoption keeps a trip locally when its cloud push fails (no silent data loss)", async () => {
+  // Back to local-only so freshly created trips live in localStorage and are
+  // candidates for adoption on the next sign-in.
+  signOut();
+  await wait(20);
+  assert.equal(store.isCloudMode(), false);
+
+  const okId = store.createTrip({ title: "Adopts cleanly" });
+  const failId = store.createTrip({ title: "Push will fail" });
+  await wait(20);
+  assert.ok(localStorage.getItem(`project-travel:trip:${okId}`));
+  assert.ok(localStorage.getItem(`project-travel:trip:${failId}`));
+
+  // Make exactly one trip's adoption push fail, then sign in.
+  failUpsertForId = failId;
+  signIn();
+  await wait(50);
+  failUpsertForId = null;
+
+  assert.equal(store.isCloudMode(), true);
+
+  // The trip that pushed cleanly is now cloud-only.
+  assert.ok(
+    cloudRows.some((r) => r.id === okId),
+    "adopted trip reached the cloud",
+  );
+  assert.equal(
+    localStorage.getItem(`project-travel:trip:${okId}`),
+    null,
+    "adopted trip's local copy was cleared",
+  );
+
+  // The trip whose push failed must NOT have been wiped — it never reached the
+  // cloud, so localStorage is the only copy left. This is the data-loss guard.
+  assert.ok(
+    !cloudRows.some((r) => r.id === failId),
+    "failed trip did not reach the cloud",
+  );
+  assert.ok(
+    localStorage.getItem(`project-travel:trip:${failId}`),
+    "failed trip kept in localStorage as a fallback",
+  );
+  // And because not everything adopted, the index is kept so a later sign-out
+  // still finds the survivor.
+  assert.ok(
+    localStorage.getItem("project-travel:index"),
+    "index kept when not all trips adopted",
   );
 });
