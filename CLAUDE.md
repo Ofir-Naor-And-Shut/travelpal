@@ -53,26 +53,36 @@ shape factories, and load-time normalization keeps old saves valid.
   button back to the picker, and sign-out. Signing in is optional — a "continue
   without an account" escape runs the app fully local-only.
 
-**In progress — a Supabase backend** layered *under* the local-first store for
-cross-device sync and sharing. A trip is stored as one JSONB row in `public.trips`
-with owner-only RLS. **Local-first stays the working copy — Supabase is the
-durable, syncable backup, not a replacement.** Client in `src/lib/supabase.js`,
-auth/session in `src/lib/auth.js`, schema in `supabase/schema.sql`, credentials in
-`.env.local` (gitignored).
+**A Supabase backend** layered *under* the local-first store for cross-device sync
+and sharing. A trip is stored as one JSONB row in `public.trips` with owner-only
+RLS. **Local-first stays the working copy — Supabase is the durable, syncable
+backup, not a replacement.** Client in `src/lib/supabase.js`, auth/session in
+`src/lib/auth.js`, schema in `supabase/schema.sql`, credentials in `.env.local`
+(gitignored).
 
-*Done so far:* **magic-link (passwordless) auth** and the **screen flow** —
+*Done & verified:* **magic-link (passwordless) auth** and the **screen flow** —
 `AuthScreen` → `TripPicker` (the landing screen) → the editor (`TripEditor`),
 gated in `App.jsx`. `auth.js` exposes `useSession`, `sendMagicLink`, `signOut`,
 `useLocalOnly`/`setLocalOnly`, all no-ops when Supabase isn't configured. A
 "continue without an account" choice keeps the app usable local-only; sign-out
-returns to the login screen. Multiple trips are still **local only** at this point.
+returns to the login screen.
+Also **cloud read/write** (`store.js`): signed in, `public.trips` is the sole
+source of truth (localStorage is not written — `cloudModeActive` guards);
+`enterCloudMode` pulls the user's trips on sign-in and adopts any existing
+local-only trips into the account; `pushTrip` debounces edits (1500 ms) into
+`upsertTripNow`; `deleteTripRemote` removes the row. Adoption only clears a local
+trip once the cloud confirms it stored it — a failed push keeps the trip (and the
+index) as a local fallback, never a silent loss (regression-tested in
+`test/store.sync.test.js`, run with `npm test`). Verified end-to-end against a
+real magic-link login: fetch, push, reload round-trip, and delete-sync all
+confirmed against Postgres.
 
-*Still to do:* the actual cloud read/write — pull a user's trips on sign-in,
-debounced push on edit, reconcile by `updatedAt` (last-write-wins), and adopt any
-existing local trips into the account on first login. Then documents to a Storage
-bucket, sharing via a `trip_members` table, and realtime. Phased so the app is
-never left broken; the authenticated path can only be verified once a real
-magic-link login has happened (the DB refuses anonymous access by design).
+*Still to do:* documents to a Storage bucket, sharing via a `trip_members` table,
+and realtime, each phased so the app is never left broken. One known rough edge:
+the `touch_updated_at` trigger overwrites the `updated_at` **column** with
+`now()` on update while the client's last-write-wins clock lives in
+`data.updatedAt` inside the JSON — harmless today (reads use `data.updatedAt`),
+but it needs reconciling before real conflict resolution.
 
 ## First-class constraints — true of every change
 
