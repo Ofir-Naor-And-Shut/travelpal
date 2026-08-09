@@ -9,7 +9,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { Layers } from "lucide-react";
+import { Layers, X } from "lucide-react";
 import { TransportIcon } from "./TransportLeg.jsx";
 import { arcPoints, splitArc } from "../lib/arc.js";
 import {
@@ -229,6 +229,7 @@ export default function TripMap({
   onHover,
   dayRoute,
   onOpenDetails,
+  onClose,
 }) {
   const { t } = useI18n();
   const { theme } = useTheme();
@@ -553,8 +554,21 @@ export default function TripMap({
         </MapContainer>
       )}
 
-      {/* --- Basemap picker ------------------------------------------------ */}
+      {/* --- Map controls: close (overlay only) + basemap picker ----------- */}
       <div className="absolute end-3 top-3 z-[600] flex flex-col items-end gap-2">
+        {/* Only the phone overlay is dismissable; the docked desktop pane has
+            nothing to close, so onClose is only wired up there. Sits above the
+            picker in the same stack so the two never overlap. */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("map.close")}
+            className="grid size-9 place-items-center rounded-full bg-surface/95 text-fg shadow-md backdrop-blur transition hover:bg-surface lg:hidden"
+          >
+            <X size={18} />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setPickerOpen((v) => !v)}

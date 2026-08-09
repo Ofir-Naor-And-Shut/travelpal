@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Map as MapIcon, X } from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import BottomNav from "./components/BottomNav.jsx";
 import TripHeader from "./components/TripHeader.jsx";
 import PlanView from "./components/PlanView.jsx";
@@ -363,22 +363,13 @@ function TripEditor({ onBackToTrips }) {
               mapOpen ? "fixed inset-0 z-[900] block bg-surface" : "hidden"
             }`}
           >
-            {mapOpen && (
-              <button
-                type="button"
-                className="absolute end-3 top-3 z-[1000] grid size-9 place-items-center rounded-full bg-surface text-fg shadow-md lg:hidden"
-                onClick={() => setMapOpen(false)}
-                aria-label={t("map.close")}
-              >
-                <X size={18} />
-              </button>
-            )}
             <TripMap
               destinations={destinations}
               activeId={activeId}
               onHover={setActiveId}
               dayRoute={dayRoute}
               onOpenDetails={openDetailsFor}
+              onClose={mapOpen ? () => setMapOpen(false) : undefined}
             />
           </aside>
         )}
