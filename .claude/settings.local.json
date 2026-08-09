@@ -18,7 +18,11 @@
       "Bash(\"/c/Program Files/nodejs/node.exe\" -e \"process.stdout.write\\(Object.keys\\(require\\('./package.json'\\).scripts\\).join\\(','\\)\\)\")",
       "Bash(npm run *)",
       "Bash(npx oxlint *)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
