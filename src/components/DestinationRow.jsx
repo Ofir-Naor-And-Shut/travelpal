@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import {
-  Bed,
   ChevronDown,
   ChevronUp,
   GripVertical,
@@ -10,13 +8,11 @@ import {
 } from 'lucide-react'
 import {
   moveDestination,
-  num,
   removeDestination,
   setNights,
   updateDestination,
 } from '../lib/store.js'
 import { formatDay } from '../lib/store.js'
-import { formatMoney } from '../lib/money.js'
 import { useI18n } from '../lib/i18n.js'
 
 export default function DestinationRow({
@@ -24,7 +20,6 @@ export default function DestinationRow({
   index,
   isFirst,
   isLast,
-  currency,
   active,
   onHover,
   onOpenDay,
@@ -34,11 +29,8 @@ export default function DestinationRow({
   dropBefore = false,
   dropAfter = false,
 }) {
-  const [showSleeping, setShowSleeping] = useState(false)
   const { t } = useI18n()
 
-  const sleepingTotal = num(dest.sleeping?.cost) * dest.nights
-  const hasSleeping = Boolean(dest.sleeping?.name) || sleepingTotal > 0
   const nightWord = dest.nights === 1 ? t('plan.night') : t('plan.nightsPlural')
 
   return (
@@ -133,28 +125,6 @@ export default function DestinationRow({
           </button>
         </div>
 
-        {/* Accommodation stays on the row because it drives the nightly cost.
-            The wrapper centres the button under the Accommodation header. */}
-        <div className="flex shrink-0 justify-center @[700px]:w-[132px]">
-          <button
-            type="button"
-            onClick={() => setShowSleeping((v) => !v)}
-            aria-expanded={showSleeping}
-            aria-label={t('plan.accommodationCol')}
-            title={t('plan.accommodationCol')}
-            className={`grid size-8 place-items-center rounded-full border transition
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                showSleeping
-                  ? 'border-accent bg-accent text-on-accent'
-                  : hasSleeping
-                    ? 'border-line-strong bg-accent-soft text-fg hover:border-accent'
-                    : 'border-line-strong bg-surface text-subtle hover:border-accent hover:text-fg'
-              }`}
-          >
-            <Bed size={15} strokeWidth={2} />
-          </button>
-        </div>
-
         {/* Reorder + delete */}
         <div className="flex shrink-0 items-center justify-end gap-0.5 border-s border-line ps-2 @[700px]:w-[104px]">
           <button
@@ -185,56 +155,6 @@ export default function DestinationRow({
           </button>
         </div>
       </div>
-
-      {showSleeping && (
-        <div className="px-3 pb-3 ps-13">
-          <div className="rounded-xl border border-line bg-raised p-3">
-            <h4 className="col-head mb-2">
-              <Bed size={13} /> {t('sleeping.title')}
-            </h4>
-            <div className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
-              <label className="text-xs font-medium text-muted">
-                {t('sleeping.accommodation')}
-                <input
-                  className="field mt-1"
-                  placeholder={t('sleeping.placeholder')}
-                  value={dest.sleeping?.name ?? ''}
-                  onChange={(e) =>
-                    updateDestination(dest.id, {
-                      sleeping: { ...dest.sleeping, name: e.target.value },
-                    })
-                  }
-                />
-              </label>
-              <label className="text-xs font-medium text-muted">
-                {t('sleeping.perNight')}
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="field tabular mt-1"
-                  placeholder="0"
-                  value={dest.sleeping?.cost || ''}
-                  onChange={(e) =>
-                    updateDestination(dest.id, {
-                      sleeping: { ...dest.sleeping, cost: num(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-              <p className="tabular pb-2 text-sm font-semibold text-fg">
-                {formatMoney(sleepingTotal, currency)}
-                <span className="block text-[11px] font-normal text-muted">
-                  {dest.nights} {nightWord}
-                </span>
-              </p>
-            </div>
-            <p className="mt-2 text-[11px] text-subtle">
-              {t('sleeping.docsHint')}
-            </p>
-          </div>
-        </div>
-      )}
     </li>
   )
 }

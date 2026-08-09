@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { Bed, Compass, MapPin, Moon, Route } from 'lucide-react'
+import { Compass, MapPin, Moon, Route } from 'lucide-react'
 import DestinationRow from './DestinationRow.jsx'
 import DestinationSearch from './DestinationSearch.jsx'
 import TransportLeg from './TransportLeg.jsx'
@@ -33,9 +33,6 @@ export default function PlanView({
         <span className="col-head w-[116px] justify-center">
           <Moon size={13} /> {t('plan.nights')}
         </span>
-        <span className="col-head w-[132px] justify-center">
-          <Bed size={13} /> {t('plan.accommodationCol')}
-        </span>
         <span className="col-head w-[104px] justify-end">
           <Route size={13} /> {t('plan.order')}
         </span>
@@ -54,7 +51,6 @@ export default function PlanView({
                   index={i}
                   isFirst={i === 0}
                   isLast={i === destinations.length - 1}
-                  currency={trip.currency}
                   active={activeId === dest.id}
                   onHover={onHover}
                   onOpenDay={onOpenDay}

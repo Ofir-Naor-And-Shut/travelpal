@@ -2,8 +2,8 @@ import { Compass, FolderOpen, MapPinned, PlayCircle, Wallet } from 'lucide-react
 import { useI18n } from '../lib/i18n.js'
 
 const VIEWS = [
-  { id: 'view', key: 'nav.view', icon: PlayCircle },
   { id: 'plan', key: 'nav.plan', icon: MapPinned },
+  { id: 'view', key: 'nav.view', icon: PlayCircle },
   { id: 'details', key: 'nav.details', icon: FolderOpen },
   { id: 'budget', key: 'nav.budget', icon: Wallet },
   { id: 'discover', key: 'nav.discover', icon: Compass },

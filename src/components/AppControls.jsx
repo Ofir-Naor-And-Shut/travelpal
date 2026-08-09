@@ -47,7 +47,7 @@ export default function AppControls() {
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <Globe size={14} />
-          {active?.native}
+          <span className="hidden lg:inline">{active?.native}</span>
         </button>
 
         {open && (

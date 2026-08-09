@@ -38,8 +38,13 @@ shape factories, and load-time normalization keeps old saves valid.
   line runs destination-to-destination.
 - **Details** — per-destination notes plus travel and sleeping documents.
 - **Daily planner** — one card per night with attractions and reservations
-  (24-hour times, costs, done-state), plus opt-in per-night accommodation that
-  overrides the destination default (and replaces its cost, never adds to it).
+  (24-hour times, costs, done-state), plus opt-in per-night accommodation
+  (name, cost, address, documents). This is now the **only place accommodation
+  is entered**: the Destinations tab's per-destination accommodation control
+  (the bed button, its sleeping panel, and the "Accommodation" column) was
+  removed. A night still surfaces, and its cost replaces, any legacy
+  `dest.sleeping` value carried in existing trips (never adds to it) — but new
+  trips have no per-destination default, so sleeping is set night by night.
   Attraction search blends Nominatim (free text) and BizData (category browsing,
   returns hours/phone/website). Both persist coordinates.
 - **Budget** — rollup across sleeping, transport, attractions, reservations.
@@ -102,7 +107,9 @@ but it needs reconciling before real conflict resolution.
   considered good and must not regress — when improving mobile, change the base
   and restore the current desktop value at `lg:`, never the other way round.
   Phone specifics: the top tab bar is hidden below `lg` (the floating bottom nav
-  covers those views); header toolbar buttons collapse to icon-only; day-planner
+  covers those views); header toolbar buttons (including the language switch)
+  collapse to icon-only and the header row wraps so the trip switcher drops to
+  its own full-width line instead of being clipped; day-planner
   attraction/reservation rows reflow to two lines (name + actions, then a
   full-width time+cost row) via flex `order`; tap targets are enlarged. Verify
   both widths (≈375px and ≥1280px) on any layout change.

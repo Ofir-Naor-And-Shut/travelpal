@@ -67,8 +67,10 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
 
   return (
     <header className="border-b border-line bg-surface px-5 pt-4 md:px-8">
-      {/* Language + theme sit at the inline-start of the header. */}
-      <div className="mb-3 flex items-center justify-between gap-3">
+      {/* Language + theme sit at the inline-start of the header. On phones the
+          row wraps so the trip switcher drops to its own line rather than being
+          clipped off the edge; on desktop it stays a single row. */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 lg:flex-nowrap">
         <div className="flex items-center gap-2">
           {onBackToTrips && (
             <button
@@ -121,7 +123,11 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
             </button>
           )}
         </div>
-        <TripSwitcher />
+        {/* Full-width on its own wrapped line on phones; natural width inline
+            on desktop. */}
+        <div className="min-w-0 basis-full lg:basis-auto">
+          <TripSwitcher />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
