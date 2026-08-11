@@ -41,6 +41,8 @@ export default function DestinationSearch({ onSelect }) {
         const remote = hasGoogleKey()
           ? await autocompleteGooglePlaces(q, {
               signal: controller.signal,
+              // Localities/admin areas/countries only — no streets or businesses.
+              types: ["(regions)"],
             }).catch(() => searchRemote(q, controller.signal))
           : await searchRemote(q, controller.signal);
         const seen = new Set(local.map((r) => `${r.name}|${r.country}`));

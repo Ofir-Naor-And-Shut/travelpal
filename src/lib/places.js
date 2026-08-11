@@ -116,24 +116,39 @@ export async function searchNearby(query, center, signal, limit = 8) {
   })
 }
 
+// Nominatim's `addresstype`/`type` for places worth adding as a trip stop —
+// admin areas, settlements and islands, never a street, shop, bar or restaurant.
+const DESTINATION_KINDS = new Set([
+  'country', 'state', 'region', 'province', 'county', 'municipality',
+  'city', 'town', 'village', 'hamlet', 'island', 'islet', 'archipelago',
+  'administrative',
+])
+
+const isDestinationRow = (r) =>
+  DESTINATION_KINDS.has(r.addresstype) || DESTINATION_KINDS.has(r.type)
+
 export async function searchRemote(query, signal, limit = 6) {
   const url = new URL('https://nominatim.openstreetmap.org/search')
   url.searchParams.set('q', query)
   url.searchParams.set('format', 'jsonv2')
-  url.searchParams.set('limit', String(limit))
+  // Over-fetch since destination-kind filtering below discards some rows.
+  url.searchParams.set('limit', String(Math.max(limit * 3, 15)))
   url.searchParams.set('addressdetails', '1')
 
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Geocoder returned ${res.status}`)
   const rows = await res.json()
 
-  return rows.map((r) => ({
-    id: `osm:${r.osm_type}:${r.osm_id}`,
-    name: r.name || r.display_name.split(',')[0],
-    country: r.address?.country ?? '',
-    lat: parseFloat(r.lat),
-    lng: parseFloat(r.lon),
-  }))
+  return rows
+    .filter(isDestinationRow)
+    .slice(0, limit)
+    .map((r) => ({
+      id: `osm:${r.osm_type}:${r.osm_id}`,
+      name: r.name || r.display_name.split(',')[0],
+      country: r.address?.country ?? '',
+      lat: parseFloat(r.lat),
+      lng: parseFloat(r.lon),
+    }))
 }
 
 /**
