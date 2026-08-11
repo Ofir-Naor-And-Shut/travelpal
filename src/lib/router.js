@@ -9,14 +9,24 @@ import { useSyncExternalStore } from "react";
  */
 
 const TRIP_HASH_RE = /^#\/trip\/(.+)$/;
+const SHARE_HASH_RE = /^#\/shared\/(.+)$/;
 
 function parseTripId(hash) {
   const match = TRIP_HASH_RE.exec(hash);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function parseShareToken(hash) {
+  const match = SHARE_HASH_RE.exec(hash);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function getSnapshot() {
   return parseTripId(window.location.hash);
+}
+
+function getShareSnapshot() {
+  return parseShareToken(window.location.hash);
 }
 
 function subscribe(listener) {
@@ -27,6 +37,19 @@ function subscribe(listener) {
 /** The trip id encoded in the URL, or null when on the picker route. */
 export function useRouteTripId() {
   return useSyncExternalStore(subscribe, getSnapshot, () => null);
+}
+
+/**
+ * The share token encoded in a `#/shared/<token>` URL, or null. This route is
+ * public (no auth, no trip picker) — App.jsx checks it before anything else.
+ */
+export function useShareToken() {
+  return useSyncExternalStore(subscribe, getShareSnapshot, () => null);
+}
+
+/** Build a shareable, absolute view-only link for a token. */
+export function shareLinkUrl(token) {
+  return `${window.location.origin}${window.location.pathname}#/shared/${encodeURIComponent(token)}`;
 }
 
 /** Point the URL at a trip's editor. A no-op if it's already there. */

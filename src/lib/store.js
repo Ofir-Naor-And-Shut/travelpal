@@ -268,7 +268,7 @@ function tripDefaults() {
 /* -------------------------------------------------------------------------- */
 
 /** Fill in anything a stored payload predates or is missing. */
-function normalize(trip) {
+export function normalize(trip) {
   const days = Object.fromEntries(
     Object.entries(trip.days ?? {}).map(([key, day]) => [
       key,
@@ -391,8 +391,10 @@ function isOnline() {
   return typeof navigator === "undefined" || navigator.onLine !== false;
 }
 
-/** Push a trip to the cloud. Returns true only on a confirmed write — the
- *  adoption path relies on this to know a local trip is safe to drop. */
+/** Push a brand-new trip to the cloud (create, adopt, or reseed) — the only
+ *  paths where the current user is establishing themselves as the owner.
+ *  Returns true only on a confirmed write — the adoption path relies on this
+ *  to know a local trip is safe to drop. */
 async function upsertTripNow(trip) {
   const session = getSession();
   if (!hasSupabase || !session) return false;
@@ -409,6 +411,24 @@ async function upsertTripNow(trip) {
   return true;
 }
 
+/** Push an edit to a trip that already exists remotely. Deliberately never
+ *  touches owner_id — an editor collaborator saving a change must not be able
+ *  to reassign ownership away from the real owner (also enforced server-side
+ *  by a trigger; this is belt-and-suspenders — see supabase/schema.sql). */
+async function updateTripRemote(trip) {
+  const session = getSession();
+  if (!hasSupabase || !session) return false;
+  const { error } = await supabase
+    .from("trips")
+    .update({ data: trip, updated_at: trip.updatedAt })
+    .eq("id", trip.id);
+  if (error) {
+    console.error("Cloud sync: failed to push trip", error);
+    return false;
+  }
+  return true;
+}
+
 function pushTrip(trip, { immediate = false } = {}) {
   if (!hasSupabase || !getSession()) return;
 
@@ -417,13 +437,13 @@ function pushTrip(trip, { immediate = false } = {}) {
 
   if (immediate) {
     pushTimers.delete(trip.id);
-    upsertTripNow(trip);
+    updateTripRemote(trip);
   } else {
     pushTimers.set(
       trip.id,
       setTimeout(() => {
         pushTimers.delete(trip.id);
-        upsertTripNow(trip);
+        updateTripRemote(trip);
       }, PUSH_DEBOUNCE_MS),
     );
   }
@@ -471,10 +491,17 @@ async function enterCloudMode(previousMode) {
     adoptedIds = new Set(ids.filter((_, i) => results[i]));
   }
 
-  const { data, error } = await supabase
-    .from("trips")
-    .select("id, data, updated_at")
-    .eq("owner_id", session.user.id);
+  const [{ data, error }, { data: memberships, error: membershipError }] =
+    await Promise.all([
+      supabase
+        .from("trips")
+        .select("id, data, updated_at")
+        .eq("owner_id", session.user.id),
+      supabase
+        .from("trip_members")
+        .select("trip_id")
+        .eq("user_id", session.user.id),
+    ]);
 
   if (error) {
     console.error("Cloud sync: failed to fetch trips", error);
@@ -494,21 +521,48 @@ async function enterCloudMode(previousMode) {
     return;
   }
 
+  // Trips owned by someone else but shared with this user as an editor.
+  // Fetched separately since the owner_id query above can't see them.
+  if (membershipError) {
+    console.error("Cloud sync: failed to fetch shared trips", membershipError);
+  }
+  const memberTripIds = (memberships ?? []).map((m) => m.trip_id);
+  let memberRows = [];
+  if (memberTripIds.length > 0) {
+    const { data: shared, error: sharedError } = await supabase
+      .from("trips")
+      .select("id, data, updated_at")
+      .in("id", memberTripIds);
+    if (sharedError) {
+      console.error("Cloud sync: failed to fetch shared trips", sharedError);
+    } else {
+      memberRows = shared ?? [];
+    }
+  }
+
   if (adopting) clearAdoptedLocalStorage(adoptedIds);
   cloudModeActive = true;
   tripsReady = true;
 
-  if (!data || data.length === 0) {
+  const ownedRows = data ?? [];
+  if (ownedRows.length === 0 && memberRows.length === 0) {
     // Brand-new account, nothing adopted and nothing in the cloud yet.
     const seed = normalize(seedTrip());
     trips = new Map([[seed.id, seed]]);
     order = [seed.id];
     activeId = seed.id;
     state = seed;
-    pushTrip(seed, { immediate: true });
+    tripRoles = new Map([[seed.id, "owner"]]);
+    upsertTripNow(seed);
   } else {
-    trips = new Map(data.map((row) => [row.id, normalize(row.data)]));
-    order = data.map((row) => row.id);
+    trips = new Map(
+      [...ownedRows, ...memberRows].map((row) => [row.id, normalize(row.data)]),
+    );
+    order = [...ownedRows.map((r) => r.id), ...memberRows.map((r) => r.id)];
+    tripRoles = new Map([
+      ...ownedRows.map((r) => [r.id, "owner"]),
+      ...memberRows.map((r) => [r.id, "editor"]),
+    ]);
     activeId = trips.has(activeId) ? activeId : order[0];
     state = trips.get(activeId);
   }
@@ -520,6 +574,7 @@ async function enterCloudMode(previousMode) {
 /** Cross into (or back into) local-only mode: reload straight from localStorage. */
 function enterLocalMode() {
   cloudModeActive = false;
+  tripRoles = new Map();
   const loaded = loadAll();
   trips = loaded.map;
   order = loaded.order;
@@ -660,6 +715,9 @@ let trips;
 let order;
 let activeId;
 let state;
+// trip id -> 'owner' | 'editor'. Only meaningful in cloud mode — local-only
+// trips have no ownership concept and default to 'owner' in the registry.
+let tripRoles = new Map();
 
 if (hasSupabase) {
   const placeholder = normalize(seedTrip());
@@ -753,6 +811,10 @@ function computeRegistry() {
         emoji: trip.emoji,
         startDate: trip.startDate,
         endDate: trip.endDate,
+        // 'owner' everywhere in local-only mode (no ownership concept there);
+        // defaults to the more restrictive 'editor' if cloud mode somehow
+        // hasn't recorded a role yet, rather than assuming 'owner'.
+        role: cloudModeActive ? (tripRoles.get(id) ?? "editor") : "owner",
       };
     }),
   };
@@ -786,6 +848,14 @@ export function useTripList() {
   );
 }
 
+/** The active user's role on a given trip ('owner' | 'editor'), or 'owner'
+ *  for local-only trips. Drives Share/Delete visibility in the UI — actual
+ *  enforcement always happens server-side (RLS). */
+export function useTripRole(id) {
+  const { trips: list } = useTripList();
+  return list.find((t) => t.id === id)?.role ?? "owner";
+}
+
 /** Non-hook snapshot of the trip registry, for callers outside React (tests). */
 export function getTripRegistry() {
   return registry;
@@ -809,7 +879,10 @@ export function createTrip(partial = {}) {
   state = trip;
   persistTrip(trip);
   persistIndex();
-  pushTrip(trip, { immediate: true });
+  if (cloudModeActive) {
+    tripRoles.set(trip.id, "owner");
+    upsertTripNow(trip);
+  }
   listeners.forEach((l) => l());
   refreshRegistry();
   return trip.id;
@@ -829,6 +902,7 @@ export function deleteTrip(id) {
   if (cloudModeActive && !isOnline()) return;
   trips.delete(id);
   order = order.filter((x) => x !== id);
+  tripRoles.delete(id);
   deleteTripRemote(id);
   if (!cloudModeActive) {
     try {
@@ -846,7 +920,10 @@ export function deleteTrip(id) {
       order = [seed.id];
       activeId = seed.id;
       persistTrip(seed);
-      pushTrip(seed, { immediate: true });
+      if (cloudModeActive) {
+        tripRoles.set(seed.id, "owner");
+        upsertTripNow(seed);
+      }
     } else {
       activeId = order[0];
     }

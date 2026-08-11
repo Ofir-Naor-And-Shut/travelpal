@@ -8,15 +8,18 @@ import {
   LogOut,
   MapPinned,
   PlayCircle,
+  Share2,
   Wallet,
 } from "lucide-react";
 import {
   checkTripDownloaded,
   downloadTripOffline,
   useCloudMode,
+  useTripRole,
 } from "../lib/store.js";
 import { signOut, useSession } from "../lib/auth.js";
 import { exportTripPdf } from "../lib/exportPdf.js";
+import ShareModal from "./ShareModal.jsx";
 import { useI18n } from "../lib/i18n.js";
 
 // The section links, in the same order as the desktop tab bar. Icons match the
@@ -41,10 +44,12 @@ export default function TripMenu({ trip, view, onChangeView, onBackToTrips }) {
   const { t } = useI18n();
   const { session } = useSession();
   const cloudMode = useCloudMode();
+  const role = useTripRole(trip.id);
 
   const [open, setOpen] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const boxRef = useRef(null);
 
   useEffect(() => {
@@ -159,6 +164,24 @@ export default function TripMenu({ trip, view, onChangeView, onBackToTrips }) {
             </button>
           )}
 
+          {/* Sharing needs an account (to attribute the invite/link) and is
+              owner-only — a collaborator can edit content but not manage who
+              else can. */}
+          {cloudMode && role === "owner" && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setSharing(true);
+              }}
+              className={itemClass}
+            >
+              <Share2 size={16} className="shrink-0" />
+              {t("nav.share")}
+            </button>
+          )}
+
           <button
             type="button"
             role="menuitem"
@@ -201,6 +224,8 @@ export default function TripMenu({ trip, view, onChangeView, onBackToTrips }) {
           )}
         </div>
       )}
+
+      {sharing && <ShareModal trip={trip} onClose={() => setSharing(false)} />}
     </div>
   );
 }

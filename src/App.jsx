@@ -17,6 +17,7 @@ import TripMap from "./components/TripMap.jsx";
 import ResizeHandle from "./components/ResizeHandle.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
+import SharedTripView from "./components/SharedTripView.jsx";
 import {
   getTripRegistry,
   isPlaced,
@@ -29,7 +30,12 @@ import {
   withDates,
 } from "./lib/store.js";
 import { useLocalOnly, useSession } from "./lib/auth.js";
-import { clearRouteTrip, setRouteTrip, useRouteTripId } from "./lib/router.js";
+import {
+  clearRouteTrip,
+  setRouteTrip,
+  useRouteTripId,
+  useShareToken,
+} from "./lib/router.js";
 import { hasSupabase } from "./lib/supabase.js";
 import { useOnline } from "./lib/network.js";
 import { useI18n } from "./lib/i18n.js";
@@ -68,6 +74,7 @@ export default function App() {
   const localOnly = useLocalOnly();
   const tripsReady = useTripsReady();
   const routeTripId = useRouteTripId();
+  const shareToken = useShareToken();
   const [inEditor, setInEditor] = useState(false);
   const hadSessionRef = useRef(Boolean(session));
 
@@ -102,6 +109,10 @@ export default function App() {
       setInEditor(false);
     }
   }, [tripsReady, routeTripId]);
+
+  // A shared view-only link is public: no auth, no picker, not even the
+  // splash gate below — it never touches the signed-in trip store at all.
+  if (shareToken) return <SharedTripView token={shareToken} />;
 
   const showSplash =
     hasSupabase && (!ready || ((session || localOnly) && !tripsReady));

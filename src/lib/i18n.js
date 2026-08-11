@@ -67,6 +67,7 @@ const STRINGS = {
     "picker.signOut": "Sign out",
     "picker.localMode": "Using without an account",
     "picker.signInToSync": "Sign in to sync",
+    "picker.sharedBadge": "Shared with you",
     "header.allTrips": "All trips",
     "header.menu": "Menu",
     "header.goTo": "Go to",
@@ -311,6 +312,44 @@ const STRINGS = {
     "pdf.reservation": "Reservation",
     "pdf.category": "Category",
     "pdf.footer": "{app} — Trip Summary",
+
+    // sharing
+    "share.subtitle": "Invite someone to edit, or share a view-only link.",
+    "share.inviteLabel": "Invite someone to edit",
+    "share.emailPlaceholder": "their@email.com",
+    "share.invite": "Invite",
+    "share.inviting": "Inviting…",
+    "share.invited": "They can now edit this trip.",
+    "share.invitePending":
+      "Invite saved — they’ll get access as soon as they sign up with that email.",
+    "share.inviteError": "Couldn’t send that invite. Please try again.",
+    "share.collaborators": "People who can edit",
+    "share.noCollaborators": "No one else can edit this trip yet.",
+    "share.pendingInvites": "Waiting to sign up",
+    "share.removeCollaborator": "Remove {email}",
+    "share.cancelInvite": "Cancel invite to {email}",
+    "share.linkTitle": "View-only link",
+    "share.linkHint":
+      "Anyone with a link can view the trip — they can’t edit it.",
+    "share.labelPlaceholder": "Optional note (e.g. who it’s for)",
+    "share.createLink": "Create link",
+    "share.creatingLink": "Creating…",
+    "share.copyLink": "Copy link",
+    "share.linkCopied": "Copied!",
+    "share.revokeLink": "Revoke",
+    "share.confirmRevoke":
+      "Revoke this link? Anyone using it will lose access.",
+    "share.noLinks": "No active links yet.",
+    "share.loadError": "Couldn’t load sharing settings.",
+    "share.close": "Close",
+
+    // shared (public, view-only) trip page
+    "shared.badge": "View only",
+    "shared.notFoundTitle": "This link isn’t available",
+    "shared.notFoundBody":
+      "It may have been revoked, or the trip no longer exists.",
+    "shared.loadError": "Couldn’t load this trip.",
+    "shared.openApp": "Open {app}",
   },
 
   he: {
@@ -365,6 +404,7 @@ const STRINGS = {
     "picker.signOut": "התנתקות",
     "picker.localMode": "שימוש ללא חשבון",
     "picker.signInToSync": "התחברו לסנכרון",
+    "picker.sharedBadge": "שותף איתך",
     "header.allTrips": "כל הטיולים",
     "header.menu": "תפריט",
     "header.goTo": "מעבר אל",
@@ -584,6 +624,40 @@ const STRINGS = {
     "pdf.reservation": "הזמנה",
     "pdf.category": "קטגוריה",
     "pdf.footer": "{app} — סיכום טיול",
+
+    "share.subtitle": "הזמינו מישהו לערוך, או שתפו קישור לצפייה בלבד.",
+    "share.inviteLabel": "הזמנת מישהו לעריכה",
+    "share.emailPlaceholder": "email@example.com",
+    "share.invite": "הזמנה",
+    "share.inviting": "מזמין…",
+    "share.invited": "עכשיו הם יכולים לערוך את הטיול.",
+    "share.invitePending":
+      "ההזמנה נשמרה — הגישה תינתן ברגע שיירשמו עם האימייל הזה.",
+    "share.inviteError": "שליחת ההזמנה נכשלה. נסו שוב.",
+    "share.collaborators": "מי יכול לערוך",
+    "share.noCollaborators": "אף אחד אחר לא יכול לערוך את הטיול הזה עדיין.",
+    "share.pendingInvites": "ממתינים להרשמה",
+    "share.removeCollaborator": "הסרת {email}",
+    "share.cancelInvite": "ביטול ההזמנה ל{email}",
+    "share.linkTitle": "קישור לצפייה בלבד",
+    "share.linkHint":
+      "כל מי שיש לו את הקישור יכול לצפות בטיול — לא לערוך אותו.",
+    "share.labelPlaceholder": "הערה אופציונלית (למשל, למי זה מיועד)",
+    "share.createLink": "יצירת קישור",
+    "share.creatingLink": "יוצר…",
+    "share.copyLink": "העתקת קישור",
+    "share.linkCopied": "הועתק!",
+    "share.revokeLink": "ביטול",
+    "share.confirmRevoke": "לבטל את הקישור הזה? כל מי שמשתמש בו יאבד גישה.",
+    "share.noLinks": "אין עדיין קישורים פעילים.",
+    "share.loadError": "טעינת הגדרות השיתוף נכשלה.",
+    "share.close": "סגירה",
+
+    "shared.badge": "צפייה בלבד",
+    "shared.notFoundTitle": "הקישור הזה אינו זמין",
+    "shared.notFoundBody": "ייתכן שהוא בוטל, או שהטיול כבר לא קיים.",
+    "shared.loadError": "טעינת הטיול נכשלה.",
+    "shared.openApp": "פתיחת {app}",
   },
 };
 

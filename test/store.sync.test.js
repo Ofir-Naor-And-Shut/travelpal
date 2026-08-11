@@ -38,6 +38,20 @@ let failUpsertForId = null; // simulate one trip's push failing (e.g. a blip)
 function fakeSupabase() {
   return {
     from(tableName) {
+      // Sharing (trip_members / trip_share_links) isn't exercised by this
+      // scripted run-through — just enough of trip_members to let
+      // enterCloudMode's "any shared-with-me trips?" check no-op.
+      if (tableName === "trip_members") {
+        return {
+          select() {
+            return {
+              eq() {
+                return Promise.resolve({ data: [], error: null });
+              },
+            };
+          },
+        };
+      }
       assert.equal(tableName, "trips");
       return {
         select() {
@@ -65,6 +79,15 @@ function fakeSupabase() {
           if (i >= 0) cloudRows[i] = { ...row };
           else cloudRows.push({ ...row });
           return Promise.resolve({ error: null });
+        },
+        update(patch) {
+          return {
+            eq(col, val) {
+              const i = cloudRows.findIndex((r) => r[col] === val);
+              if (i >= 0) cloudRows[i] = { ...cloudRows[i], ...patch };
+              return Promise.resolve({ error: null });
+            },
+          };
         },
         delete() {
           return {
