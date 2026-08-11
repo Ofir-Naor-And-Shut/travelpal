@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import { Check, Pencil } from "lucide-react";
 import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
@@ -9,7 +9,13 @@ import { CURRENCIES, updateTrip } from "../lib/store.js";
 import { currencySymbol, formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
 
-export default function TripHeader({ trip, stats, view, onChangeView, onBackToTrips }) {
+export default function TripHeader({
+  trip,
+  stats,
+  view,
+  onChangeView,
+  onBackToTrips,
+}) {
   const [editing, setEditing] = useState(false);
   const { t } = useI18n();
 
@@ -60,8 +66,16 @@ export default function TripHeader({ trip, stats, view, onChangeView, onBackToTr
                   type="date"
                   className="field tabular mt-1 !w-auto"
                   value={trip.startDate}
-                  max={trip.endDate}
-                  onChange={(e) => updateTrip({ startDate: e.target.value })}
+                  onChange={(e) => {
+                    const startDate = e.target.value;
+                    // Keep end date after start date — push it forward if the
+                    // newly picked start date would land on or after it.
+                    const endDate =
+                      startDate >= trip.endDate
+                        ? format(addDays(parseISO(startDate), 1), "yyyy-MM-dd")
+                        : trip.endDate;
+                    updateTrip({ startDate, endDate });
+                  }}
                 />
               </label>
               <label className="flex flex-col text-xs font-medium text-muted">

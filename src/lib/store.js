@@ -247,12 +247,13 @@ function seedTrip() {
  * storage at all) is handed the sample trip.
  */
 function tripDefaults() {
+  const today = new Date();
   return {
     id: newId(),
     title: "New trip",
     emoji: "🌍",
-    startDate: "2026-06-09",
-    endDate: "2026-06-16",
+    startDate: format(today, "yyyy-MM-dd"),
+    endDate: format(addDays(today, 1), "yyyy-MM-dd"),
     currency: "EUR",
     days: {},
     destinations: [],
