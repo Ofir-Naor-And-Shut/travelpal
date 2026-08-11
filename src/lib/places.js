@@ -53,21 +53,21 @@ const CITIES = [
 const normalize = (s) =>
   s
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 
 export function searchLocal(query, limit = 6) {
-  const q = normalize(query.trim())
-  if (!q) return []
+  const q = normalize(query.trim());
+  if (!q) return [];
   return CITIES.filter((c) => normalize(c.name).includes(q))
     .sort((a, b) => {
       // Prefix matches feel more relevant than matches buried mid-word.
-      const aStarts = normalize(a.name).startsWith(q)
-      const bStarts = normalize(b.name).startsWith(q)
-      if (aStarts !== bStarts) return aStarts ? -1 : 1
-      return a.name.localeCompare(b.name)
+      const aStarts = normalize(a.name).startsWith(q);
+      const bStarts = normalize(b.name).startsWith(q);
+      if (aStarts !== bStarts) return aStarts ? -1 : 1;
+      return a.name.localeCompare(b.name);
     })
-    .slice(0, limit)
+    .slice(0, limit);
 }
 
 /**
@@ -78,77 +78,94 @@ export function searchLocal(query, limit = 6) {
  * famous one on earth.
  */
 export async function searchNearby(query, center, signal, limit = 8) {
-  const url = new URL('https://nominatim.openstreetmap.org/search')
-  url.searchParams.set('q', query)
-  url.searchParams.set('format', 'jsonv2')
-  url.searchParams.set('limit', String(limit))
-  url.searchParams.set('addressdetails', '1')
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("addressdetails", "1");
 
   if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
-    const pad = 0.35 // roughly 35 km, enough for a city and its outskirts
+    const pad = 0.35; // roughly 35 km, enough for a city and its outskirts
     url.searchParams.set(
-      'viewbox',
+      "viewbox",
       [
         center.lng - pad,
         center.lat + pad,
         center.lng + pad,
         center.lat - pad,
-      ].join(','),
-    )
-    url.searchParams.set('bounded', '1')
+      ].join(","),
+    );
+    url.searchParams.set("bounded", "1");
   }
 
-  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`Geocoder returned ${res.status}`)
-  const rows = await res.json()
+  const res = await fetch(url, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Geocoder returned ${res.status}`);
+  const rows = await res.json();
 
   return rows.map((r) => {
-    const parts = r.display_name.split(',').map((s) => s.trim())
+    const parts = r.display_name.split(",").map((s) => s.trim());
     return {
       id: `osm:${r.osm_type}:${r.osm_id}`,
       name: r.name || parts[0],
       // A short locality hint rather than the full comma-separated address.
-      address: parts.slice(1, 3).join(', '),
-      category: r.type?.replace(/_/g, ' ') ?? '',
+      address: parts.slice(1, 3).join(", "),
+      category: r.type?.replace(/_/g, " ") ?? "",
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
-    }
-  })
+    };
+  });
 }
 
 // Nominatim's `addresstype`/`type` for places worth adding as a trip stop —
 // admin areas, settlements and islands, never a street, shop, bar or restaurant.
 const DESTINATION_KINDS = new Set([
-  'country', 'state', 'region', 'province', 'county', 'municipality',
-  'city', 'town', 'village', 'hamlet', 'island', 'islet', 'archipelago',
-  'administrative',
-])
+  "country",
+  "state",
+  "region",
+  "province",
+  "county",
+  "municipality",
+  "city",
+  "town",
+  "village",
+  "hamlet",
+  "island",
+  "islet",
+  "archipelago",
+  "administrative",
+]);
 
 const isDestinationRow = (r) =>
-  DESTINATION_KINDS.has(r.addresstype) || DESTINATION_KINDS.has(r.type)
+  DESTINATION_KINDS.has(r.addresstype) || DESTINATION_KINDS.has(r.type);
 
 export async function searchRemote(query, signal, limit = 6) {
-  const url = new URL('https://nominatim.openstreetmap.org/search')
-  url.searchParams.set('q', query)
-  url.searchParams.set('format', 'jsonv2')
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
   // Over-fetch since destination-kind filtering below discards some rows.
-  url.searchParams.set('limit', String(Math.max(limit * 3, 15)))
-  url.searchParams.set('addressdetails', '1')
+  url.searchParams.set("limit", String(Math.max(limit * 3, 15)));
+  url.searchParams.set("addressdetails", "1");
 
-  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`Geocoder returned ${res.status}`)
-  const rows = await res.json()
+  const res = await fetch(url, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Geocoder returned ${res.status}`);
+  const rows = await res.json();
 
   return rows
     .filter(isDestinationRow)
     .slice(0, limit)
     .map((r) => ({
       id: `osm:${r.osm_type}:${r.osm_id}`,
-      name: r.name || r.display_name.split(',')[0],
-      country: r.address?.country ?? '',
+      name: r.name || r.display_name.split(",")[0],
+      country: r.address?.country ?? "",
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
-    }))
+    }));
 }
 
 /**
@@ -158,29 +175,36 @@ export async function searchRemote(query, signal, limit = 6) {
  * distance — real streets are longer than the crow flies, so this lands in the
  * right ballpark without calling a routing service.
  */
-const SPEED_KMH = { walk: 4.5, bus: 16, car: 22, train: 32, ferry: 20, plane: 500 }
+const SPEED_KMH = {
+  walk: 4.5,
+  bus: 16,
+  car: 22,
+  train: 32,
+  ferry: 20,
+  plane: 500,
+};
 
-export function estimateDuration(km, mode = 'walk') {
-  const speed = SPEED_KMH[mode] ?? SPEED_KMH.walk
-  return Math.max(1, Math.round((km / speed) * 60))
+export function estimateDuration(km, mode = "walk") {
+  const speed = SPEED_KMH[mode] ?? SPEED_KMH.walk;
+  return Math.max(1, Math.round((km / speed) * 60));
 }
 
 /** Great-circle distance in km, unrounded. */
 export function distanceKmExact(a, b) {
-  if (!a || !b) return 0
-  const R = 6371
-  const toRad = (d) => (d * Math.PI) / 180
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
+  if (!a || !b) return 0;
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
   const h =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 }
 
 /** Whole km — fine between cities, where a rounded figure is what you want. */
 export function distanceKm(a, b) {
-  return Math.round(distanceKmExact(a, b))
+  return Math.round(distanceKmExact(a, b));
 }
 
 /**
@@ -188,6 +212,6 @@ export function distanceKm(a, b) {
  * whole km would collapse everything to 0, so keep one decimal below 10 km.
  */
 export function distanceShort(a, b) {
-  const km = distanceKmExact(a, b)
-  return km >= 10 ? Math.round(km) : Math.round(km * 10) / 10
+  const km = distanceKmExact(a, b);
+  return km >= 10 ? Math.round(km) : Math.round(km * 10) / 10;
 }
