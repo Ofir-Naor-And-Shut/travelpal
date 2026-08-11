@@ -18,6 +18,7 @@ import ResizeHandle from "./components/ResizeHandle.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
 import {
+  getTripRegistry,
   isPlaced,
   switchTrip,
   tripDays,
@@ -28,6 +29,7 @@ import {
   withDates,
 } from "./lib/store.js";
 import { useLocalOnly, useSession } from "./lib/auth.js";
+import { clearRouteTrip, setRouteTrip, useRouteTripId } from "./lib/router.js";
 import { hasSupabase } from "./lib/supabase.js";
 import { useOnline } from "./lib/network.js";
 import { useI18n } from "./lib/i18n.js";
@@ -65,13 +67,41 @@ export default function App() {
   const { session, ready } = useSession();
   const localOnly = useLocalOnly();
   const tripsReady = useTripsReady();
+  const routeTripId = useRouteTripId();
   const [inEditor, setInEditor] = useState(false);
+  const hadSessionRef = useRef(Boolean(session));
 
   // Signing out (session gone) drops back to the gate, so a later sign-in lands
-  // on the picker rather than jumping straight into the last-open editor.
+  // on the picker rather than jumping straight into the last-open editor. Only
+  // reacts to an actual sign-out transition — `session` is also null on every
+  // mount for local-only/not-yet-signed-in users, and that must not clobber
+  // the route resolved below.
   useEffect(() => {
-    if (!session) setInEditor(false);
+    const wasSignedIn = hadSessionRef.current;
+    hadSessionRef.current = Boolean(session);
+    if (wasSignedIn && !session) {
+      setInEditor(false);
+      clearRouteTrip();
+    }
   }, [session]);
+
+  // The URL is the source of truth for which screen to show: reopen the trip
+  // named in the hash once real trip data is available (a refresh, or a
+  // shared/bookmarked link), follow the browser's back/forward buttons, and
+  // fall back to the picker if that trip no longer exists. Runs as a layout
+  // effect so a trip reopened this way never flashes the picker first.
+  useLayoutEffect(() => {
+    if (!tripsReady) return;
+    const exists =
+      routeTripId && getTripRegistry().trips.some((t) => t.id === routeTripId);
+    if (exists) {
+      switchTrip(routeTripId);
+      setInEditor(true);
+    } else {
+      if (routeTripId) clearRouteTrip();
+      setInEditor(false);
+    }
+  }, [tripsReady, routeTripId]);
 
   const showSplash =
     hasSupabase && (!ready || ((session || localOnly) && !tripsReady));
@@ -101,7 +131,14 @@ export default function App() {
     );
   }
 
-  return <TripEditor onBackToTrips={() => setInEditor(false)} />;
+  return (
+    <TripEditor
+      onBackToTrips={() => {
+        clearRouteTrip();
+        setInEditor(false);
+      }}
+    />
+  );
 }
 
 function TripEditor({ onBackToTrips }) {
@@ -111,6 +148,14 @@ function TripEditor({ onBackToTrips }) {
   const online = useOnline();
   const readOnly = cloudMode && !online;
   const [view, setView] = useState("plan");
+
+  // Keep the URL pointed at whichever trip is actually active, so switching
+  // trips from the in-editor switcher (not just the picker) still leaves a
+  // refreshable/shareable link behind.
+  useEffect(() => {
+    setRouteTrip(trip.id);
+  }, [trip.id]);
+
   const [activeId, setActiveId] = useState(null);
   const [mapOpen, setMapOpen] = useState(false);
   // Set when a destination is double-clicked; cleared once the day scrolls in.
