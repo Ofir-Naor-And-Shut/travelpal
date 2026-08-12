@@ -68,6 +68,16 @@ const STRINGS = {
     "picker.localMode": "Using without an account",
     "picker.signInToSync": "Sign in to sync",
     "picker.sharedBadge": "Shared with you",
+    "picker.invitationsTitle": "Trip invitations",
+    "picker.invitationsSubtitle":
+      "Someone shared a trip with you — accept to start editing, or remove it if this wasn’t meant for you.",
+    "picker.accept": "Accept",
+    "picker.decline": "Remove",
+    "picker.acceptInvitation": "Accept the invitation to {name}",
+    "picker.declineInvitation": "Decline the invitation to {name}",
+    "picker.leaveTrip": "Remove {name} from your trips",
+    "picker.confirmLeave":
+      "Remove “{name}” from your trips? You keep nothing local — the owner keeps the trip, and can invite you again if this was a mistake.",
     "header.allTrips": "All trips",
     "header.menu": "Menu",
     "header.goTo": "Go to",
@@ -319,12 +329,16 @@ const STRINGS = {
     "share.emailPlaceholder": "their@email.com",
     "share.invite": "Invite",
     "share.inviting": "Inviting…",
-    "share.invited": "They can now edit this trip.",
+    "share.invited":
+      "Invited — they’ll get edit access once they accept the invitation.",
     "share.invitePending":
       "Invite saved — they’ll get access as soon as they sign up with that email.",
+    "share.invitePendingNoEmail":
+      "Invite saved, but we couldn’t email them — let them know yourself.",
     "share.inviteError": "Couldn’t send that invite. Please try again.",
     "share.collaborators": "People who can edit",
     "share.noCollaborators": "No one else can edit this trip yet.",
+    "share.awaitingAccept": "awaiting acceptance",
     "share.pendingInvites": "Waiting to sign up",
     "share.removeCollaborator": "Remove {email}",
     "share.cancelInvite": "Cancel invite to {email}",
@@ -341,6 +355,7 @@ const STRINGS = {
       "Revoke this link? Anyone using it will lose access.",
     "share.noLinks": "No active links yet.",
     "share.loadError": "Couldn’t load sharing settings.",
+    "share.actionError": "Something went wrong. Please try again.",
     "share.close": "Close",
 
     // shared (public, view-only) trip page
@@ -405,6 +420,16 @@ const STRINGS = {
     "picker.localMode": "שימוש ללא חשבון",
     "picker.signInToSync": "התחברו לסנכרון",
     "picker.sharedBadge": "שותף איתך",
+    "picker.invitationsTitle": "הזמנות לטיולים",
+    "picker.invitationsSubtitle":
+      "מישהו שיתף איתך טיול — אשרו כדי להתחיל לערוך, או הסירו אם זה נשלח בטעות.",
+    "picker.accept": "אישור",
+    "picker.decline": "הסרה",
+    "picker.acceptInvitation": "אישור ההזמנה ל{name}",
+    "picker.declineInvitation": "דחיית ההזמנה ל{name}",
+    "picker.leaveTrip": "הסרת {name} מהטיולים שלך",
+    "picker.confirmLeave":
+      "להסיר את „{name}“ מהטיולים שלך? הטיול נשאר אצל הבעלים, ותוכלו לקבל הזמנה חוזרת אם זו הייתה טעות.",
     "header.allTrips": "כל הטיולים",
     "header.menu": "תפריט",
     "header.goTo": "מעבר אל",
@@ -630,12 +655,15 @@ const STRINGS = {
     "share.emailPlaceholder": "email@example.com",
     "share.invite": "הזמנה",
     "share.inviting": "מזמין…",
-    "share.invited": "עכשיו הם יכולים לערוך את הטיול.",
+    "share.invited": "הוזמנו — יקבלו גישת עריכה ברגע שיאשרו את ההזמנה.",
     "share.invitePending":
       "ההזמנה נשמרה — הגישה תינתן ברגע שיירשמו עם האימייל הזה.",
+    "share.invitePendingNoEmail":
+      "ההזמנה נשמרה, אך לא הצלחנו לשלוח להם אימייל — עדכנו אותם בעצמכם.",
     "share.inviteError": "שליחת ההזמנה נכשלה. נסו שוב.",
     "share.collaborators": "מי יכול לערוך",
     "share.noCollaborators": "אף אחד אחר לא יכול לערוך את הטיול הזה עדיין.",
+    "share.awaitingAccept": "ממתין לאישור",
     "share.pendingInvites": "ממתינים להרשמה",
     "share.removeCollaborator": "הסרת {email}",
     "share.cancelInvite": "ביטול ההזמנה ל{email}",
@@ -651,6 +679,7 @@ const STRINGS = {
     "share.confirmRevoke": "לבטל את הקישור הזה? כל מי שמשתמש בו יאבד גישה.",
     "share.noLinks": "אין עדיין קישורים פעילים.",
     "share.loadError": "טעינת הגדרות השיתוף נכשלה.",
+    "share.actionError": "משהו השתבש. נסו שוב.",
     "share.close": "סגירה",
 
     "shared.badge": "צפייה בלבד",

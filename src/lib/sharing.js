@@ -19,8 +19,10 @@ function assertSupabase() {
 
 /**
  * Invite someone to edit a trip. Returns `{ status: "added" }` if they already
- * had an account and are now a collaborator, or `{ status: "pending" }` if the
- * invite is waiting for that email to sign up.
+ * had an account and are now a collaborator, or `{ status: "pending", emailSent }`
+ * if the invite is waiting for that email to sign up — `emailSent` is false
+ * when the notification couldn't be sent, but the invite itself is still
+ * saved and will resolve normally once they do sign up.
  */
 export async function inviteEditor(tripId, email) {
   assertSupabase();
@@ -46,7 +48,33 @@ export async function inviteEditor(tripId, email) {
     .from("pending_trip_invites")
     .insert({ trip_id: tripId, email: normalized, invited_by: invitedBy });
   if (error && error.code !== "23505") throw error;
-  return { status: "pending" };
+
+  // Best-effort: the invite is already saved and resolves on signup either
+  // way, so a failed send here shouldn't look like the whole thing failed.
+  let emailSent = true;
+  try {
+    const { error: fnError } = await supabase.functions.invoke(
+      "send-trip-invite",
+      { body: { tripId, email: normalized } },
+    );
+    if (fnError) throw fnError;
+  } catch (err) {
+    // FunctionsHttpError's actual message (from our own function's JSON body)
+    // lives on `.context`, a Response — the top-level `.message` is just a
+    // generic "non-2xx status code" otherwise.
+    let detail = err?.message;
+    if (err?.context?.json) {
+      try {
+        detail = (await err.context.json())?.error ?? detail;
+      } catch {
+        // Body wasn't JSON — fall back to the generic message.
+      }
+    }
+    console.error("Trip invite: failed to send notification email:", detail);
+    emailSent = false;
+  }
+
+  return { status: "pending", emailSent };
 }
 
 /** People who can currently edit the trip (owner not included). */

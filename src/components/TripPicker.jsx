@@ -1,7 +1,14 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
-import { LogOut, Plus, Trash2 } from "lucide-react";
+import { Check, LogOut, Plus, Trash2, X } from "lucide-react";
 import AppControls from "./AppControls.jsx";
-import { createTrip, deleteTrip, useTripList } from "../lib/store.js";
+import {
+  acceptTripInvitation,
+  createTrip,
+  deleteTrip,
+  leaveSharedTrip,
+  useTripInvitations,
+  useTripList,
+} from "../lib/store.js";
 import {
   sessionEmail,
   setLocalOnly,
@@ -22,6 +29,7 @@ import { useI18n } from "../lib/i18n.js";
 export default function TripPicker({ onSelect }) {
   const { t, dateLocale } = useI18n();
   const { trips } = useTripList();
+  const invitations = useTripInvitations();
   const { session } = useSession();
   const localOnly = useLocalOnly();
 
@@ -41,6 +49,11 @@ export default function TripPicker({ onSelect }) {
     deleteTrip(trip.id);
   };
 
+  const leave = (trip) => {
+    if (!window.confirm(t("picker.confirmLeave", { name: trip.title }))) return;
+    leaveSharedTrip(trip.id);
+  };
+
   const startNew = () => onSelect(createTrip({ title: t("trips.newTitle") }));
 
   return (
@@ -51,6 +64,62 @@ export default function TripPicker({ onSelect }) {
           <AccountBar session={session} localOnly={localOnly} t={t} />
           <AppControls />
         </div>
+
+        {invitations.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-lg font-semibold tracking-tight text-fg">
+              {t("picker.invitationsTitle")}
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              {t("picker.invitationsSubtitle")}
+            </p>
+            <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {invitations.map((trip) => {
+                const { label, nights } = range(trip);
+                return (
+                  <li key={trip.id} className="card p-5">
+                    <span className="text-3xl" aria-hidden>
+                      {trip.emoji}
+                    </span>
+                    <span className="mt-3 block truncate text-lg font-semibold text-fg">
+                      {trip.title}
+                    </span>
+                    <span className="tabular mt-1 block text-sm text-muted">
+                      {label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-subtle">
+                      {t("picker.nights", { count: nights })}
+                    </span>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => acceptTripInvitation(trip.id)}
+                        aria-label={t("picker.acceptInvitation", {
+                          name: trip.title,
+                        })}
+                        className="btn-primary flex-1 !py-1.5 text-sm"
+                      >
+                        <Check size={15} />
+                        {t("picker.accept")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => leaveSharedTrip(trip.id)}
+                        aria-label={t("picker.declineInvitation", {
+                          name: trip.title,
+                        })}
+                        className="btn-ghost !py-1.5 text-sm"
+                      >
+                        <X size={15} />
+                        {t("picker.decline")}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         <header className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-fg">
@@ -91,8 +160,8 @@ export default function TripPicker({ onSelect }) {
                   </span>
                 </button>
 
-                {/* The store keeps at least one trip, so the last can't go —
-                    and only the owner may delete a shared trip. */}
+                {/* The store keeps at least one trip, so the last can't go
+                    either way — delete for the owner, leave for a collaborator. */}
                 {trips.length > 1 && trip.role === "owner" && (
                   <button
                     type="button"
@@ -103,6 +172,18 @@ export default function TripPicker({ onSelect }) {
                                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     <Trash2 size={15} />
+                  </button>
+                )}
+                {trips.length > 1 && trip.role === "editor" && (
+                  <button
+                    type="button"
+                    onClick={() => leave(trip)}
+                    aria-label={t("picker.leaveTrip", { name: trip.title })}
+                    className="absolute end-2 top-2 grid size-8 place-items-center rounded-full
+                               text-subtle transition hover:bg-raised hover:text-fg
+                               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    <LogOut size={15} />
                   </button>
                 )}
               </li>

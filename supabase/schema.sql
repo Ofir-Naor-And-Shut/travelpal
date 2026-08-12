@@ -119,6 +119,61 @@ create trigger trips_protect_owner
 
 -- --- 1. Editor collaborators -------------------------------------------------
 
+-- `trips` and `trip_members` policies each need to check the other table —
+-- done as plain EXISTS subqueries at first, which Postgres rejected with
+-- "infinite recursion detected in policy for relation trips" (42P17):
+-- evaluating trips' policy required trip_members' policy, which required
+-- trips' policy again, forever. These two SECURITY DEFINER functions break
+-- the cycle — their internal queries run as the function's (superuser) owner
+-- and so bypass RLS entirely, instead of re-triggering the other table's policy.
+create or replace function public.is_trip_owner(p_trip_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public, pg_temp
+stable
+as $$
+  select exists (
+    select 1 from public.trips t
+    where t.id = p_trip_id and t.owner_id = auth.uid()
+  );
+$$;
+
+grant execute on function public.is_trip_owner(uuid) to authenticated;
+
+create or replace function public.is_trip_editor(p_trip_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public, pg_temp
+stable
+as $$
+  select exists (
+    select 1 from public.trip_members m
+    where m.trip_id = p_trip_id and m.user_id = auth.uid() and m.status = 'accepted'
+  );
+$$;
+
+grant execute on function public.is_trip_editor(uuid) to authenticated;
+
+-- Same check but ANY status — lets a not-yet-accepted invitee still read the
+-- trip (title, dates) so the app can show them what they're being asked to
+-- join, without granting edit access before they've actually accepted.
+create or replace function public.is_trip_member(p_trip_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public, pg_temp
+stable
+as $$
+  select exists (
+    select 1 from public.trip_members m
+    where m.trip_id = p_trip_id and m.user_id = auth.uid()
+  );
+$$;
+
+grant execute on function public.is_trip_member(uuid) to authenticated;
+
 create table if not exists public.trip_members (
   trip_id    uuid not null references public.trips (id) on delete cascade,
   user_id    uuid not null references auth.users (id) on delete cascade,
@@ -130,26 +185,42 @@ create table if not exists public.trip_members (
 create index if not exists trip_members_user_id_idx on public.trip_members (user_id);
 
 alter table public.trip_members enable row level security;
-grant select, insert, delete on public.trip_members to authenticated;
+grant select, insert, update, delete on public.trip_members to authenticated;
+
+-- Added after some deployments already had this table — backfill existing
+-- rows (shared before "accept" existed) as already-accepted, so a past share
+-- doesn't retroactively lose edit access. Every new row defaults to pending.
+alter table public.trip_members add column if not exists status text;
+update public.trip_members set status = 'accepted' where status is null;
+alter table public.trip_members alter column status set default 'pending';
+alter table public.trip_members alter column status set not null;
+alter table public.trip_members drop constraint if exists trip_members_status_check;
+alter table public.trip_members add constraint trip_members_status_check
+  check (status in ('pending', 'accepted'));
 
 drop policy if exists trip_members_select on public.trip_members;
 create policy trip_members_select on public.trip_members
   for select using (
     auth.uid() = user_id
-    or exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
+    or public.is_trip_owner(trip_id)
   );
 
 drop policy if exists trip_members_insert_owner on public.trip_members;
 create policy trip_members_insert_owner on public.trip_members
-  for insert with check (
-    exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
-  );
+  for insert with check ( public.is_trip_owner(trip_id) );
+
+-- The only self-update allowed is accepting an invitation (status only —
+-- there's nothing else on this row worth protecting column-by-column).
+drop policy if exists trip_members_update_self on public.trip_members;
+create policy trip_members_update_self on public.trip_members
+  for update using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists trip_members_delete on public.trip_members;
 create policy trip_members_delete on public.trip_members
   for delete using (
-    auth.uid() = user_id -- a member may remove themselves ("leave")
-    or exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
+    auth.uid() = user_id -- a member may remove themselves ("leave" or decline)
+    or public.is_trip_owner(trip_id)
   );
 
 -- An invite waiting for its email to sign up. Resolved automatically by the
@@ -168,12 +239,8 @@ grant select, insert, delete on public.pending_trip_invites to authenticated;
 
 drop policy if exists pending_invites_owner on public.pending_trip_invites;
 create policy pending_invites_owner on public.pending_trip_invites
-  for all using (
-    exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
-  )
-  with check (
-    exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
-  );
+  for all using ( public.is_trip_owner(trip_id) )
+  with check ( public.is_trip_owner(trip_id) );
 
 -- Looks up an existing account by email, so the app can add a collaborator
 -- immediately instead of only ever going through the pending-invite path.
@@ -195,18 +262,21 @@ grant execute on function public.find_user_id_by_email(text) to authenticated;
 -- Lets the owner see who already has access, with their email — same
 -- security-definer reasoning as above. Returns no rows for a non-owner
 -- caller rather than erroring, so the app doesn't need a separate check.
+-- Dropped first: Postgres refuses to CREATE OR REPLACE a function whose
+-- return columns changed (here, adding `status`) — only DROP + recreate can.
+drop function if exists public.list_trip_collaborators(uuid);
 create or replace function public.list_trip_collaborators(p_trip_id uuid)
-returns table (user_id uuid, email text, created_at timestamptz)
+returns table (user_id uuid, email text, status text, created_at timestamptz)
 language sql
 security definer
 set search_path = public, pg_temp
 stable
 as $$
-  select m.user_id, u.email, m.created_at
+  select m.user_id, u.email, m.status, m.created_at
   from public.trip_members m
   join auth.users u on u.id = m.user_id
   where m.trip_id = p_trip_id
-    and exists (select 1 from public.trips t where t.id = p_trip_id and t.owner_id = auth.uid());
+    and public.is_trip_owner(p_trip_id);
 $$;
 
 grant execute on function public.list_trip_collaborators(uuid) to authenticated;
@@ -253,12 +323,8 @@ grant select, insert, update, delete on public.trip_share_links to authenticated
 
 drop policy if exists trip_share_links_owner on public.trip_share_links;
 create policy trip_share_links_owner on public.trip_share_links
-  for all using (
-    exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
-  )
-  with check (
-    exists (select 1 from public.trips t where t.id = trip_id and t.owner_id = auth.uid())
-  );
+  for all using ( public.is_trip_owner(trip_id) )
+  with check ( public.is_trip_owner(trip_id) );
 
 -- Public, unauthenticated read for a share link. Deliberately bypasses RLS
 -- (security definer) so `anon` never needs a direct grant on `trips` — only
@@ -285,27 +351,18 @@ drop policy if exists trips_select_own on public.trips;
 create policy trips_select_own on public.trips
   for select using (
     auth.uid() = owner_id
-    or exists (
-      select 1 from public.trip_members m
-      where m.trip_id = id and m.user_id = auth.uid()
-    )
+    or public.is_trip_member(id)
   );
 
 drop policy if exists trips_update_own on public.trips;
 create policy trips_update_own on public.trips
   for update using (
     auth.uid() = owner_id
-    or exists (
-      select 1 from public.trip_members m
-      where m.trip_id = id and m.user_id = auth.uid()
-    )
+    or public.is_trip_editor(id)
   )
   with check (
     auth.uid() = owner_id
-    or exists (
-      select 1 from public.trip_members m
-      where m.trip_id = id and m.user_id = auth.uid()
-    )
+    or public.is_trip_editor(id)
   );
 
 -- trips_insert_own and trips_delete_own are unchanged: creating and deleting

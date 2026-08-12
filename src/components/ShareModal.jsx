@@ -30,10 +30,12 @@ export default function ShareModal({ trip, onClose }) {
 
   const [email, setEmail] = useState("");
   const [inviteState, setInviteState] = useState("idle"); // idle | sending | added | pending | error
+  const [emailSent, setEmailSent] = useState(true);
 
   const [label, setLabel] = useState("");
   const [creatingLink, setCreatingLink] = useState(false);
   const [copiedToken, setCopiedToken] = useState(null);
+  const [actionError, setActionError] = useState(false);
 
   const refresh = () => {
     Promise.all([
@@ -69,8 +71,12 @@ export default function ShareModal({ trip, onClose }) {
     }
     setInviteState("sending");
     try {
-      const { status } = await inviteEditor(trip.id, email.trim());
+      const { status, emailSent: sent } = await inviteEditor(
+        trip.id,
+        email.trim(),
+      );
       setInviteState(status);
+      setEmailSent(sent ?? true);
       setEmail("");
       refresh();
     } catch {
@@ -79,21 +85,34 @@ export default function ShareModal({ trip, onClose }) {
   };
 
   const doRemoveCollaborator = async (userId) => {
-    await removeCollaborator(trip.id, userId);
-    refresh();
+    setActionError(false);
+    try {
+      await removeCollaborator(trip.id, userId);
+      refresh();
+    } catch {
+      setActionError(true);
+    }
   };
 
   const doCancelInvite = async (id) => {
-    await cancelPendingInvite(id);
-    refresh();
+    setActionError(false);
+    try {
+      await cancelPendingInvite(id);
+      refresh();
+    } catch {
+      setActionError(true);
+    }
   };
 
   const doCreateLink = async () => {
+    setActionError(false);
     setCreatingLink(true);
     try {
       await createShareLink(trip.id, label);
       setLabel("");
       refresh();
+    } catch {
+      setActionError(true);
     } finally {
       setCreatingLink(false);
     }
@@ -101,8 +120,13 @@ export default function ShareModal({ trip, onClose }) {
 
   const doRevokeLink = async (token) => {
     if (!window.confirm(t("share.confirmRevoke"))) return;
-    await revokeShareLink(token);
-    refresh();
+    setActionError(false);
+    try {
+      await revokeShareLink(token);
+      refresh();
+    } catch {
+      setActionError(true);
+    }
   };
 
   const copyLink = async (token) => {
@@ -154,6 +178,11 @@ export default function ShareModal({ trip, onClose }) {
               {t("share.loadError")}
             </p>
           )}
+          {actionError && (
+            <p role="alert" className="text-sm text-accent">
+              {t("share.actionError")}
+            </p>
+          )}
 
           {/* Editor invites */}
           <section>
@@ -197,7 +226,11 @@ export default function ShareModal({ trip, onClose }) {
             )}
             {inviteState === "pending" && (
               <p className="mt-1.5 text-xs text-accent">
-                {t("share.invitePending")}
+                {t(
+                  emailSent
+                    ? "share.invitePending"
+                    : "share.invitePendingNoEmail",
+                )}
               </p>
             )}
 
@@ -212,7 +245,14 @@ export default function ShareModal({ trip, onClose }) {
                   key={c.user_id}
                   className="flex items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2 text-sm"
                 >
-                  <span className="truncate text-fg">{c.email}</span>
+                  <span className="min-w-0 truncate text-fg">
+                    {c.email}
+                    {c.status !== "accepted" && (
+                      <span className="ms-2 rounded-full bg-accent-soft px-2 py-0.5 text-[0.65rem] font-medium text-fg">
+                        {t("share.awaitingAccept")}
+                      </span>
+                    )}
+                  </span>
                   <button
                     type="button"
                     className="btn-ghost !px-2 !py-1 text-xs"

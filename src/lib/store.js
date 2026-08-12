@@ -499,7 +499,7 @@ async function enterCloudMode(previousMode) {
         .eq("owner_id", session.user.id),
       supabase
         .from("trip_members")
-        .select("trip_id")
+        .select("trip_id, status")
         .eq("user_id", session.user.id),
     ]);
 
@@ -516,33 +516,51 @@ async function enterCloudMode(previousMode) {
     // it's stale but better than a blank app.
     cloudModeActive = true;
     tripsReady = true;
+    invitations = [];
     listeners.forEach((l) => l());
     refreshRegistry();
+    notifyInvitations();
     return;
   }
 
-  // Trips owned by someone else but shared with this user as an editor.
-  // Fetched separately since the owner_id query above can't see them.
+  // Trips owned by someone else but shared with this user — either already
+  // accepted (editable, merged below into the normal trip set) or still
+  // awaiting a decision (kept separate in `invitations`, never merged).
   if (membershipError) {
     console.error("Cloud sync: failed to fetch shared trips", membershipError);
   }
-  const memberTripIds = (memberships ?? []).map((m) => m.trip_id);
+  const accepted = (memberships ?? []).filter((m) => m.status === "accepted");
+  const acceptedIds = new Set(accepted.map((m) => m.trip_id));
+  const allSharedIds = (memberships ?? []).map((m) => m.trip_id);
+
   let memberRows = [];
-  if (memberTripIds.length > 0) {
+  let pendingRows = [];
+  if (allSharedIds.length > 0) {
     const { data: shared, error: sharedError } = await supabase
       .from("trips")
       .select("id, data, updated_at")
-      .in("id", memberTripIds);
+      .in("id", allSharedIds);
     if (sharedError) {
       console.error("Cloud sync: failed to fetch shared trips", sharedError);
     } else {
-      memberRows = shared ?? [];
+      memberRows = (shared ?? []).filter((r) => acceptedIds.has(r.id));
+      pendingRows = (shared ?? []).filter((r) => !acceptedIds.has(r.id));
     }
   }
 
   if (adopting) clearAdoptedLocalStorage(adoptedIds);
   cloudModeActive = true;
   tripsReady = true;
+  invitations = pendingRows.map((row) => {
+    const t = normalize(row.data);
+    return {
+      id: row.id,
+      title: t.title,
+      emoji: t.emoji,
+      startDate: t.startDate,
+      endDate: t.endDate,
+    };
+  });
 
   const ownedRows = data ?? [];
   if (ownedRows.length === 0 && memberRows.length === 0) {
@@ -569,12 +587,14 @@ async function enterCloudMode(previousMode) {
 
   listeners.forEach((l) => l());
   refreshRegistry();
+  notifyInvitations();
 }
 
 /** Cross into (or back into) local-only mode: reload straight from localStorage. */
 function enterLocalMode() {
   cloudModeActive = false;
   tripRoles = new Map();
+  invitations = [];
   const loaded = loadAll();
   trips = loaded.map;
   order = loaded.order;
@@ -583,6 +603,7 @@ function enterLocalMode() {
   tripsReady = true;
   listeners.forEach((l) => l());
   refreshRegistry();
+  notifyInvitations();
 }
 
 /**
@@ -718,6 +739,18 @@ let state;
 // trip id -> 'owner' | 'editor'. Only meaningful in cloud mode — local-only
 // trips have no ownership concept and default to 'owner' in the registry.
 let tripRoles = new Map();
+// Shared trips not yet accepted or declined — kept separate from `trips`/
+// `order` so they never show as editable until the user actually accepts.
+// `{ id, title, emoji, startDate, endDate }[]`, cloud mode only.
+let invitations = [];
+const invitationListeners = new Set();
+function notifyInvitations() {
+  invitationListeners.forEach((l) => l());
+}
+function subscribeInvitations(listener) {
+  invitationListeners.add(listener);
+  return () => invitationListeners.delete(listener);
+}
 
 if (hasSupabase) {
   const placeholder = normalize(seedTrip());
@@ -856,6 +889,15 @@ export function useTripRole(id) {
   return list.find((t) => t.id === id)?.role ?? "owner";
 }
 
+/** Shared trips waiting on this user to accept or decline. */
+export function useTripInvitations() {
+  return useSyncExternalStore(
+    subscribeInvitations,
+    () => invitations,
+    () => invitations,
+  );
+}
+
 /** Non-hook snapshot of the trip registry, for callers outside React (tests). */
 export function getTripRegistry() {
   return registry;
@@ -931,6 +973,100 @@ export function deleteTrip(id) {
     listeners.forEach((l) => l());
   }
   persistIndex();
+  refreshRegistry();
+}
+
+/**
+ * Accept a shared-trip invitation: marks the membership accepted (which is
+ * what actually grants edit access server-side — RLS checks it) and moves
+ * the trip out of `invitations` into the normal, editable trip set.
+ */
+export async function acceptTripInvitation(tripId) {
+  if (!hasSupabase) return;
+  const session = getSession();
+  if (!session) return;
+
+  const { error } = await supabase
+    .from("trip_members")
+    .update({ status: "accepted" })
+    .eq("trip_id", tripId)
+    .eq("user_id", session.user.id);
+  if (error) {
+    console.error("Cloud sync: failed to accept trip invitation", error);
+    return;
+  }
+
+  invitations = invitations.filter((t) => t.id !== tripId);
+  notifyInvitations();
+
+  const { data, error: fetchError } = await supabase
+    .from("trips")
+    .select("id, data, updated_at")
+    .eq("id", tripId)
+    .single();
+  if (fetchError || !data) {
+    console.error(
+      "Cloud sync: accepted invitation but couldn't load the trip",
+      fetchError,
+    );
+    return;
+  }
+
+  const trip = normalize(data.data);
+  trips.set(trip.id, trip);
+  order = [...order, trip.id];
+  tripRoles.set(trip.id, "editor");
+  listeners.forEach((l) => l());
+  refreshRegistry();
+}
+
+/**
+ * Leave a shared trip — declining an invitation before accepting it, or
+ * removing an already-accepted one from your own list (e.g. it was shared by
+ * mistake). Only ever removes YOUR OWN membership; the owner and the trip
+ * itself are untouched.
+ */
+export async function leaveSharedTrip(tripId) {
+  if (!hasSupabase) return;
+  const session = getSession();
+  if (!session) return;
+
+  const { error } = await supabase
+    .from("trip_members")
+    .delete()
+    .eq("trip_id", tripId)
+    .eq("user_id", session.user.id);
+  if (error) {
+    console.error("Cloud sync: failed to leave shared trip", error);
+    return;
+  }
+
+  if (invitations.some((t) => t.id === tripId)) {
+    invitations = invitations.filter((t) => t.id !== tripId);
+    notifyInvitations();
+  }
+
+  if (!trips.has(tripId)) return;
+  trips.delete(tripId);
+  order = order.filter((x) => x !== tripId);
+  tripRoles.delete(tripId);
+
+  if (activeId === tripId) {
+    if (order.length === 0) {
+      // Never leave the app with no trip at all — seed a fresh one.
+      const seed = normalize(seedTrip());
+      trips.set(seed.id, seed);
+      order = [seed.id];
+      activeId = seed.id;
+      persistTrip(seed);
+      tripRoles.set(seed.id, "owner");
+      upsertTripNow(seed);
+    } else {
+      activeId = order[0];
+    }
+    state = trips.get(activeId);
+  }
+  listeners.forEach((l) => l());
   refreshRegistry();
 }
 
