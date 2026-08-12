@@ -1,0 +1,8 @@
+
+[functions.send-trip-invite]
+enabled = true
+# The function checks the caller's JWT itself (and confirms trip ownership via
+# RLS) — verify_jwt = true is still an extra layer, rejecting requests with no
+# valid session before they even reach the code.
+verify_jwt = true
+entrypoint = "./functions/send-trip-invite/index.ts"

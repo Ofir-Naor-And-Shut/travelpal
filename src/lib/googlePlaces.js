@@ -103,11 +103,12 @@ function statusOk(status) {
  */
 export async function autocompleteGooglePlaces(
   query,
-  { center, signal, limit = 8, radiusMeters = 35000 } = {},
+  { center, signal, limit = 8, radiusMeters = 35000, types } = {},
 ) {
   const { autocompleteService } = await legacyServices();
 
   const request = { input: query, sessionToken };
+  if (types) request.types = types;
   if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
     request.location = new window.google.maps.LatLng(center.lat, center.lng);
     request.radius = radiusMeters;
