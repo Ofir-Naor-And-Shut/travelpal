@@ -368,3 +368,64 @@ create policy trips_update_own on public.trips
 -- trips_insert_own and trips_delete_own are unchanged: creating and deleting
 -- a trip both stay owner-only, even for an editor collaborator.
 
+-- ============================================================================
+--  Phase 4 — Admin access.
+--
+--  One designated admin account that signs in with a real Supabase password
+--  instead of a magic link (no email round trip). The account itself is
+--  created once by hand in the Supabase dashboard (Authentication → Add
+--  user → set a password → tick "Auto Confirm User") — never scripted here,
+--  so no password ever passes through this repo.
+--
+--  What this section adds is the *authorization*: a `role: admin` claim in
+--  app_metadata unlocks read/update/delete on every trip, on top of the
+--  normal owner/collaborator policies. app_metadata (unlike user_metadata)
+--  can only be set by a service-role request — a signed-in user can never
+--  grant themselves this claim by editing their own profile — so `auth.jwt()`
+--  is a trustworthy place to read it back from inside a policy.
+-- ============================================================================
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+as $$
+  select coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false);
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
+drop policy if exists trips_select_own on public.trips;
+create policy trips_select_own on public.trips
+  for select using (
+    auth.uid() = owner_id
+    or public.is_trip_member(id)
+    or public.is_admin()
+  );
+
+drop policy if exists trips_update_own on public.trips;
+create policy trips_update_own on public.trips
+  for update using (
+    auth.uid() = owner_id
+    or public.is_trip_editor(id)
+    or public.is_admin()
+  )
+  with check (
+    auth.uid() = owner_id
+    or public.is_trip_editor(id)
+    or public.is_admin()
+  );
+
+drop policy if exists trips_delete_own on public.trips;
+create policy trips_delete_own on public.trips
+  for delete using (auth.uid() = owner_id or public.is_admin());
+
+-- trips_insert_own is unchanged — the admin manages existing trips, it never
+-- creates one on another user's behalf (that would need an owner_id it isn't).
+
+-- Run once, after creating the admin account above, to grant it the claim
+-- (replace the email). Safe to re-run.
+-- update auth.users
+-- set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'::jsonb
+-- where email = 'admin@example.com';
+

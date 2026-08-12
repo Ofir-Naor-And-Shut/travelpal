@@ -98,6 +98,23 @@ export async function signOut() {
   if (hasSupabase) await supabase.auth.signOut();
 }
 
+/**
+ * Password sign-in — no email round trip, used only by accounts that have a
+ * password set (in practice, the one admin account; see supabase/schema.sql
+ * phase 4). Regular accounts are magic-link-only and never get a password,
+ * so this simply fails for them rather than needing its own gating.
+ */
+export async function signInWithPassword(email, password) {
+  if (!hasSupabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
+/** True when the session carries the `admin` app_metadata claim — settable
+ *  only by a service-role request, never by the user themselves, so this is
+ *  trustworthy to branch UI on. */
+export const isAdmin = (s) => s?.user?.app_metadata?.role === "admin";
+
 /* --- local-only preference ------------------------------------------------- */
 
 function readLocalOnly() {
