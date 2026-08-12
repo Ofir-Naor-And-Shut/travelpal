@@ -56,6 +56,12 @@ const STRINGS = {
     "auth.localOnlyHint": "Your trips stay on this device and won’t sync.",
     "auth.invalidEmail": "Enter a valid email address.",
     "auth.error": "Couldn’t send the link. Please try again.",
+    "auth.passwordToggle": "Sign in with a password instead",
+    "auth.passwordLabel": "Password",
+    "auth.passwordSignIn": "Sign in",
+    "auth.passwordSigningIn": "Signing in…",
+    "auth.passwordError": "Incorrect email or password.",
+    "auth.backToMagicLink": "Back to email link",
 
     // trip picker (the landing screen after signing in)
     "picker.title": "Your trips",
@@ -408,6 +414,12 @@ const STRINGS = {
     "auth.localOnlyHint": "הטיולים יישארו במכשיר הזה ולא יסונכרנו.",
     "auth.invalidEmail": "הזינו כתובת אימייל תקינה.",
     "auth.error": "שליחת הקישור נכשלה. נסו שוב.",
+    "auth.passwordToggle": "כניסה עם סיסמה במקום זאת",
+    "auth.passwordLabel": "סיסמה",
+    "auth.passwordSignIn": "כניסה",
+    "auth.passwordSigningIn": "מתחבר…",
+    "auth.passwordError": "אימייל או סיסמה שגויים.",
+    "auth.backToMagicLink": "חזרה לקישור באימייל",
 
     // trip picker (the landing screen after signing in)
     "picker.title": "הטיולים שלך",
