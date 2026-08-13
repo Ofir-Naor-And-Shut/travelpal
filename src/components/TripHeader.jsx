@@ -129,7 +129,14 @@ export default function TripHeader({
                 aria-label={t("header.currency")}
               >
                 {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
+                  <option
+                    key={c.code}
+                    value={c.code}
+                    style={{
+                      background: "var(--color-surface)",
+                      color: "var(--color-fg)",
+                    }}
+                  >
                     {c.code} {currencySymbol(c.code)}
                   </option>
                 ))}

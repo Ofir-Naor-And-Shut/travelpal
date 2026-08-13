@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Globe, Laptop, Moon, Sun } from 'lucide-react'
+import { Check, Globe, Laptop, Moon, Sun, User } from 'lucide-react'
 import { LANGUAGES, setLanguage, useI18n } from '../lib/i18n.js'
 import { THEMES, setTheme, useTheme } from '../lib/theme.js'
+import { sessionEmail, useSession } from '../lib/auth.js'
 
 const THEME_ICON = { light: Sun, dark: Moon, system: Laptop }
 
@@ -13,23 +14,32 @@ const THEME_ICON = { light: Sun, dark: Moon, system: Laptop }
 export default function AppControls() {
   const { t, lang } = useI18n()
   const { preference, theme } = useTheme()
+  const { session } = useSession()
+  const email = sessionEmail(session)
 
   const [open, setOpen] = useState(false)
+  const [acctOpen, setAcctOpen] = useState(false)
   const boxRef = useRef(null)
+  const acctRef = useRef(null)
 
   useEffect(() => {
-    if (!open) return undefined
+    if (!open && !acctOpen) return undefined
     const onAway = (e) => {
-      if (!boxRef.current?.contains(e.target)) setOpen(false)
+      if (open && !boxRef.current?.contains(e.target)) setOpen(false)
+      if (acctOpen && !acctRef.current?.contains(e.target)) setAcctOpen(false)
     }
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      setAcctOpen(false)
+    }
     document.addEventListener('mousedown', onAway)
     document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('mousedown', onAway)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open])
+  }, [open, acctOpen])
 
   const active = LANGUAGES.find((l) => l.code === lang)
 
@@ -112,6 +122,38 @@ export default function AppControls() {
           {t('theme.switchTo', { mode: t(`theme.${theme}`) })}
         </span>
       </div>
+
+      {/* Signed-in identity. Only shown when there's an account behind the
+          session, so the sign-in screen and local-only mode stay uncluttered. */}
+      {email && (
+        <div ref={acctRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setAcctOpen((v) => !v)}
+            aria-expanded={acctOpen}
+            aria-haspopup="dialog"
+            aria-label={t('account.viewAccount')}
+            className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-2
+                       text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <User size={14} />
+            <span className="hidden max-w-[10rem] truncate lg:inline">{email}</span>
+          </button>
+
+          {acctOpen && (
+            <div
+              role="dialog"
+              aria-label={t('account.label')}
+              className="absolute top-full z-50 mt-1 min-w-[12rem] max-w-[16rem] rounded-xl border border-line
+                         bg-surface p-3 shadow-lg shadow-brand-950/20 end-0"
+            >
+              <p className="text-xs text-muted">{t('account.label')}</p>
+              <p className="mt-0.5 break-all text-sm font-medium text-fg">{email}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

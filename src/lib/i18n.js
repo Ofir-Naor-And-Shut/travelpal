@@ -89,6 +89,8 @@ const STRINGS = {
     "header.goTo": "Go to",
 
     // language + theme
+    "account.label": "Account",
+    "account.viewAccount": "View signed-in account",
     "lang.label": "Language",
     "lang.change": "Change language",
     "theme.label": "Theme",
@@ -446,6 +448,8 @@ const STRINGS = {
     "header.menu": "תפריט",
     "header.goTo": "מעבר אל",
 
+    "account.label": "חשבון",
+    "account.viewAccount": "הצגת החשבון המחובר",
     "lang.label": "שפה",
     "lang.change": "שינוי שפה",
     "theme.label": "ערכת נושא",
