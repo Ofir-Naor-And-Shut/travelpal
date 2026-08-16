@@ -8,7 +8,7 @@ import {
 } from "../lib/googlePlaces.js";
 import { useI18n } from "../lib/i18n.js";
 
-export default function DestinationSearch({ onSelect }) {
+export default function DestinationSearch({ onSelect, placeholder, label }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -126,8 +126,8 @@ export default function DestinationSearch({ onSelect }) {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder={t("plan.addPlaceholder")}
-          aria-label={t("plan.searchLabel")}
+          placeholder={placeholder ?? t("plan.addPlaceholder")}
+          aria-label={label ?? t("plan.searchLabel")}
           aria-expanded={open && results.length > 0}
           role="combobox"
           aria-controls="destination-results"

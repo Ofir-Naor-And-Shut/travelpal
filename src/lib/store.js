@@ -125,6 +125,26 @@ function makeDestination(partial = {}) {
 }
 
 /**
+ * The trip's optional starting point (e.g. home) — exists purely to carry a
+ * transport leg into the first real destination. Deliberately has no
+ * `nights`/attractions/sleeping and is never placed on the map or numbered:
+ * it's not a stop, just where the story (and the route) begins.
+ */
+function makeOrigin(partial = {}) {
+  return {
+    id: uid(),
+    name: "",
+    country: "",
+    lat: 0,
+    lng: 0,
+    transportOut: [],
+    // Off by default — most trips don't want a pin for "home".
+    showOnMap: false,
+    ...partial,
+  };
+}
+
+/**
  * Days are addressed by the stop they belong to plus how many nights in, so
  * entries stay attached to their place in the itinerary when the trip start
  * date moves. Trimming nights leaves an entry orphaned but intact — add the
@@ -258,6 +278,8 @@ function tripDefaults() {
     currency: "EUR",
     days: {},
     destinations: [],
+    // Absent for almost every trip — only set once the user opts in.
+    origin: null,
     // Client write-time, compared against the Supabase row's updated_at for
     // last-write-wins sync. Bumped on every commit.
     updatedAt: new Date().toISOString(),
@@ -296,6 +318,13 @@ export function normalize(trip) {
       sleepingDocs: d.sleepingDocs ?? [],
       transportOut: normalizeLeg(d.transportOut),
     })),
+    origin: trip.origin
+      ? {
+          ...makeOrigin(),
+          ...trip.origin,
+          transportOut: normalizeLeg(trip.origin.transportOut),
+        }
+      : null,
   };
 }
 
@@ -1182,9 +1211,33 @@ export function setNights(id, nights) {
   updateDestination(id, { nights: Math.max(0, Math.min(365, nights)) });
 }
 
+/* --- trip origin ------------------------------------------------------------ */
+
+export function addOrigin(partial = {}) {
+  commit({ ...state, origin: makeOrigin(partial) });
+}
+
+export function updateOrigin(patch) {
+  if (!state.origin) return;
+  commit({ ...state, origin: { ...state.origin, ...patch } });
+}
+
+export function removeOrigin() {
+  commit({ ...state, origin: null });
+}
+
 /* --- transport segments ---------------------------------------------------- */
 
 function mapLeg(destId, fn) {
+  // The origin isn't in `destinations` — route its leg mutations separately
+  // so TransportLeg/SegmentRow can treat it exactly like any other stop.
+  if (state.origin?.id === destId) {
+    commit({
+      ...state,
+      origin: { ...state.origin, transportOut: fn(legOf(state.origin)) },
+    });
+    return;
+  }
   mapDestinations((list) =>
     list.map((d) =>
       d.id === destId ? { ...d, transportOut: fn(legOf(d)) } : d,
@@ -1591,10 +1644,9 @@ export function tripStats(trip) {
     (sum, d) => sum + sleepingCost(trip, d),
     0,
   );
-  const transport = trip.destinations.reduce(
-    (sum, d) => sum + legTotals(d).cost,
-    0,
-  );
+  const transport =
+    trip.destinations.reduce((sum, d) => sum + legTotals(d).cost, 0) +
+    (trip.origin ? legTotals(trip.origin).cost : 0);
 
   const entries = liveDayEntries(trip);
   const attractions = entries.reduce(

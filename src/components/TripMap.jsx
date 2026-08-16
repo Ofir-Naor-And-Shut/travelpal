@@ -9,7 +9,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { Layers, X } from "lucide-react";
+import { Home, Layers, X } from "lucide-react";
 import { TransportIcon } from "./TransportLeg.jsx";
 import { arcPoints, splitArc } from "../lib/arc.js";
 import {
@@ -80,6 +80,7 @@ const STYLE_KEY = "project-travel:basemap";
 const GoogleTripMap = lazy(() => import("./GoogleTripMap.jsx"));
 
 const SPRITE_ID = (mode) => `mode-icon-${mode}`;
+const ORIGIN_SPRITE_ID = "origin-pin-icon";
 
 /**
  * Off-screen copies of the mode icons that the Leaflet badges point at.
@@ -102,6 +103,7 @@ function ModeIconSprite() {
           strokeWidth={2.4}
         />
       ))}
+      <Home id={ORIGIN_SPRITE_ID} size={24} strokeWidth={2.4} />
     </svg>
   );
 }
@@ -169,6 +171,32 @@ function numberedIcon(index, active, dark, small = false, clickable = false) {
 }
 
 /**
+ * The trip's optional starting point — dashed and toneless rather than
+ * numbered, since it isn't a stop in the itinerary.
+ */
+function originIcon(active, dark) {
+  const classes = [
+    "pin",
+    "pin-origin",
+    active && "pin-active",
+    dark && "pin-on-dark",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return L.divIcon({
+    className: "",
+    html:
+      `<div class="${classes}">` +
+      `<svg viewBox="0 0 24 24" width="14" height="14">` +
+      `<use href="#${ORIGIN_SPRITE_ID}"/></svg></div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -16],
+  });
+}
+
+/**
  * Leaflet caches its container size, so a panel resize leaves the map showing
  * stale tiles and mis-placed pins until it's told to re-measure.
  */
@@ -225,6 +253,7 @@ function FitBounds({ points, fallback, soloZoom, maxZoom, fitKey }) {
 
 export default function TripMap({
   destinations,
+  origin,
   activeId,
   onHover,
   dayRoute,
@@ -267,10 +296,16 @@ export default function TripMap({
   // a mode on each hop", so the rendering below is shared.
   const inDayMode = Boolean(dayRoute);
 
-  const stops = useMemo(
-    () => (inDayMode ? dayRoute.stops : destinations.filter(isPlaced)),
-    [inDayMode, dayRoute, destinations],
-  );
+  // Opt-in and only once it's a real place — otherwise there's nowhere to put
+  // the pin. Prepending it here is enough: the leg-building loop below just
+  // treats it as stop zero, no special-casing needed for the arc into stop 1.
+  const originStop =
+    !inDayMode && origin?.showOnMap && isPlaced(origin) ? origin : null;
+
+  const stops = useMemo(() => {
+    const base = inDayMode ? dayRoute.stops : destinations.filter(isPlaced);
+    return originStop ? [originStop, ...base] : base;
+  }, [inDayMode, dayRoute, destinations, originStop]);
 
   // A stable primitive key stops the arcs and fitBounds from being rebuilt on
   // every unrelated render (renaming a stop, editing a cost, …). The centre is
@@ -391,6 +426,7 @@ export default function TripMap({
         <Suspense fallback={<div className="h-full w-full bg-canvas" />}>
           <GoogleTripMap
             destinations={destinations}
+            origin={origin}
             activeId={activeId}
             onHover={onHover}
             dayRoute={dayRoute}
@@ -477,6 +513,7 @@ export default function TripMap({
             ))}
 
           {stops.map((stop, i) => {
+            const isOrigin = Boolean(originStop) && stop.id === originStop.id;
             // Trip pins number by position in the full itinerary, not in the
             // filtered list, so an unplaced stop doesn't shift the numbering.
             const index = inDayMode
@@ -486,20 +523,25 @@ export default function TripMap({
               <Marker
                 key={stop.id}
                 position={[stop.lat, stop.lng]}
-                icon={numberedIcon(
-                  index,
-                  activeId === stop.id,
-                  onDark,
-                  inDayMode,
-                  !inDayMode,
-                )}
+                icon={
+                  isOrigin
+                    ? originIcon(activeId === stop.id, onDark)
+                    : numberedIcon(
+                        index,
+                        activeId === stop.id,
+                        onDark,
+                        inDayMode,
+                        !inDayMode,
+                      )
+                }
                 eventHandlers={{
                   mouseover: () => onHover?.(stop.id),
                   mouseout: () => onHover?.(null),
-                  // A destination pin is a shortcut into its Details tab. Day
-                  // pins are attractions, which have no details of their own.
+                  // A destination pin is a shortcut into its Details tab; the
+                  // origin and day pins (attractions) have no details of
+                  // their own.
                   click: () => {
-                    if (!inDayMode) onOpenDetails?.(stop.id);
+                    if (!inDayMode && !isOrigin) onOpenDetails?.(stop.id);
                   },
                 }}
               >
@@ -515,6 +557,10 @@ export default function TripMap({
                       <p className="text-xs text-muted">{stop.address}</p>
                     )}
                   </Popup>
+                ) : isOrigin ? (
+                  <Tooltip direction="top" offset={[0, -16]}>
+                    <span className="text-sm font-semibold">{stop.name}</span>
+                  </Tooltip>
                 ) : (
                   /* Hover rather than a popup, so the click stays free to
                    navigate while the same information is still reachable. */

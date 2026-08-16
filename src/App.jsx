@@ -421,6 +421,7 @@ function TripEditor({ onBackToTrips }) {
           >
             <TripMap
               destinations={destinations}
+              origin={trip.origin}
               activeId={activeId}
               onHover={setActiveId}
               dayRoute={dayRoute}
