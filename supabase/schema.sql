@@ -429,3 +429,75 @@ create policy trips_delete_own on public.trips
 -- set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'::jsonb
 -- where email = 'admin@example.com';
 
+-- ============================================================================
+--  Phase 5 — Document storage (Supabase Storage).
+--
+--  ONE bucket, not one per user/trip: Storage buckets are dashboard-managed
+--  resources, not meant to be provisioned per row (that would mean calling
+--  the admin API to create/delete a bucket on every signup and every trip,
+--  and thousands of buckets cluttering the dashboard). Isolation instead
+--  comes from the object path (`{uploader}/{tripId}/{docId}`) plus RLS on
+--  storage.objects, reusing the same is_trip_owner/is_trip_editor helpers
+--  the trips table already uses — a doc is reachable by exactly whoever can
+--  edit its trip (owner or accepted editor), nothing more. NOT
+--  is_trip_member: that also matches a still-pending invitee, who should see
+--  the trip's title/dates but not its documents before accepting.
+-- ============================================================================
+
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('trip-documents', 'trip-documents', false, 26214400)
+on conflict (id) do nothing;
+
+-- storage.foldername(name) splits an object path into its folder segments,
+-- e.g. 'uploader/tripId/docId' -> {'uploader','tripId'}. Segment 2 is the
+-- trip id; segment 1 (the uploader) is organizational only and never itself
+-- checked — access is governed entirely by trip membership.
+create or replace function public.storage_trip_id(object_name text)
+returns uuid
+language sql
+immutable
+as $$
+  select (storage.foldername(object_name))[2]::uuid;
+$$;
+
+drop policy if exists trip_documents_select on storage.objects;
+create policy trip_documents_select on storage.objects
+  for select using (
+    bucket_id = 'trip-documents'
+    and (
+      public.is_trip_owner(public.storage_trip_id(name))
+      or public.is_trip_editor(public.storage_trip_id(name))
+    )
+  );
+
+drop policy if exists trip_documents_insert on storage.objects;
+create policy trip_documents_insert on storage.objects
+  for insert with check (
+    bucket_id = 'trip-documents'
+    and (
+      public.is_trip_owner(public.storage_trip_id(name))
+      or public.is_trip_editor(public.storage_trip_id(name))
+    )
+  );
+
+-- Covers `upsert: true` re-uploads (same path, replaced content).
+drop policy if exists trip_documents_update on storage.objects;
+create policy trip_documents_update on storage.objects
+  for update using (
+    bucket_id = 'trip-documents'
+    and (
+      public.is_trip_owner(public.storage_trip_id(name))
+      or public.is_trip_editor(public.storage_trip_id(name))
+    )
+  );
+
+drop policy if exists trip_documents_delete on storage.objects;
+create policy trip_documents_delete on storage.objects
+  for delete using (
+    bucket_id = 'trip-documents'
+    and (
+      public.is_trip_owner(public.storage_trip_id(name))
+      or public.is_trip_editor(public.storage_trip_id(name))
+    )
+  );
+

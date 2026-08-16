@@ -171,6 +171,9 @@ const STRINGS = {
     "transport.destinationPlaceholder": "Station, airport or stop…",
     "transport.useStraight": "Use straight-line distance ({km} km)",
     "transport.to": "{mode} to {name}",
+    "transport.docs": "Documents for transport {n}",
+    "transport.docLabel": "Transport document",
+    "transport.docHint": "Drop tickets or boarding passes here, or",
     "mode.plane": "Flight",
     "mode.train": "Train",
     "mode.bus": "Bus",
@@ -191,6 +194,11 @@ const STRINGS = {
     "details.sleepingDocs": "Sleeping documents",
     "details.sleepingHint":
       "Hotel confirmations, check-in details, addresses —",
+    "details.allDocuments": "All documents",
+    "details.allDocumentsEmpty": "No documents anywhere in this stop yet.",
+    "details.tagAccommodation": "Night {n} · Accommodation",
+    "details.tagReservation": "Night {n} · {name}",
+    "details.tagTransport": "Transport · {mode}",
 
     // documents
     "docs.title": "Documents",
@@ -203,11 +211,15 @@ const STRINGS = {
     "docs.tooBig": '"{name}" is {size} — the limit is {max}.',
     "docs.storeFailed":
       'Could not store "{name}". Your browser storage may be full.',
+    "docs.syncFailed":
+      '"{name}" is saved on this device, but couldn\'t sync to the cloud.',
     "docs.preview": "Preview {name}",
     "docs.download": "Download {name}",
     "docs.delete": "Delete {name}",
     "docs.closePreview": "Close preview",
     "docs.loading": "Loading…",
+    "docs.localOnlyNote": "Only available on this device.",
+    "docs.signInLink": "Sign in to sync across devices",
 
     // day by day
     "day.empty":
@@ -519,6 +531,9 @@ const STRINGS = {
     "transport.destinationPlaceholder": "תחנה, שדה תעופה או עצירה…",
     "transport.useStraight": "שימוש במרחק אווירי ({km} ק״מ)",
     "transport.to": "{mode} אל {name}",
+    "transport.docs": "מסמכים עבור תחבורה {n}",
+    "transport.docLabel": "מסמך תחבורה",
+    "transport.docHint": "גררו כרטיסים או כרטיסי עלייה לכאן, או",
     "mode.plane": "טיסה",
     "mode.train": "רכבת",
     "mode.bus": "אוטובוס",
@@ -535,7 +550,11 @@ const STRINGS = {
     "details.travelHint": "כרטיסים, כרטיסי עלייה למטוס, ויזות, ביטוח —",
     "details.sleepingDocs": "מסמכי לינה",
     "details.sleepingHint": "אישורי מלון, פרטי צ׳ק־אין, כתובות —",
-
+    "details.allDocuments": "כל המסמכים",
+    "details.allDocumentsEmpty": "עדיין אין מסמכים ליעד הזה.",
+    "details.tagAccommodation": "לילה {n} · לינה",
+    "details.tagReservation": "לילה {n} · {name}",
+    "details.tagTransport": "תחבורה · {mode}",
     "docs.title": "מסמכים",
     "docs.file": "קובץ",
     "docs.files": "קבצים",
@@ -545,11 +564,14 @@ const STRINGS = {
     "docs.privacy": "נשמר באופן פרטי בדפדפן · עד {size} לקובץ",
     "docs.tooBig": "״{name}״ במשקל {size} — המגבלה היא {max}.",
     "docs.storeFailed": "לא ניתן לשמור את ״{name}״. ייתכן שאחסון הדפדפן מלא.",
+    "docs.syncFailed": "״{name}״ נשמר במכשיר זה, אך לא ניתן היה לסנכרן לענן.",
     "docs.preview": "תצוגה מקדימה של {name}",
     "docs.download": "הורדת {name}",
     "docs.delete": "מחיקת {name}",
     "docs.closePreview": "סגירת התצוגה המקדימה",
     "docs.loading": "טוען…",
+    "docs.localOnlyNote": "זמין במכשיר זה בלבד.",
+    "docs.signInLink": "התחברו כדי לסנכרן בין מכשירים",
 
     "day.empty": "עדיין לא תוכנן דבר — הוסיפו יעד בלשונית היעדים.",
     "day.number": "יום {n}",
