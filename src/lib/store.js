@@ -84,6 +84,7 @@ export function makeSegment(partial = {}) {
     durationMin: 0,
     distanceKm: 0,
     cost: 0,
+    documents: [],
     ...rest,
     origin: { ...emptyStation(), ...origin },
     destination: { ...emptyStation(), ...destination },
@@ -394,8 +395,10 @@ function isOnline() {
 /** Push a brand-new trip to the cloud (create, adopt, or reseed) — the only
  *  paths where the current user is establishing themselves as the owner.
  *  Returns true only on a confirmed write — the adoption path relies on this
- *  to know a local trip is safe to drop. */
-async function upsertTripNow(trip) {
+ *  to know a local trip is safe to drop. Also exported for callers that need
+ *  to guarantee a trip's row exists before writing something that references
+ *  it (e.g. a Storage object whose RLS check looks the trip up by id). */
+export async function upsertTripNow(trip) {
   const session = getSession();
   if (!hasSupabase || !session) return false;
   const { error } = await supabase.from("trips").upsert({
@@ -1232,6 +1235,24 @@ export function reorderSegments(destId, from, to) {
   });
 }
 
+export function addSegmentDoc(destId, segmentId, meta) {
+  mapLeg(destId, (segments) =>
+    segments.map((s) =>
+      s.id === segmentId ? { ...s, documents: [...s.documents, meta] } : s,
+    ),
+  );
+}
+
+export function removeSegmentDoc(destId, segmentId, docId) {
+  mapLeg(destId, (segments) =>
+    segments.map((s) =>
+      s.id === segmentId
+        ? { ...s, documents: s.documents.filter((d) => d.id !== docId) }
+        : s,
+    ),
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Destination documents (metadata only — bytes live in IndexedDB)            */
 /* -------------------------------------------------------------------------- */
@@ -1444,6 +1465,49 @@ export function removeDayAccommodationDoc(key, docId) {
       },
     };
   });
+}
+
+/**
+ * Every document attached to a destination, from every place one can live —
+ * its own travel/sleeping docs, plus any of its nights' own accommodation or
+ * reservations — for the Details tab's single combined view. `kind` tells the
+ * caller which remover to call and how to label the source.
+ */
+export function destinationDocuments(trip, dest) {
+  const items = [];
+  dest.travelDocs.forEach((doc) => items.push({ doc, kind: "travel" }));
+  dest.sleepingDocs.forEach((doc) => items.push({ doc, kind: "sleeping" }));
+  legOf(dest).forEach((segment, i) =>
+    segment.documents.forEach((doc) =>
+      items.push({
+        doc,
+        kind: "transport",
+        segmentId: segment.id,
+        segmentIndex: i,
+        mode: segment.mode,
+      }),
+    ),
+  );
+  for (let n = 0; n < dest.nights; n += 1) {
+    const key = dayKey(dest.id, n);
+    const entry = getDay(trip, key);
+    entry.accommodation?.documents.forEach((doc) =>
+      items.push({ doc, kind: "accommodation", key, nightIndex: n }),
+    );
+    entry.reservations.forEach((r) =>
+      r.documents.forEach((doc) =>
+        items.push({
+          doc,
+          kind: "reservation",
+          key,
+          nightIndex: n,
+          reservationId: r.id,
+          reservationName: r.name,
+        }),
+      ),
+    );
+  }
+  return items;
 }
 
 export function resetTrip() {

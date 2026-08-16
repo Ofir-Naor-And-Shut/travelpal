@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from "react";
 import {
   Bus,
   Car,
@@ -6,6 +6,7 @@ import {
   Coins,
   Footprints,
   GripVertical,
+  Paperclip,
   Plane,
   Plus,
   Ruler,
@@ -13,23 +14,26 @@ import {
   TrainFront,
   Trash2,
   X,
-} from 'lucide-react'
-import PlaceSearchInput from './PlaceSearchInput.jsx'
+} from "lucide-react";
+import PlaceSearchInput from "./PlaceSearchInput.jsx";
+import DocumentsPanel from "./DocumentsPanel.jsx";
 import {
   TRANSPORT_MODES,
   addSegment,
+  addSegmentDoc,
   legOf,
   legTotals,
   modeColor,
   num,
   removeSegment,
+  removeSegmentDoc,
   reorderSegments,
   setSegmentStation,
   updateSegment,
-} from '../lib/store.js'
-import { formatDuration, formatMoney } from '../lib/money.js'
-import { useDragReorder } from '../lib/useDragReorder.js'
-import { useI18n } from '../lib/i18n.js'
+} from "../lib/store.js";
+import { formatDuration, formatMoney } from "../lib/money.js";
+import { useDragReorder } from "../lib/useDragReorder.js";
+import { useI18n } from "../lib/i18n.js";
 
 const ICONS = {
   plane: Plane,
@@ -38,30 +42,30 @@ const ICONS = {
   car: Car,
   ferry: Ship,
   walk: Footprints,
-}
+};
 
 export function TransportIcon({ mode, ...props }) {
-  const Icon = ICONS[mode] ?? TrainFront
-  return <Icon {...props} />
+  const Icon = ICONS[mode] ?? TrainFront;
+  return <Icon {...props} />;
 }
 
 export default function TransportLeg({ from, to, currency, suggestedKm }) {
-  const { t } = useI18n()
-  const [open, setOpen] = useState(false)
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
 
-  const segments = legOf(from)
-  const totals = legTotals(from)
+  const segments = legOf(from);
+  const totals = legTotals(from);
 
   // The spine and collapsed chip take their colour from the first hop.
-  const leadColor = modeColor(segments[0]?.mode)
+  const leadColor = modeColor(segments[0]?.mode);
 
-  const drag = useDragReorder((a, b) => reorderSegments(from.id, a, b))
+  const drag = useDragReorder((a, b) => reorderSegments(from.id, a, b));
 
   const summary = [
     totals.durationMin ? formatDuration(totals.durationMin) : null,
-    totals.distanceKm ? `${totals.distanceKm} ${t('unit.km')}` : null,
+    totals.distanceKm ? `${totals.distanceKm} ${t("unit.km")}` : null,
     totals.cost ? formatMoney(totals.cost, currency) : null,
-  ].filter(Boolean)
+  ].filter(Boolean);
 
   return (
     <div className="relative">
@@ -76,7 +80,7 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
         <span
           className="flex shrink-0 items-center gap-0.5 rounded-full border-2 bg-surface px-1.5 py-1"
           style={{ borderColor: leadColor }}
-          title={segments.map((s) => t(`mode.${s.mode}`)).join(' → ')}
+          title={segments.map((s) => t(`mode.${s.mode}`)).join(" → ")}
         >
           {segments.length === 0 ? (
             <Plus size={13} style={{ color: leadColor }} strokeWidth={2.4} />
@@ -98,8 +102,8 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
             ))
           )}
           <span className="sr-only">
-            {segments.map((s) => t(`mode.${s.mode}`)).join(' → ')}
-            {to ? ` — ${to.name}` : ''}
+            {segments.map((s) => t(`mode.${s.mode}`)).join(" → ")}
+            {to ? ` — ${to.name}` : ""}
           </span>
         </span>
 
@@ -114,16 +118,16 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
         >
           <span className="tabular">
             {summary.length
-              ? summary.join(' · ')
+              ? summary.join(" · ")
               : segments.length
-                ? t('transport.addDetails')
-                : t('transport.add')}
+                ? t("transport.addDetails")
+                : t("transport.add")}
           </span>
           {segments.length > 1 && (
             <span className="tabular rounded-full bg-accent-soft px-1.5 text-[10px] font-bold text-accent">
               {segments.length === 2
-                ? t('transport.change')
-                : t('transport.changes', { n: segments.length - 1 })}
+                ? t("transport.change")
+                : t("transport.changes", { n: segments.length - 1 })}
             </span>
           )}
         </button>
@@ -146,8 +150,12 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
                 dragProps={drag.itemProps(i)}
                 gripProps={drag.gripProps()}
                 isDragging={drag.dragIndex === i}
-                dropBefore={drag.dragging && drag.overIndex === i && !drag.overAfter}
-                dropAfter={drag.dragging && drag.overIndex === i && drag.overAfter}
+                dropBefore={
+                  drag.dragging && drag.overIndex === i && !drag.overAfter
+                }
+                dropAfter={
+                  drag.dragging && drag.overIndex === i && drag.overAfter
+                }
               />
             ))}
           </ol>
@@ -157,7 +165,7 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
             className="btn-soft !py-1 !text-xs"
             onClick={() => addSegment(from.id)}
           >
-            <Plus size={14} /> {t('transport.addSegment')}
+            <Plus size={14} /> {t("transport.addSegment")}
           </button>
 
           {segments.length === 1 && suggestedKm > 0 && (
@@ -170,13 +178,13 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
                 })
               }
             >
-              {t('transport.useStraight', { km: suggestedKm })}
+              {t("transport.useStraight", { km: suggestedKm })}
             </button>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function SegmentRow({
@@ -193,26 +201,37 @@ function SegmentRow({
   dropBefore,
   dropAfter,
 }) {
-  const { t } = useI18n()
-  const color = modeColor(segment.mode)
+  const { t } = useI18n();
+  const color = modeColor(segment.mode);
+  const [showDocs, setShowDocs] = useState(false);
 
   // Bias each lookup towards the end of the journey it belongs to: the first
   // hop starts near the origin city, the last one ends near the destination.
-  const originBias = index === 0 ? originCenter : destinationCenter
-  const destinationBias = index === total - 1 ? destinationCenter : originCenter
+  const originBias = index === 0 ? originCenter : destinationCenter;
+  const destinationBias =
+    index === total - 1 ? destinationCenter : originCenter;
+
+  const handleAddDoc = useCallback(
+    (meta) => addSegmentDoc(destId, segment.id, meta),
+    [destId, segment.id],
+  );
+  const handleRemoveDoc = useCallback(
+    (doc) => removeSegmentDoc(destId, segment.id, doc.id),
+    [destId, segment.id],
+  );
 
   return (
     <li
       {...dragProps}
       className={`relative rounded-lg border border-line bg-surface p-2 ${
-        isDragging ? 'opacity-40' : ''
+        isDragging ? "opacity-40" : ""
       }`}
     >
       {(dropBefore || dropAfter) && (
         <span
           aria-hidden
           className={`pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full bg-accent ${
-            dropBefore ? '-top-px' : '-bottom-px'
+            dropBefore ? "-top-px" : "-bottom-px"
           }`}
         />
       )}
@@ -220,7 +239,7 @@ function SegmentRow({
       <div className="mb-1.5 flex items-center gap-2">
         <span
           {...gripProps}
-          title={t('transport.dragHint')}
+          title={t("transport.dragHint")}
           aria-hidden
           className="cursor-grab text-subtle transition hover:text-fg active:cursor-grabbing"
         >
@@ -240,7 +259,7 @@ function SegmentRow({
           onChange={(e) =>
             updateSegment(destId, segment.id, { mode: e.target.value })
           }
-          aria-label={t('transport.mode')}
+          aria-label={t("transport.mode")}
         >
           {TRANSPORT_MODES.map((m) => (
             <option key={m.id} value={m.id}>
@@ -253,9 +272,32 @@ function SegmentRow({
 
         <button
           type="button"
+          onClick={() => setShowDocs((v) => !v)}
+          aria-expanded={showDocs}
+          aria-label={t("transport.docs", { n: index + 1 })}
+          title={t("transport.docLabel")}
+          className={`relative grid size-7 shrink-0 place-items-center rounded-full border transition
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              showDocs
+                ? "border-accent bg-accent text-on-accent"
+                : segment.documents.length > 0
+                  ? "border-line-strong bg-accent-soft text-fg"
+                  : "border-line-strong bg-surface text-subtle hover:border-accent"
+            }`}
+        >
+          <Paperclip size={13} />
+          {segment.documents.length > 0 && (
+            <span className="tabular absolute -end-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-[9px] font-bold text-on-accent ring-2 ring-surface">
+              {segment.documents.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
           className="btn-ghost !px-1.5 !py-0.5"
           onClick={() => removeSegment(destId, segment.id)}
-          aria-label={t('transport.removeSegment', { n: index + 1 })}
+          aria-label={t("transport.removeSegment", { n: index + 1 })}
         >
           <Trash2 size={14} />
         </button>
@@ -263,37 +305,50 @@ function SegmentRow({
 
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="text-[11px] font-medium text-muted">
-          {t('transport.originStation')}
+          {t("transport.originStation")}
           <PlaceSearchInput
             value={segment.origin}
             onChange={(station) =>
-              setSegmentStation(destId, segment.id, 'origin', station)
+              setSegmentStation(destId, segment.id, "origin", station)
             }
             center={originBias}
-            placeholder={t('transport.originPlaceholder')}
-            label={t('transport.originStation')}
+            placeholder={t("transport.originPlaceholder")}
+            label={t("transport.originStation")}
             className="mt-1"
           />
         </label>
 
         <label className="text-[11px] font-medium text-muted">
-          {t('transport.destinationStation')}
+          {t("transport.destinationStation")}
           <PlaceSearchInput
             value={segment.destination}
             onChange={(station) =>
-              setSegmentStation(destId, segment.id, 'destination', station)
+              setSegmentStation(destId, segment.id, "destination", station)
             }
             center={destinationBias}
-            placeholder={t('transport.destinationPlaceholder')}
-            label={t('transport.destinationStation')}
+            placeholder={t("transport.destinationPlaceholder")}
+            label={t("transport.destinationStation")}
             className="mt-1"
           />
         </label>
       </div>
 
       <ExtraFields destId={destId} segment={segment} currency={currency} />
+
+      {showDocs && (
+        <div className="mt-2 border-t border-line pt-2">
+          <DocumentsPanel
+            docs={segment.documents}
+            onAdd={handleAddDoc}
+            onRemove={handleRemoveDoc}
+            label={t("transport.docLabel")}
+            hint={t("transport.docHint")}
+            compact
+          />
+        </div>
+      )}
     </li>
-  )
+  );
 }
 
 /**
@@ -304,50 +359,50 @@ function SegmentRow({
  */
 const EXTRAS = [
   {
-    key: 'durationMin',
-    labelKey: 'transport.duration',
-    chipKey: 'transport.durationShort',
+    key: "durationMin",
+    labelKey: "transport.duration",
+    chipKey: "transport.durationShort",
     icon: Clock,
-    step: '1',
+    step: "1",
   },
   {
-    key: 'distanceKm',
-    labelKey: 'transport.distance',
-    chipKey: 'transport.distanceShort',
+    key: "distanceKm",
+    labelKey: "transport.distance",
+    chipKey: "transport.distanceShort",
     icon: Ruler,
-    step: '0.1',
+    step: "0.1",
   },
   {
-    key: 'cost',
-    labelKey: 'transport.cost',
-    chipKey: 'transport.cost',
+    key: "cost",
+    labelKey: "transport.cost",
+    chipKey: "transport.cost",
     icon: Coins,
-    step: '0.01',
+    step: "0.01",
   },
-]
+];
 
 function ExtraFields({ destId, segment, currency }) {
-  const { t } = useI18n()
+  const { t } = useI18n();
   // Fields added in this session that are still empty; a value of its own is
   // enough to keep a field on screen across renders.
-  const [pinned, setPinned] = useState(() => new Set())
+  const [pinned, setPinned] = useState(() => new Set());
 
-  const isShown = (key) => num(segment[key]) > 0 || pinned.has(key)
+  const isShown = (key) => num(segment[key]) > 0 || pinned.has(key);
 
-  const show = (key) =>
-    setPinned((prev) => new Set(prev).add(key))
+  const show = (key) => setPinned((prev) => new Set(prev).add(key));
 
   const hide = (key) => {
     setPinned((prev) => {
-      const next = new Set(prev)
-      next.delete(key)
-      return next
-    })
-    if (num(segment[key]) !== 0) updateSegment(destId, segment.id, { [key]: 0 })
-  }
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+    if (num(segment[key]) !== 0)
+      updateSegment(destId, segment.id, { [key]: 0 });
+  };
 
-  const shown = EXTRAS.filter((f) => isShown(f.key))
-  const hidden = EXTRAS.filter((f) => !isShown(f.key))
+  const shown = EXTRAS.filter((f) => isShown(f.key));
+  const hidden = EXTRAS.filter((f) => !isShown(f.key));
 
   return (
     <>
@@ -355,9 +410,9 @@ function ExtraFields({ destId, segment, currency }) {
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {shown.map((field) => {
             const label =
-              field.key === 'cost'
+              field.key === "cost"
                 ? `${t(field.labelKey)} (${currency})`
-                : t(field.labelKey)
+                : t(field.labelKey);
             return (
               <label
                 key={field.key}
@@ -368,7 +423,7 @@ function ExtraFields({ destId, segment, currency }) {
                   <button
                     type="button"
                     onClick={() => hide(field.key)}
-                    aria-label={t('transport.removeField', {
+                    aria-label={t("transport.removeField", {
                       field: t(field.labelKey),
                     })}
                     className="rounded-full p-0.5 text-subtle transition hover:bg-raised hover:text-fg"
@@ -381,7 +436,7 @@ function ExtraFields({ destId, segment, currency }) {
                   min="0"
                   step={field.step}
                   className="field tabular mt-1 !py-1 !text-xs"
-                  value={segment[field.key] || ''}
+                  value={segment[field.key] || ""}
                   placeholder="0"
                   autoFocus={pinned.has(field.key) && !segment[field.key]}
                   aria-label={label}
@@ -392,7 +447,7 @@ function ExtraFields({ destId, segment, currency }) {
                   }
                 />
               </label>
-            )
+            );
           })}
         </div>
       )}
@@ -400,7 +455,7 @@ function ExtraFields({ destId, segment, currency }) {
       {hidden.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {hidden.map((field) => {
-            const Icon = field.icon
+            const Icon = field.icon;
             return (
               <button
                 key={field.key}
@@ -413,10 +468,10 @@ function ExtraFields({ destId, segment, currency }) {
                 <Icon size={11} />
                 {t(field.chipKey)}
               </button>
-            )
+            );
           })}
         </div>
       )}
     </>
-  )
+  );
 }
