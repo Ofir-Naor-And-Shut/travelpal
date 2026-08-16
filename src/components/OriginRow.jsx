@@ -1,6 +1,6 @@
-import { Home, Map as MapIcon, Trash2 } from 'lucide-react'
-import { isPlaced, removeOrigin, updateOrigin } from '../lib/store.js'
-import { useI18n } from '../lib/i18n.js'
+import { Home, Map as MapIcon, Trash2 } from "lucide-react";
+import { isPlaced, removeOrigin, updateOrigin } from "../lib/store.js";
+import { useI18n } from "../lib/i18n.js";
 
 /**
  * The trip's optional starting point. Deliberately unlike DestinationRow: no
@@ -10,8 +10,8 @@ import { useI18n } from '../lib/i18n.js'
  * stop zero.
  */
 export default function OriginRow({ origin }) {
-  const { t } = useI18n()
-  const placed = isPlaced(origin)
+  const { t } = useI18n();
+  const placed = isPlaced(origin);
 
   return (
     <div className="mb-2 flex items-center gap-2 rounded-xl border border-dashed border-line bg-canvas px-3 py-2.5">
@@ -25,7 +25,7 @@ export default function OriginRow({ origin }) {
         <input
           value={origin.name}
           onChange={(e) => updateOrigin({ name: e.target.value })}
-          aria-label={t('plan.originNameLabel')}
+          aria-label={t("plan.originNameLabel")}
           className="w-full truncate rounded border-none bg-transparent p-0 text-[15px] font-medium text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
         />
         {origin.country && (
@@ -37,10 +37,10 @@ export default function OriginRow({ origin }) {
         disabled={!placed}
         onClick={() => updateOrigin({ showOnMap: !origin.showOnMap })}
         aria-pressed={origin.showOnMap}
-        aria-label={t('plan.originShowOnMap')}
-        title={placed ? t('plan.originShowOnMap') : t('plan.originNotPlaced')}
+        aria-label={t("plan.originShowOnMap")}
+        title={placed ? t("plan.originShowOnMap") : t("plan.originNotPlaced")}
         className={`btn-ghost !px-1.5 !py-1 disabled:cursor-not-allowed disabled:opacity-40 ${
-          origin.showOnMap && placed ? 'text-accent' : ''
+          origin.showOnMap && placed ? "text-accent" : ""
         }`}
       >
         <MapIcon size={15} />
@@ -49,10 +49,10 @@ export default function OriginRow({ origin }) {
         type="button"
         className="btn-ghost !px-1.5 !py-1"
         onClick={removeOrigin}
-        aria-label={t('plan.removeOrigin')}
+        aria-label={t("plan.removeOrigin")}
       >
         <Trash2 size={15} />
       </button>
     </div>
-  )
+  );
 }

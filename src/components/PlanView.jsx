@@ -1,13 +1,17 @@
-import { Fragment, useState } from 'react'
-import { Compass, MapPin, Moon, Plus, Route, X } from 'lucide-react'
-import DestinationRow from './DestinationRow.jsx'
-import DestinationSearch from './DestinationSearch.jsx'
-import OriginRow from './OriginRow.jsx'
-import TransportLeg from './TransportLeg.jsx'
-import { addDestination, addOrigin, reorderDestinations } from '../lib/store.js'
-import { distanceKm } from '../lib/places.js'
-import { useDragReorder } from '../lib/useDragReorder.js'
-import { useI18n } from '../lib/i18n.js'
+import { Fragment, useState } from "react";
+import { Compass, MapPin, Moon, Plus, Route, X } from "lucide-react";
+import DestinationRow from "./DestinationRow.jsx";
+import DestinationSearch from "./DestinationSearch.jsx";
+import OriginRow from "./OriginRow.jsx";
+import TransportLeg from "./TransportLeg.jsx";
+import {
+  addDestination,
+  addOrigin,
+  reorderDestinations,
+} from "../lib/store.js";
+import { distanceKm } from "../lib/places.js";
+import { useDragReorder } from "../lib/useDragReorder.js";
+import { useI18n } from "../lib/i18n.js";
 
 export default function PlanView({
   trip,
@@ -16,9 +20,9 @@ export default function PlanView({
   onHover,
   onOpenDay,
 }) {
-  const { t } = useI18n()
-  const drag = useDragReorder(reorderDestinations)
-  const [addingOrigin, setAddingOrigin] = useState(false)
+  const { t } = useI18n();
+  const drag = useDragReorder(reorderDestinations);
+  const [addingOrigin, setAddingOrigin] = useState(false);
 
   return (
     /* A container, not a plain wrapper: the rows must lay themselves out
@@ -30,13 +34,13 @@ export default function PlanView({
           width here has a twin in DestinationRow so the columns line up. */}
       <div className="mb-2 hidden items-center gap-4 px-3 @[700px]:flex">
         <span className="col-head min-w-0 flex-1 basis-48 ps-10">
-          <MapPin size={13} /> {t('plan.destination')}
+          <MapPin size={13} /> {t("plan.destination")}
         </span>
         <span className="col-head w-[116px] justify-center">
-          <Moon size={13} /> {t('plan.nights')}
+          <Moon size={13} /> {t("plan.nights")}
         </span>
         <span className="col-head w-[104px] justify-end">
-          <Route size={13} /> {t('plan.order')}
+          <Route size={13} /> {t("plan.order")}
         </span>
       </div>
 
@@ -48,11 +52,11 @@ export default function PlanView({
         <div className="mb-2 flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <DestinationSearch
-              placeholder={t('plan.originPlaceholder')}
-              label={t('plan.originSearchLabel')}
+              placeholder={t("plan.originPlaceholder")}
+              label={t("plan.originSearchLabel")}
               onSelect={(place) => {
-                addOrigin(place)
-                setAddingOrigin(false)
+                addOrigin(place);
+                setAddingOrigin(false);
               }}
             />
           </div>
@@ -60,7 +64,7 @@ export default function PlanView({
             type="button"
             className="btn-ghost !px-2 !py-2"
             onClick={() => setAddingOrigin(false)}
-            aria-label={t('plan.cancelAddOrigin')}
+            aria-label={t("plan.cancelAddOrigin")}
           >
             <X size={16} />
           </button>
@@ -71,7 +75,7 @@ export default function PlanView({
           onClick={() => setAddingOrigin(true)}
           className="mb-2 flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-medium text-subtle transition hover:border-line-strong hover:text-fg"
         >
-          <Plus size={13} /> {t('plan.addOrigin')}
+          <Plus size={13} /> {t("plan.addOrigin")}
         </button>
       )}
 
@@ -90,7 +94,7 @@ export default function PlanView({
             </li>
           )}
           {destinations.map((dest, i) => {
-            const next = destinations[i + 1]
+            const next = destinations[i + 1];
             return (
               <Fragment key={dest.id}>
                 <DestinationRow
@@ -115,7 +119,11 @@ export default function PlanView({
                     shifted every row under the cursor and made the drop land
                     on the wrong one. */}
                 {next && (
-                  <li className={drag.dragging ? 'pointer-events-none opacity-30' : ''}>
+                  <li
+                    className={
+                      drag.dragging ? "pointer-events-none opacity-30" : ""
+                    }
+                  >
                     <TransportLeg
                       from={dest}
                       to={next}
@@ -125,28 +133,27 @@ export default function PlanView({
                   </li>
                 )}
               </Fragment>
-            )
+            );
           })}
         </ul>
       )}
 
       <DestinationSearch onSelect={(place) => addDestination(place)} />
 
-      <p className="mt-3 px-1 text-xs text-subtle">{t('plan.autoDates')}</p>
+      <p className="mt-3 px-1 text-xs text-subtle">{t("plan.autoDates")}</p>
     </div>
-  )
+  );
 }
 
-
 function EmptyState() {
-  const { t } = useI18n()
+  const { t } = useI18n();
   return (
     <div className="mb-4 flex flex-col items-center gap-2 rounded-card border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
       <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-muted">
         <Compass size={20} />
       </span>
-      <p className="text-sm font-semibold text-fg">{t('plan.emptyTitle')}</p>
-      <p className="max-w-xs text-xs text-muted">{t('plan.emptyBody')}</p>
+      <p className="text-sm font-semibold text-fg">{t("plan.emptyTitle")}</p>
+      <p className="max-w-xs text-xs text-muted">{t("plan.emptyBody")}</p>
     </div>
-  )
+  );
 }

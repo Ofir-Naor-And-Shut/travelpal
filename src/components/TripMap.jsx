@@ -175,7 +175,12 @@ function numberedIcon(index, active, dark, small = false, clickable = false) {
  * numbered, since it isn't a stop in the itinerary.
  */
 function originIcon(active, dark) {
-  const classes = ["pin", "pin-origin", active && "pin-active", dark && "pin-on-dark"]
+  const classes = [
+    "pin",
+    "pin-origin",
+    active && "pin-active",
+    dark && "pin-on-dark",
+  ]
     .filter(Boolean)
     .join(" ");
 

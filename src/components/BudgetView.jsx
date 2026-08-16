@@ -1,27 +1,54 @@
-import { Bed, CalendarCheck, Home, Landmark, Route, Wallet } from 'lucide-react'
-import { destinationCost, legTotals, num } from '../lib/store.js'
-import { formatMoney } from '../lib/money.js'
-import { useI18n } from '../lib/i18n.js'
+import {
+  Bed,
+  CalendarCheck,
+  Home,
+  Landmark,
+  Route,
+  Wallet,
+} from "lucide-react";
+import { destinationCost, legTotals, num } from "../lib/store.js";
+import { formatMoney } from "../lib/money.js";
+import { useI18n } from "../lib/i18n.js";
 
 /* The category swatches walk down the single brand ramp, so the chart reads as
    one sequential family rather than four unrelated hues. */
 const CATEGORIES = [
-  { id: 'sleeping', key: 'budget.sleeping', icon: Bed, color: 'var(--color-brand-600)' },
-  { id: 'transport', key: 'budget.transport', icon: Route, color: 'var(--color-brand-500)' },
-  { id: 'attractions', key: 'budget.attractions', icon: Landmark, color: 'var(--color-brand-400)' },
-  { id: 'reservations', key: 'budget.reserved', icon: CalendarCheck, color: 'var(--color-brand-300)' },
-]
+  {
+    id: "sleeping",
+    key: "budget.sleeping",
+    icon: Bed,
+    color: "var(--color-brand-600)",
+  },
+  {
+    id: "transport",
+    key: "budget.transport",
+    icon: Route,
+    color: "var(--color-brand-500)",
+  },
+  {
+    id: "attractions",
+    key: "budget.attractions",
+    icon: Landmark,
+    color: "var(--color-brand-400)",
+  },
+  {
+    id: "reservations",
+    key: "budget.reserved",
+    icon: CalendarCheck,
+    color: "var(--color-brand-300)",
+  },
+];
 
 export default function BudgetView({ trip, destinations, stats }) {
-  const { t } = useI18n()
-  const { currency } = trip
+  const { t } = useI18n();
+  const { currency } = trip;
   const totals = {
     sleeping: stats.sleeping,
     transport: stats.transport,
     attractions: stats.attractions,
     reservations: stats.reservations,
-  }
-  const perNight = stats.plannedNights ? stats.total / stats.plannedNights : 0
+  };
+  const perNight = stats.plannedNights ? stats.total / stats.plannedNights : 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-5 py-5 md:px-8">
@@ -29,7 +56,7 @@ export default function BudgetView({ trip, destinations, stats }) {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="col-head">
-              <Wallet size={13} /> {t('budget.total')}
+              <Wallet size={13} /> {t("budget.total")}
             </h2>
             <p className="tabular mt-1 text-3xl font-semibold tracking-tight">
               {formatMoney(stats.total, currency)}
@@ -39,22 +66,24 @@ export default function BudgetView({ trip, destinations, stats }) {
             <span className="block font-semibold text-fg">
               {formatMoney(perNight, currency)}
             </span>
-            {t('budget.perNight')}
+            {t("budget.perNight")}
           </p>
         </div>
 
         {/* Share-of-total bar */}
         <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-accent-soft">
           {CATEGORIES.map((cat) => {
-            const share = stats.total ? (totals[cat.id] / stats.total) * 100 : 0
-            if (share <= 0) return null
+            const share = stats.total
+              ? (totals[cat.id] / stats.total) * 100
+              : 0;
+            if (share <= 0) return null;
             return (
               <span
                 key={cat.id}
                 style={{ width: `${share}%`, background: cat.color }}
                 title={`${t(cat.key)}: ${formatMoney(totals[cat.id], currency)}`}
               />
-            )
+            );
           })}
         </div>
 
@@ -62,7 +91,7 @@ export default function BudgetView({ trip, destinations, stats }) {
           {CATEGORIES.map((cat) => {
             const share = stats.total
               ? Math.round((totals[cat.id] / stats.total) * 100)
-              : 0
+              : 0;
             return (
               <li
                 key={cat.id}
@@ -80,22 +109,22 @@ export default function BudgetView({ trip, destinations, stats }) {
                   {formatMoney(totals[cat.id], currency)}
                 </p>
                 <p className="tabular text-xs text-muted">
-                  {t('budget.shareOfTotal', { n: share })}
+                  {t("budget.shareOfTotal", { n: share })}
                 </p>
               </li>
-            )
+            );
           })}
         </ul>
       </section>
 
       <section className="card overflow-hidden">
         <h2 className="col-head border-b border-line px-5 py-3">
-          {t('budget.byDestination')}
+          {t("budget.byDestination")}
         </h2>
 
         {destinations.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-muted">
-            {t('budget.empty')}
+            {t("budget.empty")}
           </p>
         ) : (
           <ul className="divide-y divide-line">
@@ -110,10 +139,10 @@ export default function BudgetView({ trip, destinations, stats }) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-muted">
-                      {trip.origin.name || t('budget.origin')}
+                      {trip.origin.name || t("budget.origin")}
                     </span>
                     <span className="tabular block text-xs text-muted">
-                      {t('budget.originTransport')}
+                      {t("budget.originTransport")}
                     </span>
                   </span>
                   <span className="tabular shrink-0 text-sm font-semibold">
@@ -123,8 +152,8 @@ export default function BudgetView({ trip, destinations, stats }) {
               </li>
             )}
             {destinations.map((dest, i) => {
-              const cost = destinationCost(trip, dest)
-              const share = stats.total ? (cost / stats.total) * 100 : 0
+              const cost = destinationCost(trip, dest);
+              const share = stats.total ? (cost / stats.total) * 100 : 0;
               return (
                 <li key={dest.id} className="px-5 py-3">
                   <div className="flex items-center gap-3">
@@ -136,12 +165,12 @@ export default function BudgetView({ trip, destinations, stats }) {
                         {dest.name}
                       </span>
                       <span className="tabular block text-xs text-muted">
-                        {dest.nights}{' '}
+                        {dest.nights}{" "}
                         {dest.nights === 1
-                          ? t('plan.night')
-                          : t('plan.nightsPlural')}
+                          ? t("plan.night")
+                          : t("plan.nightsPlural")}
                         {num(dest.sleeping?.cost) > 0 &&
-                          ` · ${t('budget.perNightRate', {
+                          ` · ${t("budget.perNightRate", {
                             amount: formatMoney(
                               num(dest.sleeping.cost),
                               currency,
@@ -160,13 +189,13 @@ export default function BudgetView({ trip, destinations, stats }) {
                     />
                   </div>
                 </li>
-              )
+              );
             })}
           </ul>
         )}
       </section>
 
-      <p className="px-1 text-xs text-subtle">{t('budget.note')}</p>
+      <p className="px-1 text-xs text-subtle">{t("budget.note")}</p>
     </div>
-  )
+  );
 }

@@ -245,7 +245,8 @@ export async function exportTripPdf(trip) {
       ...(trip.origin
         ? [
             [
-              toVisualOrder(trip.origin.name) || toVisualOrder(t("budget.origin")),
+              toVisualOrder(trip.origin.name) ||
+                toVisualOrder(t("budget.origin")),
               toVisualOrder(trip.origin.country) || "-",
               "-",
               "-",

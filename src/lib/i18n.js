@@ -147,7 +147,8 @@ const STRINGS = {
     "plan.removeOrigin": "Remove trip origin",
     "plan.cancelAddOrigin": "Cancel adding a trip origin",
     "plan.originShowOnMap": "Show on map",
-    "plan.originNotPlaced": "Pick a real place from search to show it on the map",
+    "plan.originNotPlaced":
+      "Pick a real place from search to show it on the map",
 
     // sleeping
     // Matches the Accommodation column; the field inside is just its name, so
