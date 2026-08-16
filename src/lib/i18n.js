@@ -140,6 +140,14 @@ const STRINGS = {
     "plan.moveEarlier": "Move {name} earlier",
     "plan.moveLater": "Move {name} later",
     "plan.remove": "Remove {name}",
+    "plan.addOrigin": "Add trip origin",
+    "plan.originPlaceholder": "Where the trip starts (e.g. home)…",
+    "plan.originSearchLabel": "Search for the trip's starting point",
+    "plan.originNameLabel": "Trip origin name",
+    "plan.removeOrigin": "Remove trip origin",
+    "plan.cancelAddOrigin": "Cancel adding a trip origin",
+    "plan.originShowOnMap": "Show on map",
+    "plan.originNotPlaced": "Pick a real place from search to show it on the map",
 
     // sleeping
     // Matches the Accommodation column; the field inside is just its name, so
@@ -299,6 +307,8 @@ const STRINGS = {
     "budget.byDestination": "By destination",
     "budget.empty": "Add destinations to see how the budget splits up.",
     "budget.perNightRate": "{amount}/night",
+    "budget.origin": "Trip origin",
+    "budget.originTransport": "Transport to the first stop",
     "budget.note":
       "Sleeping costs multiply the nightly rate by the nights at each stop, except on nights with their own accommodation, which replace it. Transport is counted on the leg leaving each destination. Attractions and reservations are totalled from the daily planner.",
 
@@ -504,6 +514,14 @@ const STRINGS = {
     "plan.moveEarlier": "הזזת {name} מוקדם יותר",
     "plan.moveLater": "הזזת {name} מאוחר יותר",
     "plan.remove": "הסרת {name}",
+    "plan.addOrigin": "הוספת מוצא לטיול",
+    "plan.originPlaceholder": "מאיפה הטיול מתחיל (למשל הבית)…",
+    "plan.originSearchLabel": "חיפוש נקודת המוצא של הטיול",
+    "plan.originNameLabel": "שם מוצא הטיול",
+    "plan.removeOrigin": "הסרת מוצא הטיול",
+    "plan.cancelAddOrigin": "ביטול הוספת מוצא הטיול",
+    "plan.originShowOnMap": "הצגה על המפה",
+    "plan.originNotPlaced": "בחרו מקום אמיתי מהחיפוש כדי להציג אותו על המפה",
 
     "sleeping.title": "לינה",
     "sleeping.accommodation": "שם",
@@ -646,6 +664,8 @@ const STRINGS = {
     "budget.byDestination": "לפי יעד",
     "budget.empty": "הוסיפו יעדים כדי לראות את חלוקת התקציב.",
     "budget.perNightRate": "{amount} ללילה",
+    "budget.origin": "מוצא הטיול",
+    "budget.originTransport": "תחבורה לעצירה הראשונה",
     "budget.note":
       "עלות הלינה מוכפלת במספר הלילות בכל עצירה, למעט לילות עם לינה משלהם — שמחליפה אותה. התחבורה נספרת על הקטע היוצא מכל יעד. אטרקציות והזמנות מסוכמות מהתכנון היומי.",
 

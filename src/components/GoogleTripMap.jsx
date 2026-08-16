@@ -5,6 +5,7 @@ import {
   Map,
   useMap,
 } from "@vis.gl/react-google-maps";
+import { Home } from "lucide-react";
 import { arcPoints, splitArc } from "../lib/arc.js";
 import { TransportIcon } from "./TransportLeg.jsx";
 import { formatDay, isPlaced, legOf, modeColor } from "../lib/store.js";
@@ -118,27 +119,36 @@ function StopPin({
   onHover,
   onOpenDetails,
   inDayMode,
+  isOrigin,
   t,
 }) {
   return (
     <AdvancedMarker
       position={{ lat: stop.lat, lng: stop.lng }}
       onClick={() => {
-        if (!inDayMode) onOpenDetails?.(stop.id);
+        if (!inDayMode && !isOrigin) onOpenDetails?.(stop.id);
       }}
       onMouseEnter={() => onHover?.(stop.id)}
       onMouseLeave={() => onHover?.(null)}
       title={
-        inDayMode
-          ? stop.name || t("attractions.fallback")
-          : `${stop.name} — ${formatDay(stop.startDate)} – ${formatDay(stop.endDate)}`
+        isOrigin
+          ? stop.name
+          : inDayMode
+            ? stop.name || t("attractions.fallback")
+            : `${stop.name} — ${formatDay(stop.startDate)} – ${formatDay(stop.endDate)}`
       }
     >
-      <div
-        className={`pin ${inDayMode ? "pin-sm" : ""} ${active ? "pin-active" : ""}`}
-      >
-        {index + 1}
-      </div>
+      {isOrigin ? (
+        <div className="pin pin-origin">
+          <Home size={14} />
+        </div>
+      ) : (
+        <div
+          className={`pin ${inDayMode ? "pin-sm" : ""} ${active ? "pin-active" : ""}`}
+        >
+          {index + 1}
+        </div>
+      )}
     </AdvancedMarker>
   );
 }
@@ -152,6 +162,7 @@ function StopPin({
  */
 export default function GoogleTripMap({
   destinations,
+  origin,
   activeId,
   onHover,
   dayRoute,
@@ -161,10 +172,15 @@ export default function GoogleTripMap({
   const { theme } = useTheme();
 
   const inDayMode = Boolean(dayRoute);
-  const stops = useMemo(
-    () => (inDayMode ? dayRoute.stops : destinations.filter(isPlaced)),
-    [inDayMode, dayRoute, destinations],
-  );
+
+  // Same rule as the Leaflet map: opt-in, and only once it's a real place.
+  const originStop =
+    !inDayMode && origin?.showOnMap && isPlaced(origin) ? origin : null;
+
+  const stops = useMemo(() => {
+    const base = inDayMode ? dayRoute.stops : destinations.filter(isPlaced);
+    return originStop ? [originStop, ...base] : base;
+  }, [inDayMode, dayRoute, destinations, originStop]);
 
   // A stable primitive key so the geometry only rebuilds when the route
   // itself changes, not on every unrelated render. The centre rides along too
@@ -256,6 +272,7 @@ export default function GoogleTripMap({
           />
         ))}
         {stops.map((stop, i) => {
+          const isOrigin = Boolean(originStop) && stop.id === originStop.id;
           const index = inDayMode
             ? i
             : destinations.findIndex((d) => d.id === stop.id);
@@ -268,6 +285,7 @@ export default function GoogleTripMap({
               onHover={onHover}
               onOpenDetails={onOpenDetails}
               inDayMode={inDayMode}
+              isOrigin={isOrigin}
               t={t}
             />
           );

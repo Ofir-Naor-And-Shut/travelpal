@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Stray Python virtualenv — not part of this project.
+.venv
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

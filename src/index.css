@@ -272,6 +272,21 @@
   transform: scale(1.3);
 }
 
+/* The trip's optional starting point: dashed and toneless, since it isn't a
+   numbered part of the itinerary. */
+.pin-origin {
+  border-style: dashed;
+  border-color: var(--c-line-strong);
+  color: var(--c-muted);
+}
+
+.pin-origin.pin-active {
+  background: var(--c-muted);
+  color: var(--c-surface);
+  border-style: solid;
+  transform: scale(1.15);
+}
+
 /* Transport-mode chip pinned to the middle of a route link. */
 .leg-badge {
   display: grid;

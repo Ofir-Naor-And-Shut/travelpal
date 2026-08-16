@@ -1,5 +1,5 @@
-import { Bed, CalendarCheck, Landmark, Route, Wallet } from 'lucide-react'
-import { destinationCost, num } from '../lib/store.js'
+import { Bed, CalendarCheck, Home, Landmark, Route, Wallet } from 'lucide-react'
+import { destinationCost, legTotals, num } from '../lib/store.js'
 import { formatMoney } from '../lib/money.js'
 import { useI18n } from '../lib/i18n.js'
 
@@ -99,6 +99,29 @@ export default function BudgetView({ trip, destinations, stats }) {
           </p>
         ) : (
           <ul className="divide-y divide-line">
+            {trip.origin && (
+              <li className="px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="grid size-6 shrink-0 place-items-center rounded-full border border-dashed border-line-strong text-subtle"
+                  >
+                    <Home size={12} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-muted">
+                      {trip.origin.name || t('budget.origin')}
+                    </span>
+                    <span className="tabular block text-xs text-muted">
+                      {t('budget.originTransport')}
+                    </span>
+                  </span>
+                  <span className="tabular shrink-0 text-sm font-semibold">
+                    {formatMoney(legTotals(trip.origin).cost, currency)}
+                  </span>
+                </div>
+              </li>
+            )}
             {destinations.map((dest, i) => {
               const cost = destinationCost(trip, dest)
               const share = stats.total ? (cost / stats.total) * 100 : 0

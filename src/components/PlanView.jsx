@@ -1,9 +1,10 @@
-import { Fragment } from 'react'
-import { Compass, MapPin, Moon, Route } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { Compass, MapPin, Moon, Plus, Route, X } from 'lucide-react'
 import DestinationRow from './DestinationRow.jsx'
 import DestinationSearch from './DestinationSearch.jsx'
+import OriginRow from './OriginRow.jsx'
 import TransportLeg from './TransportLeg.jsx'
-import { addDestination, reorderDestinations } from '../lib/store.js'
+import { addDestination, addOrigin, reorderDestinations } from '../lib/store.js'
 import { distanceKm } from '../lib/places.js'
 import { useDragReorder } from '../lib/useDragReorder.js'
 import { useI18n } from '../lib/i18n.js'
@@ -17,6 +18,7 @@ export default function PlanView({
 }) {
   const { t } = useI18n()
   const drag = useDragReorder(reorderDestinations)
+  const [addingOrigin, setAddingOrigin] = useState(false)
 
   return (
     /* A container, not a plain wrapper: the rows must lay themselves out
@@ -38,10 +40,55 @@ export default function PlanView({
         </span>
       </div>
 
+      {/* Optional and always ahead of the numbered stops: no nights, no
+          map pin, just a place to leave from and the leg into stop 1. */}
+      {trip.origin ? (
+        <OriginRow origin={trip.origin} />
+      ) : addingOrigin ? (
+        <div className="mb-2 flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <DestinationSearch
+              placeholder={t('plan.originPlaceholder')}
+              label={t('plan.originSearchLabel')}
+              onSelect={(place) => {
+                addOrigin(place)
+                setAddingOrigin(false)
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn-ghost !px-2 !py-2"
+            onClick={() => setAddingOrigin(false)}
+            aria-label={t('plan.cancelAddOrigin')}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAddingOrigin(true)}
+          className="mb-2 flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-medium text-subtle transition hover:border-line-strong hover:text-fg"
+        >
+          <Plus size={13} /> {t('plan.addOrigin')}
+        </button>
+      )}
+
       {destinations.length === 0 ? (
         <EmptyState />
       ) : (
         <ul className="mb-4">
+          {trip.origin && (
+            <li>
+              <TransportLeg
+                from={trip.origin}
+                to={destinations[0]}
+                currency={trip.currency}
+                suggestedKm={distanceKm(trip.origin, destinations[0])}
+              />
+            </li>
+          )}
           {destinations.map((dest, i) => {
             const next = destinations[i + 1]
             return (
@@ -89,6 +136,7 @@ export default function PlanView({
     </div>
   )
 }
+
 
 function EmptyState() {
   const { t } = useI18n()

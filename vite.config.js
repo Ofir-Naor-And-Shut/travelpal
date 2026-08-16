@@ -9,5 +9,11 @@ export default defineConfig({
   // falling back to Vite's usual default for a plain `npm run dev`.
   server: {
     port: Number(process.env.PORT) || 5173,
+    // A stray .venv (unrelated Python virtualenv, not part of this project)
+    // sits in the repo root; watching its locked python.exe crashes the dev
+    // server on Windows with an unhandled EBUSY.
+    watch: {
+      ignored: ['**/.venv/**'],
+    },
   },
 })

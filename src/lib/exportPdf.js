@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import {
   destinationCost,
   legOf,
+  legTotals,
   modeLabel,
   tripDays,
   tripStats,
@@ -238,18 +239,39 @@ export async function exportTripPdf(trip) {
         toVisualOrder(t("pdf.onwardTransport")),
       ],
     ],
-    body: destinations.map((d) => {
-      const leg = legOf(d);
-      return [
-        toVisualOrder(d.name) || "-",
-        toVisualOrder(d.country) || "-",
-        String(d.nights),
-        fmtDate(d.startDate, "d MMM"),
-        fmtDate(d.endDate, "d MMM"),
-        money(destinationCost(trip, d), trip.currency),
-        leg.length ? leg.map((s) => modeLabel(s.mode)).join(" + ") : "-",
-      ];
-    }),
+    body: [
+      // The optional starting point, if any — no nights/dates of its own,
+      // just the leg that carries into destination 1.
+      ...(trip.origin
+        ? [
+            [
+              toVisualOrder(trip.origin.name) || toVisualOrder(t("budget.origin")),
+              toVisualOrder(trip.origin.country) || "-",
+              "-",
+              "-",
+              "-",
+              money(legTotals(trip.origin).cost, trip.currency),
+              legOf(trip.origin).length
+                ? legOf(trip.origin)
+                    .map((s) => modeLabel(s.mode))
+                    .join(" + ")
+                : "-",
+            ],
+          ]
+        : []),
+      ...destinations.map((d) => {
+        const leg = legOf(d);
+        return [
+          toVisualOrder(d.name) || "-",
+          toVisualOrder(d.country) || "-",
+          String(d.nights),
+          fmtDate(d.startDate, "d MMM"),
+          fmtDate(d.endDate, "d MMM"),
+          money(destinationCost(trip, d), trip.currency),
+          leg.length ? leg.map((s) => modeLabel(s.mode)).join(" + ") : "-",
+        ];
+      }),
+    ],
   });
   y = doc.lastAutoTable.finalY + 26;
 
