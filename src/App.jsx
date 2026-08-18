@@ -19,6 +19,7 @@ import AuthScreen from "./components/AuthScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
 import SharedTripView from "./components/SharedTripView.jsx";
 import {
+  effectiveLastStop,
   getTripRegistry,
   isPlaced,
   switchTrip,
@@ -422,6 +423,7 @@ function TripEditor({ onBackToTrips }) {
             <TripMap
               destinations={destinations}
               origin={trip.origin}
+              lastStop={effectiveLastStop(trip)}
               activeId={activeId}
               onHover={setActiveId}
               dayRoute={dayRoute}

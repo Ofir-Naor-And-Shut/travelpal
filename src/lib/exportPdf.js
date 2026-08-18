@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import {
   destinationCost,
+  effectiveLastStop,
   legOf,
   legTotals,
   modeLabel,
@@ -272,6 +273,22 @@ export async function exportTripPdf(trip) {
           leg.length ? leg.map((s) => modeLabel(s.mode)).join(" + ") : "-",
         ];
       }),
+      // The optional final stop, if any — nothing leaves it, and its own
+      // leg cost already sits on the destination before it.
+      ...(trip.lastStop
+        ? [
+            [
+              toVisualOrder(effectiveLastStop(trip)?.name) ||
+                toVisualOrder(t("budget.lastStop")),
+              toVisualOrder(effectiveLastStop(trip)?.country) || "-",
+              "-",
+              "-",
+              "-",
+              "-",
+              "-",
+            ],
+          ]
+        : []),
     ],
   });
   y = doc.lastAutoTable.finalY + 26;

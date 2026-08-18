@@ -5,7 +5,7 @@ import {
   Map,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { Home } from "lucide-react";
+import { Flag, Home } from "lucide-react";
 import { arcPoints, splitArc } from "../lib/arc.js";
 import { TransportIcon } from "./TransportLeg.jsx";
 import { formatDay, isPlaced, legOf, modeColor } from "../lib/store.js";
@@ -120,27 +120,28 @@ function StopPin({
   onOpenDetails,
   inDayMode,
   isOrigin,
+  isLastStop,
   t,
 }) {
   return (
     <AdvancedMarker
       position={{ lat: stop.lat, lng: stop.lng }}
       onClick={() => {
-        if (!inDayMode && !isOrigin) onOpenDetails?.(stop.id);
+        if (!inDayMode && !isOrigin && !isLastStop) onOpenDetails?.(stop.id);
       }}
       onMouseEnter={() => onHover?.(stop.id)}
       onMouseLeave={() => onHover?.(null)}
       title={
-        isOrigin
+        isOrigin || isLastStop
           ? stop.name
           : inDayMode
             ? stop.name || t("attractions.fallback")
             : `${stop.name} — ${formatDay(stop.startDate)} – ${formatDay(stop.endDate)}`
       }
     >
-      {isOrigin ? (
+      {isOrigin || isLastStop ? (
         <div className="pin pin-origin">
-          <Home size={14} />
+          {isLastStop ? <Flag size={14} /> : <Home size={14} />}
         </div>
       ) : (
         <div
@@ -163,6 +164,7 @@ function StopPin({
 export default function GoogleTripMap({
   destinations,
   origin,
+  lastStop,
   activeId,
   onHover,
   dayRoute,
@@ -176,11 +178,17 @@ export default function GoogleTripMap({
   // Same rule as the Leaflet map: opt-in, and only once it's a real place.
   const originStop =
     !inDayMode && origin?.showOnMap && isPlaced(origin) ? origin : null;
+  const lastStopStop =
+    !inDayMode && lastStop?.showOnMap && isPlaced(lastStop) ? lastStop : null;
 
   const stops = useMemo(() => {
     const base = inDayMode ? dayRoute.stops : destinations.filter(isPlaced);
-    return originStop ? [originStop, ...base] : base;
-  }, [inDayMode, dayRoute, destinations, originStop]);
+    return [
+      ...(originStop ? [originStop] : []),
+      ...base,
+      ...(lastStopStop ? [lastStopStop] : []),
+    ];
+  }, [inDayMode, dayRoute, destinations, originStop, lastStopStop]);
 
   // A stable primitive key so the geometry only rebuilds when the route
   // itself changes, not on every unrelated render. The centre rides along too
@@ -273,6 +281,8 @@ export default function GoogleTripMap({
         ))}
         {stops.map((stop, i) => {
           const isOrigin = Boolean(originStop) && stop.id === originStop.id;
+          const isLastStop =
+            Boolean(lastStopStop) && stop.id === lastStopStop.id;
           const index = inDayMode
             ? i
             : destinations.findIndex((d) => d.id === stop.id);
@@ -286,6 +296,7 @@ export default function GoogleTripMap({
               onOpenDetails={onOpenDetails}
               inDayMode={inDayMode}
               isOrigin={isOrigin}
+              isLastStop={isLastStop}
               t={t}
             />
           );

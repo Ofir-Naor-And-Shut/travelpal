@@ -3,10 +3,13 @@ import { Compass, MapPin, Moon, Plus, Route, X } from "lucide-react";
 import DestinationRow from "./DestinationRow.jsx";
 import DestinationSearch from "./DestinationSearch.jsx";
 import OriginRow from "./OriginRow.jsx";
+import LastStopRow from "./LastStopRow.jsx";
 import TransportLeg from "./TransportLeg.jsx";
 import {
   addDestination,
+  addLastStop,
   addOrigin,
+  effectiveLastStop,
   reorderDestinations,
 } from "../lib/store.js";
 import { distanceKm } from "../lib/places.js";
@@ -23,6 +26,8 @@ export default function PlanView({
   const { t } = useI18n();
   const drag = useDragReorder(reorderDestinations);
   const [addingOrigin, setAddingOrigin] = useState(false);
+  const [addingLastStop, setAddingLastStop] = useState(false);
+  const lastStop = effectiveLastStop(trip);
 
   return (
     /* A container, not a plain wrapper: the rows must lay themselves out
@@ -135,7 +140,73 @@ export default function PlanView({
               </Fragment>
             );
           })}
+          {trip.lastStop && (
+            <li>
+              <TransportLeg
+                from={destinations[destinations.length - 1]}
+                to={lastStop}
+                currency={trip.currency}
+                suggestedKm={distanceKm(
+                  destinations[destinations.length - 1],
+                  lastStop,
+                )}
+              />
+            </li>
+          )}
         </ul>
+      )}
+
+      {/* Optional and always after the numbered stops: no nights, no map
+          pin unless shown, just the leg leaving the last real destination. */}
+      {trip.lastStop ? (
+        <LastStopRow
+          lastStop={trip.lastStop}
+          effective={lastStop}
+          hasOrigin={Boolean(trip.origin)}
+        />
+      ) : addingLastStop ? (
+        <div className="mb-2 flex items-start gap-2">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <DestinationSearch
+              placeholder={t("plan.lastStopPlaceholder")}
+              label={t("plan.lastStopSearchLabel")}
+              onSelect={(place) => {
+                addLastStop(place);
+                setAddingLastStop(false);
+              }}
+            />
+            {trip.origin && (
+              <button
+                type="button"
+                onClick={() => {
+                  addLastStop({ sameAsOrigin: true });
+                  setAddingLastStop(false);
+                }}
+                className="text-xs font-medium text-accent hover:underline"
+              >
+                {t("plan.useOriginAsLastStop", {
+                  name: trip.origin.name || t("budget.origin"),
+                })}
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn-ghost !px-2 !py-2"
+            onClick={() => setAddingLastStop(false)}
+            aria-label={t("plan.cancelAddLastStop")}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAddingLastStop(true)}
+          className="mb-2 flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-xs font-medium text-subtle transition hover:border-line-strong hover:text-fg"
+        >
+          <Plus size={13} /> {t("plan.addLastStop")}
+        </button>
       )}
 
       <DestinationSearch onSelect={(place) => addDestination(place)} />

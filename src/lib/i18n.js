@@ -89,8 +89,6 @@ const STRINGS = {
     "header.goTo": "Go to",
 
     // language + theme
-    "account.label": "Account",
-    "account.viewAccount": "View signed-in account",
     "lang.label": "Language",
     "lang.change": "Change language",
     "theme.label": "Theme",
@@ -151,6 +149,14 @@ const STRINGS = {
     "plan.originShowOnMap": "Show on map",
     "plan.originNotPlaced":
       "Pick a real place from search to show it on the map",
+    "plan.addLastStop": "Add a last stop",
+    "plan.lastStopPlaceholder": "Where the trip ends (e.g. home)…",
+    "plan.lastStopSearchLabel": "Search for the trip's last stop",
+    "plan.lastStopNameLabel": "Last stop name",
+    "plan.removeLastStop": "Remove last stop",
+    "plan.cancelAddLastStop": "Cancel adding a last stop",
+    "plan.sameAsOrigin": "Same as origin",
+    "plan.useOriginAsLastStop": "Use trip origin ({name})",
 
     // sleeping
     // Matches the Accommodation column; the field inside is just its name, so
@@ -312,6 +318,8 @@ const STRINGS = {
     "budget.perNightRate": "{amount}/night",
     "budget.origin": "Trip origin",
     "budget.originTransport": "Transport to the first stop",
+    "budget.lastStop": "Last stop",
+    "budget.lastStopNote": "Counted on the stop before it",
     "budget.note":
       "Sleeping costs multiply the nightly rate by the nights at each stop, except on nights with their own accommodation, which replace it. Transport is counted on the leg leaving each destination. Attractions and reservations are totalled from the daily planner.",
 
@@ -471,8 +479,6 @@ const STRINGS = {
     "header.menu": "תפריט",
     "header.goTo": "מעבר אל",
 
-    "account.label": "חשבון",
-    "account.viewAccount": "הצגת החשבון המחובר",
     "lang.label": "שפה",
     "lang.change": "שינוי שפה",
     "theme.label": "ערכת נושא",
@@ -527,6 +533,14 @@ const STRINGS = {
     "plan.cancelAddOrigin": "ביטול הוספת מוצא הטיול",
     "plan.originShowOnMap": "הצגה על המפה",
     "plan.originNotPlaced": "בחרו מקום אמיתי מהחיפוש כדי להציג אותו על המפה",
+    "plan.addLastStop": "הוספת עצירה אחרונה",
+    "plan.lastStopPlaceholder": "איפה הטיול מסתיים (למשל הבית)…",
+    "plan.lastStopSearchLabel": "חיפוש העצירה האחרונה של הטיול",
+    "plan.lastStopNameLabel": "שם העצירה האחרונה",
+    "plan.removeLastStop": "הסרת העצירה האחרונה",
+    "plan.cancelAddLastStop": "ביטול הוספת עצירה אחרונה",
+    "plan.sameAsOrigin": "זהה למוצא",
+    "plan.useOriginAsLastStop": "להשתמש במוצא הטיול ({name})",
 
     "sleeping.title": "לינה",
     "sleeping.accommodation": "שם",
@@ -671,6 +685,8 @@ const STRINGS = {
     "budget.perNightRate": "{amount} ללילה",
     "budget.origin": "מוצא הטיול",
     "budget.originTransport": "תחבורה לעצירה הראשונה",
+    "budget.lastStop": "העצירה האחרונה",
+    "budget.lastStopNote": "נספר בעלות העצירה שלפניה",
     "budget.note":
       "עלות הלינה מוכפלת במספר הלילות בכל עצירה, למעט לילות עם לינה משלהם — שמחליפה אותה. התחבורה נספרת על הקטע היוצא מכל יעד. אטרקציות והזמנות מסוכמות מהתכנון היומי.",
 

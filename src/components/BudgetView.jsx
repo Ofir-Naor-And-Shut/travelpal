@@ -1,12 +1,18 @@
 import {
   Bed,
   CalendarCheck,
+  Flag,
   Home,
   Landmark,
   Route,
   Wallet,
 } from "lucide-react";
-import { destinationCost, legTotals, num } from "../lib/store.js";
+import {
+  destinationCost,
+  effectiveLastStop,
+  legTotals,
+  num,
+} from "../lib/store.js";
 import { formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
 
@@ -191,6 +197,29 @@ export default function BudgetView({ trip, destinations, stats }) {
                 </li>
               );
             })}
+            {trip.lastStop && (
+              <li className="px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="grid size-6 shrink-0 place-items-center rounded-full border border-dashed border-line-strong text-subtle"
+                  >
+                    <Flag size={12} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-muted">
+                      {effectiveLastStop(trip)?.name || t("budget.lastStop")}
+                    </span>
+                    <span className="tabular block text-xs text-muted">
+                      {t("budget.lastStopNote")}
+                    </span>
+                  </span>
+                  <span className="tabular shrink-0 text-sm font-semibold text-muted">
+                    –
+                  </span>
+                </div>
+              </li>
+            )}
           </ul>
         )}
       </section>

@@ -145,6 +145,27 @@ function makeOrigin(partial = {}) {
 }
 
 /**
+ * The trip's optional final stop (e.g. flying back home) — the mirror image
+ * of the origin. Unlike the origin it carries no `transportOut` of its own:
+ * nothing leaves it, so the leg INTO it lives on the last real destination's
+ * `transportOut`, exactly like any other destination-to-destination leg.
+ */
+function makeLastStop(partial = {}) {
+  return {
+    id: uid(),
+    name: "",
+    country: "",
+    lat: 0,
+    lng: 0,
+    showOnMap: false,
+    // Shortcut for a round trip: mirrors the origin's place instead of
+    // keeping its own, and stays in sync if the origin is edited later.
+    sameAsOrigin: false,
+    ...partial,
+  };
+}
+
+/**
  * Days are addressed by the stop they belong to plus how many nights in, so
  * entries stay attached to their place in the itinerary when the trip start
  * date moves. Trimming nights leaves an entry orphaned but intact — add the
@@ -280,6 +301,7 @@ function tripDefaults() {
     destinations: [],
     // Absent for almost every trip — only set once the user opts in.
     origin: null,
+    lastStop: null,
     // Client write-time, compared against the Supabase row's updated_at for
     // last-write-wins sync. Bumped on every commit.
     updatedAt: new Date().toISOString(),
@@ -325,7 +347,28 @@ export function normalize(trip) {
           transportOut: normalizeLeg(trip.origin.transportOut),
         }
       : null,
+    lastStop: trip.lastStop ? { ...makeLastStop(), ...trip.lastStop } : null,
   };
+}
+
+/**
+ * Resolves what the last stop actually is: its own place, or — opted in via
+ * `sameAsOrigin` — a live mirror of the trip origin, so editing the origin
+ * later keeps them in sync instead of leaving a stale copy behind. Falls back
+ * to the last stop's own (possibly blank) fields if the origin was removed.
+ */
+export function effectiveLastStop(trip) {
+  if (!trip.lastStop) return null;
+  if (trip.lastStop.sameAsOrigin && trip.origin) {
+    return {
+      ...trip.lastStop,
+      name: trip.origin.name,
+      country: trip.origin.country,
+      lat: trip.origin.lat,
+      lng: trip.origin.lng,
+    };
+  }
+  return trip.lastStop;
 }
 
 /**
@@ -1143,7 +1186,13 @@ export function addDestination(partial) {
         transportOut: legOf(prev).length ? prev.transportOut : [makeSegment()],
       };
     }
-    next.push(makeDestination({ ...partial, transportOut: [] }));
+    next.push(
+      makeDestination({
+        ...partial,
+        // If a last stop is waiting, this newcomer needs a leg out to it too.
+        transportOut: state.lastStop ? [makeSegment()] : [],
+      }),
+    );
     return next;
   });
 }
@@ -1156,9 +1205,18 @@ export function updateDestination(id, patch) {
 
 export function removeDestination(id) {
   const next = state.destinations.filter((d) => d.id !== id);
-  // Whatever ends up last must not keep a dangling leg.
+  // Whatever ends up last must not keep a dangling leg — unless a last stop
+  // is waiting for one, in which case make sure it still has a leg out.
   if (next.length > 0) {
-    next[next.length - 1] = { ...next[next.length - 1], transportOut: [] };
+    const last = next[next.length - 1];
+    next[next.length - 1] = {
+      ...last,
+      transportOut: state.lastStop
+        ? legOf(last).length
+          ? last.transportOut
+          : [makeSegment()]
+        : [],
+    };
   }
 
   // Drop the removed stop's days too, or they linger forever.
@@ -1194,10 +1252,17 @@ export function reorderDestinations(from, to) {
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
 
-    return next.map((d, i) => ({
-      ...d,
-      transportOut: i === next.length - 1 ? [] : (legs[i] ?? []),
-    }));
+    return next.map((d, i) => {
+      if (i !== next.length - 1) return { ...d, transportOut: legs[i] ?? [] };
+      // The new last position keeps nothing after it — unless a last stop is
+      // waiting, in which case it needs a leg out just like any other stop.
+      if (!state.lastStop) return { ...d, transportOut: [] };
+      const existing = legs[i] ?? [];
+      return {
+        ...d,
+        transportOut: existing.length ? existing : [makeSegment()],
+      };
+    });
   });
 }
 
@@ -1224,6 +1289,64 @@ export function updateOrigin(patch) {
 
 export function removeOrigin() {
   commit({ ...state, origin: null });
+}
+
+/* --- trip last stop ---------------------------------------------------- */
+
+export function addLastStop(partial = {}) {
+  const dests = state.destinations;
+  const last = dests[dests.length - 1];
+  // The last real destination now needs a leg out to the newcomer, same as
+  // when a new destination is appended.
+  const needsSegment = last && !legOf(last).length;
+  commit({
+    ...state,
+    lastStop: makeLastStop(partial),
+    destinations: needsSegment
+      ? dests.map((d, i) =>
+          i === dests.length - 1 ? { ...d, transportOut: [makeSegment()] } : d,
+        )
+      : dests,
+  });
+}
+
+export function updateLastStop(patch) {
+  if (!state.lastStop) return;
+  commit({ ...state, lastStop: { ...state.lastStop, ...patch } });
+}
+
+export function removeLastStop() {
+  const dests = state.destinations;
+  // Nothing leaves the last real destination once there's nothing after it.
+  const next =
+    dests.length > 0
+      ? dests.map((d, i) =>
+          i === dests.length - 1 ? { ...d, transportOut: [] } : d,
+        )
+      : dests;
+  commit({ ...state, lastStop: null, destinations: next });
+}
+
+export function setLastStopSameAsOrigin(same) {
+  if (!state.lastStop) return;
+  if (same) {
+    commit({ ...state, lastStop: { ...state.lastStop, sameAsOrigin: true } });
+    return;
+  }
+  // Detach: freeze whatever the origin currently resolves to as an
+  // independent, editable place rather than leaving the last stop blank.
+  const resolved = effectiveLastStop(state);
+  commit({
+    ...state,
+    lastStop: {
+      ...state.lastStop,
+      sameAsOrigin: false,
+      name: resolved?.name ?? state.lastStop.name,
+      country: resolved?.country ?? state.lastStop.country,
+      lat: resolved?.lat ?? state.lastStop.lat,
+      lng: resolved?.lng ?? state.lastStop.lng,
+    },
+  });
 }
 
 /* --- transport segments ---------------------------------------------------- */
