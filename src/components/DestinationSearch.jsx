@@ -155,14 +155,14 @@ export default function DestinationSearch({ onSelect, placeholder, label }) {
                 }`}
               >
                 <MapPin size={15} className="shrink-0 text-muted" />
-                <span className="min-w-0 flex-1 truncate font-medium text-fg">
-                  {place.name}
+                <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate">
+                  <span className="font-medium text-fg">{place.name}</span>
+                  {(place.country || place.address) && (
+                    <span className="truncate text-xs text-accent">
+                      {place.country || place.address}
+                    </span>
+                  )}
                 </span>
-                {place.country && (
-                  <span className="shrink-0 text-xs text-muted">
-                    {place.country}
-                  </span>
-                )}
               </button>
             </li>
           ))}
