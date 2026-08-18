@@ -3,15 +3,18 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import {
   destinationCost,
+  effectiveLastStop,
   legOf,
   legTotals,
+  modeColor,
   modeLabel,
   tripDays,
   tripStats,
   withDates,
 } from "./store.js";
 import { getSession, sessionEmail } from "./auth.js";
-import { currentDateLocale, currentLang, translate } from "./i18n.js";
+import { currentDateLocale, currentLang, dirOf, translate } from "./i18n.js";
+import { renderTripMapImage } from "./staticMap.js";
 import hebrewFontUrl from "../assets/fonts/NotoSansHebrew.ttf?url";
 
 const HEBREW_FONT = "NotoSansHebrew";
@@ -44,6 +47,16 @@ function money(amount, code) {
 
 const containsHebrew = (text) => HEBREW_RE.test(String(text ?? ""));
 
+/** "#RRGGBB" -> [r, g, b] for jsPDF's numeric colour setters. */
+function hexToRgb(hex) {
+  const h = String(hex).replace("#", "");
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
 /**
  * Only strips characters that are actually illegal in a filename
  * (`\ / : * ? " < > |`) plus trailing dots/spaces (Windows disallows
@@ -69,7 +82,11 @@ function sanitizeFilename(name) {
 function toVisualOrder(text) {
   const str = String(text ?? "");
   if (!containsHebrew(str)) return str;
-  const runs = str.match(/[\u0590-\u05FF]+|[^\u0590-\u05FF]+/g) ?? [];
+  // Whitespace must be its own run, not lumped into the adjacent Hebrew or
+  // number run — otherwise reversing run order shifts a space from one side
+  // of a number to the other (e.g. "דבש 2026" -> "2026שבד", eating the gap
+  // and reading as if the space moved past the digits).
+  const runs = str.match(/[\u0590-\u05FF]+|\s+|[^\u0590-\u05FF\s]+/g) ?? [];
   return runs
     .map((run) => (containsHebrew(run) ? [...run].reverse().join("") : run))
     .reverse()
@@ -111,6 +128,24 @@ async function registerUnicodeFont(doc) {
   doc.setFont(HEBREW_FONT);
 }
 
+/**
+ * jsPDF runs every text() through its own bidi engine (postProcessText),
+ * defaulting isInputVisual=true, which re-reorders our already-visual strings
+ * and reverses embedded numbers ("2026" -> "6202"). We do our own logical->
+ * visual conversion in toVisualOrder, so force the engine to an identity
+ * (isInputVisual + isOutputVisual) on every call — including autoTable's
+ * internal ones, which pass no options — by injecting the flags here.
+ */
+function neutralizeBuiltInBidi(doc) {
+  const original = doc.text.bind(doc);
+  doc.text = (text, x, y, options, transform) => {
+    const opts = options && typeof options === "object" ? options : {};
+    if (opts.isInputVisual === undefined) opts.isInputVisual = true;
+    if (opts.isOutputVisual === undefined) opts.isOutputVisual = true;
+    return original(text, x, y, opts, transform);
+  };
+}
+
 /** Every line of free text (title, meta, footer) is centered on the page. */
 function centerLine(doc, text, y, { color = THEME.bodyText, pageWidth } = {}) {
   doc.setTextColor(...color);
@@ -147,6 +182,7 @@ export async function exportTripPdf(trip) {
   const stats = tripStats(trip);
   const doc = new jsPDF({ unit: "pt" });
   await registerUnicodeFont(doc);
+  neutralizeBuiltInBidi(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -183,9 +219,12 @@ export async function exportTripPdf(trip) {
   y += 22;
 
   doc.setFontSize(11);
+  // centerLine already runs toVisualOrder on the whole line — using fmtDate
+  // (which does the same) here would reorder each date twice and scramble
+  // the digits, so format the raw dates instead.
   centerLine(
     doc,
-    `${fmtDate(new Date(trip.startDate), "d MMM yyyy")} - ${fmtDate(new Date(trip.endDate), "d MMM yyyy")}`,
+    `${format(new Date(trip.startDate), "d MMM yyyy", { locale: currentDateLocale() })} - ${format(new Date(trip.endDate), "d MMM yyyy", { locale: currentDateLocale() })}`,
     y,
     { color: THEME.bodyText, pageWidth },
   );
@@ -202,6 +241,47 @@ export async function exportTripPdf(trip) {
     doc.setFontSize(13);
     centerLine(doc, text, y, { color: THEME.accent, pageWidth });
     y += 10;
+  };
+
+  // A centered row of swatch + label per transport mode used on the map, so the
+  // arc colours can be read back. Mirrors the layout direction of the language.
+  const drawLegend = (modes) => {
+    if (!modes?.length) return;
+    const rtl = dirOf(currentLang()) === "rtl";
+    const sw = 11; // swatch size
+    const gap = 5; // swatch-to-label
+    const itemGap = 18; // between legend items
+    doc.setFontSize(9);
+    const items = modes.map((m) => {
+      const label = toVisualOrder(t(`mode.${m}`));
+      return {
+        color: modeColor(m),
+        label,
+        width: sw + gap + doc.getTextWidth(label),
+      };
+    });
+    const total =
+      items.reduce((sum, it) => sum + it.width, 0) +
+      itemGap * (items.length - 1);
+    ensureSpace(sw + 20);
+    doc.setTextColor(...THEME.bodyText);
+    let x = (pageWidth - total) / 2;
+    for (const it of rtl ? [...items].reverse() : items) {
+      const [r, g, b] = hexToRgb(it.color);
+      const labelW = doc.getTextWidth(it.label);
+      const baseline = y + sw - 1.5;
+      if (rtl) {
+        doc.text(it.label, x, baseline);
+        doc.setFillColor(r, g, b);
+        doc.roundedRect(x + labelW + gap, y, sw, sw, 2, 2, "F");
+      } else {
+        doc.setFillColor(r, g, b);
+        doc.roundedRect(x, y, sw, sw, 2, 2, "F");
+        doc.text(it.label, x + sw + gap, baseline);
+      }
+      x += it.width + itemGap;
+    }
+    y += sw + 16;
   };
 
   const tableTheme = {
@@ -272,6 +352,22 @@ export async function exportTripPdf(trip) {
           leg.length ? leg.map((s) => modeLabel(s.mode)).join(" + ") : "-",
         ];
       }),
+      // The optional final stop, if any — nothing leaves it, and its own
+      // leg cost already sits on the destination before it.
+      ...(trip.lastStop
+        ? [
+            [
+              toVisualOrder(effectiveLastStop(trip)?.name) ||
+                toVisualOrder(t("budget.lastStop")),
+              toVisualOrder(effectiveLastStop(trip)?.country) || "-",
+              "-",
+              "-",
+              "-",
+              "-",
+              "-",
+            ],
+          ]
+        : []),
     ],
   });
   y = doc.lastAutoTable.finalY + 26;
@@ -339,6 +435,29 @@ export async function exportTripPdf(trip) {
       [toVisualOrder(t("budget.total")), money(stats.total, trip.currency)],
     ],
   });
+  y = doc.lastAutoTable.finalY + 26;
+
+  // --- Route map snapshot + leg-colour legend (best-effort: a failed tile
+  // fetch or canvas export must never abort the rest of the summary) --------
+  try {
+    const map = await renderTripMapImage(trip, destinations);
+    if (map) {
+      sectionTitle(t("pdf.map"));
+      let imgW = pageWidth - marginX * 2;
+      let imgH = (map.height / map.width) * imgW;
+      const capH = 300;
+      if (imgH > capH) {
+        imgH = capH;
+        imgW = (map.width / map.height) * imgH;
+      }
+      ensureSpace(imgH + 40);
+      doc.addImage(map.dataUrl, "PNG", (pageWidth - imgW) / 2, y, imgW, imgH);
+      y += imgH + 18;
+      drawLegend(map.modes);
+    }
+  } catch {
+    // Snapshot is a nice-to-have; keep the rest of the export intact.
+  }
 
   drawFooter(doc, { pageWidth, pageHeight });
 

@@ -6,6 +6,8 @@
  * free and key-less) so any town in the world can be added.
  */
 
+import { currentLang } from "./i18n.js";
+
 // prettier-ignore
 const CITIES = [
   ['Amsterdam','Netherlands',52.3676,4.9041], ['Athens','Greece',37.9838,23.7275],
@@ -83,6 +85,10 @@ export async function searchNearby(query, center, signal, limit = 8) {
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("addressdetails", "1");
+  // Without this, Nominatim falls back to the browser's Accept-Language
+  // header, which can differ from the app's active language and return
+  // names in a script the user never picked.
+  url.searchParams.set("accept-language", currentLang());
 
   if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
     const pad = 0.35; // roughly 35 km, enough for a city and its outskirts
@@ -148,6 +154,7 @@ export async function searchRemote(query, signal, limit = 6) {
   // Over-fetch since destination-kind filtering below discards some rows.
   url.searchParams.set("limit", String(Math.max(limit * 3, 15)));
   url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", currentLang());
 
   const res = await fetch(url, {
     signal,

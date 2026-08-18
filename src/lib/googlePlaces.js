@@ -9,6 +9,8 @@
  * never searches never pays for the download.
  */
 
+import { currentLang } from "./i18n.js";
+
 const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
 
 export const hasGoogleKey = () => Boolean(KEY);
@@ -42,7 +44,13 @@ export function loadGoogleMaps() {
     script.async = true;
     script.src =
       "https://maps.googleapis.com/maps/api/js" +
-      `?key=${encodeURIComponent(KEY)}&v=weekly&libraries=places,marker&loading=async`;
+      `?key=${encodeURIComponent(KEY)}&v=weekly&libraries=places,marker&loading=async` +
+      // Pins predictions AND resolved Place Details to the same language —
+      // otherwise Google infers a language per call (often the OS locale,
+      // not the app's), so a result picked in one script could resolve to a
+      // different one. Google only reads this once per page load; it can't
+      // be changed without reloading, same as the app's own lang toggle.
+      `&language=${encodeURIComponent(currentLang())}`;
     script.onerror = () => reject(new Error("Google Maps SDK failed to load"));
     // The bootstrap defines importLibrary before the load event fires.
     script.onload = () =>
