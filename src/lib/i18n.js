@@ -360,6 +360,7 @@ const STRINGS = {
     "pdf.attraction": "Attraction",
     "pdf.reservation": "Reservation",
     "pdf.category": "Category",
+    "pdf.map": "Route map",
     "pdf.footer": "{app} — Trip Summary",
 
     // sharing
@@ -723,6 +724,7 @@ const STRINGS = {
     "pdf.attraction": "אטר֧ציה",
     "pdf.reservation": "הזמנה",
     "pdf.category": "קטגוריה",
+    "pdf.map": "מפת המסלול",
     "pdf.footer": "{app} — סיכום טיול",
 
     "share.subtitle": "הזמינו מישהו לערוך, או שתפו קישור לצפייה בלבד.",

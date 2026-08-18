@@ -6,13 +6,15 @@ import {
   effectiveLastStop,
   legOf,
   legTotals,
+  modeColor,
   modeLabel,
   tripDays,
   tripStats,
   withDates,
 } from "./store.js";
 import { getSession, sessionEmail } from "./auth.js";
-import { currentDateLocale, currentLang, translate } from "./i18n.js";
+import { currentDateLocale, currentLang, dirOf, translate } from "./i18n.js";
+import { renderTripMapImage } from "./staticMap.js";
 import hebrewFontUrl from "../assets/fonts/NotoSansHebrew.ttf?url";
 
 const HEBREW_FONT = "NotoSansHebrew";
@@ -44,6 +46,16 @@ function money(amount, code) {
 }
 
 const containsHebrew = (text) => HEBREW_RE.test(String(text ?? ""));
+
+/** "#RRGGBB" -> [r, g, b] for jsPDF's numeric colour setters. */
+function hexToRgb(hex) {
+  const h = String(hex).replace("#", "");
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
 
 /**
  * Only strips characters that are actually illegal in a filename
@@ -231,6 +243,47 @@ export async function exportTripPdf(trip) {
     y += 10;
   };
 
+  // A centered row of swatch + label per transport mode used on the map, so the
+  // arc colours can be read back. Mirrors the layout direction of the language.
+  const drawLegend = (modes) => {
+    if (!modes?.length) return;
+    const rtl = dirOf(currentLang()) === "rtl";
+    const sw = 11; // swatch size
+    const gap = 5; // swatch-to-label
+    const itemGap = 18; // between legend items
+    doc.setFontSize(9);
+    const items = modes.map((m) => {
+      const label = toVisualOrder(t(`mode.${m}`));
+      return {
+        color: modeColor(m),
+        label,
+        width: sw + gap + doc.getTextWidth(label),
+      };
+    });
+    const total =
+      items.reduce((sum, it) => sum + it.width, 0) +
+      itemGap * (items.length - 1);
+    ensureSpace(sw + 20);
+    doc.setTextColor(...THEME.bodyText);
+    let x = (pageWidth - total) / 2;
+    for (const it of rtl ? [...items].reverse() : items) {
+      const [r, g, b] = hexToRgb(it.color);
+      const labelW = doc.getTextWidth(it.label);
+      const baseline = y + sw - 1.5;
+      if (rtl) {
+        doc.text(it.label, x, baseline);
+        doc.setFillColor(r, g, b);
+        doc.roundedRect(x + labelW + gap, y, sw, sw, 2, 2, "F");
+      } else {
+        doc.setFillColor(r, g, b);
+        doc.roundedRect(x, y, sw, sw, 2, 2, "F");
+        doc.text(it.label, x + sw + gap, baseline);
+      }
+      x += it.width + itemGap;
+    }
+    y += sw + 16;
+  };
+
   const tableTheme = {
     margin: { left: marginX, right: marginX },
     styles: {
@@ -382,6 +435,29 @@ export async function exportTripPdf(trip) {
       [toVisualOrder(t("budget.total")), money(stats.total, trip.currency)],
     ],
   });
+  y = doc.lastAutoTable.finalY + 26;
+
+  // --- Route map snapshot + leg-colour legend (best-effort: a failed tile
+  // fetch or canvas export must never abort the rest of the summary) --------
+  try {
+    const map = await renderTripMapImage(trip, destinations);
+    if (map) {
+      sectionTitle(t("pdf.map"));
+      let imgW = pageWidth - marginX * 2;
+      let imgH = (map.height / map.width) * imgW;
+      const capH = 300;
+      if (imgH > capH) {
+        imgH = capH;
+        imgW = (map.width / map.height) * imgH;
+      }
+      ensureSpace(imgH + 40);
+      doc.addImage(map.dataUrl, "PNG", (pageWidth - imgW) / 2, y, imgW, imgH);
+      y += imgH + 18;
+      drawLegend(map.modes);
+    }
+  } catch {
+    // Snapshot is a nice-to-have; keep the rest of the export intact.
+  }
 
   drawFooter(doc, { pageWidth, pageHeight });
 
