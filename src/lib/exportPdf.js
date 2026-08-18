@@ -70,7 +70,11 @@ function sanitizeFilename(name) {
 function toVisualOrder(text) {
   const str = String(text ?? "");
   if (!containsHebrew(str)) return str;
-  const runs = str.match(/[\u0590-\u05FF]+|[^\u0590-\u05FF]+/g) ?? [];
+  // Whitespace must be its own run, not lumped into the adjacent Hebrew or
+  // number run — otherwise reversing run order shifts a space from one side
+  // of a number to the other (e.g. "דבש 2026" -> "2026שבד", eating the gap
+  // and reading as if the space moved past the digits).
+  const runs = str.match(/[\u0590-\u05FF]+|\s+|[^\u0590-\u05FF\s]+/g) ?? [];
   return runs
     .map((run) => (containsHebrew(run) ? [...run].reverse().join("") : run))
     .reverse()
@@ -112,6 +116,24 @@ async function registerUnicodeFont(doc) {
   doc.setFont(HEBREW_FONT);
 }
 
+/**
+ * jsPDF runs every text() through its own bidi engine (postProcessText),
+ * defaulting isInputVisual=true, which re-reorders our already-visual strings
+ * and reverses embedded numbers ("2026" -> "6202"). We do our own logical->
+ * visual conversion in toVisualOrder, so force the engine to an identity
+ * (isInputVisual + isOutputVisual) on every call — including autoTable's
+ * internal ones, which pass no options — by injecting the flags here.
+ */
+function neutralizeBuiltInBidi(doc) {
+  const original = doc.text.bind(doc);
+  doc.text = (text, x, y, options, transform) => {
+    const opts = options && typeof options === "object" ? options : {};
+    if (opts.isInputVisual === undefined) opts.isInputVisual = true;
+    if (opts.isOutputVisual === undefined) opts.isOutputVisual = true;
+    return original(text, x, y, opts, transform);
+  };
+}
+
 /** Every line of free text (title, meta, footer) is centered on the page. */
 function centerLine(doc, text, y, { color = THEME.bodyText, pageWidth } = {}) {
   doc.setTextColor(...color);
@@ -148,6 +170,7 @@ export async function exportTripPdf(trip) {
   const stats = tripStats(trip);
   const doc = new jsPDF({ unit: "pt" });
   await registerUnicodeFont(doc);
+  neutralizeBuiltInBidi(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -184,9 +207,12 @@ export async function exportTripPdf(trip) {
   y += 22;
 
   doc.setFontSize(11);
+  // centerLine already runs toVisualOrder on the whole line — using fmtDate
+  // (which does the same) here would reorder each date twice and scramble
+  // the digits, so format the raw dates instead.
   centerLine(
     doc,
-    `${fmtDate(new Date(trip.startDate), "d MMM yyyy")} - ${fmtDate(new Date(trip.endDate), "d MMM yyyy")}`,
+    `${format(new Date(trip.startDate), "d MMM yyyy", { locale: currentDateLocale() })} - ${format(new Date(trip.endDate), "d MMM yyyy", { locale: currentDateLocale() })}`,
     y,
     { color: THEME.bodyText, pageWidth },
   );
