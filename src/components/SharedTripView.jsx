@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import AppControls from "./AppControls.jsx";
+import TripLogo from "./TripLogo.jsx";
 import { fetchSharedTrip } from "../lib/sharing.js";
 import {
   formatDay,
@@ -43,7 +44,7 @@ export default function SharedTripView({ token }) {
 
   if (state.status === "loading") {
     return (
-      <div className="grid min-h-full place-items-center bg-canvas">
+      <div className="grid min-h-full place-items-center app-canvas">
         <span className="animate-pulse text-3xl" aria-hidden>
           🌍
         </span>
@@ -53,7 +54,7 @@ export default function SharedTripView({ token }) {
 
   if (state.status !== "ready") {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-3 bg-canvas px-5 text-center">
+      <div className="flex min-h-full flex-col items-center justify-center gap-3 app-canvas px-5 text-center">
         <p className="text-lg font-semibold text-fg">
           {t(
             state.status === "notfound"
@@ -79,13 +80,16 @@ export default function SharedTripView({ token }) {
   const stats = tripStats(trip);
 
   return (
-    <div className="min-h-full bg-canvas">
+    <div className="min-h-full app-canvas">
       <div className="mx-auto max-w-3xl px-5 py-8 md:px-8">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-fg">
-            {t("shared.badge")}
-          </span>
-          <AppControls />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <TripLogo />
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-fg">
+              {t("shared.badge")}
+            </span>
+            <AppControls />
+          </div>
         </div>
 
         <header className="mb-8">

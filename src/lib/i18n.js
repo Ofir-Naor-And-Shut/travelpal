@@ -14,7 +14,8 @@ const INTL_LOCALES = { en: "en-GB", he: "he-IL" };
 const STRINGS = {
   en: {
     // shell
-    "app.name": "Project Travel",
+    "app.name": "TravelPal",
+    "app.tagline": "Explore Together",
     "nav.main": "Main",
     "nav.sections": "Trip sections",
     "nav.view": "View",
@@ -408,7 +409,8 @@ const STRINGS = {
   },
 
   he: {
-    "app.name": "מסע",
+    "app.name": "TravelPal",
+    "app.tagline": "מגלים יחד",
     "nav.main": "ראשי",
     "nav.sections": "חלקי הטיול",
     "nav.view": "תצוגה",

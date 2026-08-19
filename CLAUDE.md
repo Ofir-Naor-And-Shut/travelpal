@@ -17,7 +17,7 @@ trip lives in the browser and works offline, instantly, and privately.
 **Stack:** React + Vite + Tailwind v4 (`@theme` with a semantic-token layer),
 oxlint, Leaflet for maps. No component library — components are hand-built.
 
-**Data model.** The app holds *several* trips. Each is one serializable object;
+**Data model.** The app holds _several_ trips. Each is one serializable object;
 the **active** trip lives in a `useSyncExternalStore` store (`src/lib/store.js`)
 and is what every screen reads via `useTrip`, so features stay oblivious to there
 being more than one. Trips persist one-per-key under `project-travel:trip:<id>`
@@ -32,6 +32,7 @@ keyed `doc:<id>`; they never go in localStorage, and never in Postgres.
 shape factories, and load-time normalization keeps old saves valid.
 
 **Features.**
+
 - **Destinations** — ordered stops, nights stepper, drag-to-reorder with live
   renumbering, and multi-segment transport legs (per hop: mode, origin/destination
   station, opt-in duration/distance/cost). Stations are informative only; the map
@@ -58,14 +59,14 @@ shape factories, and load-time normalization keeps old saves valid.
   button back to the picker, and sign-out. Signing in is optional — a "continue
   without an account" escape runs the app fully local-only.
 
-**A Supabase backend** layered *under* the local-first store for cross-device sync
+**A Supabase backend** layered _under_ the local-first store for cross-device sync
 and sharing. A trip is stored as one JSONB row in `public.trips` with owner-only
 RLS. **Local-first stays the working copy — Supabase is the durable, syncable
 backup, not a replacement.** Client in `src/lib/supabase.js`, auth/session in
 `src/lib/auth.js`, schema in `supabase/schema.sql`, credentials in `.env.local`
 (gitignored).
 
-*Done & verified:* **magic-link (passwordless) auth** and the **screen flow** —
+_Done & verified:_ **magic-link (passwordless) auth** and the **screen flow** —
 `AuthScreen` → `TripPicker` (the landing screen) → the editor (`TripEditor`),
 gated in `App.jsx`. `auth.js` exposes `useSession`, `sendMagicLink`, `signOut`,
 `useLocalOnly`/`setLocalOnly`, all no-ops when Supabase isn't configured. A
@@ -82,7 +83,7 @@ index) as a local fallback, never a silent loss (regression-tested in
 real magic-link login: fetch, push, reload round-trip, and delete-sync all
 confirmed against Postgres.
 
-*Still to do:* documents to a Storage bucket, sharing via a `trip_members` table,
+_Still to do:_ documents to a Storage bucket, sharing via a `trip_members` table,
 and realtime, each phased so the app is never left broken. One known rough edge:
 the `touch_updated_at` trigger overwrites the `updated_at` **column** with
 `now()` on update while the client's last-write-wins clock lives in
@@ -96,13 +97,13 @@ but it needs reconciling before real conflict resolution.
   `start`/`end`, `border-s`), not left/right. Dates and money localize.
 - **Theming** — light / dark / system, driven by semantic tokens
   (`canvas`, `surface`, `fg`, `muted`, `line`, `accent`, …). Brand palette is
-  `#6260FF` / `#E4E4FF` extended into one ramp; components reference tokens, not
+  `#0F766E` / `#14B8A6` (teal) extended into one ramp; components reference tokens, not
   ramp steps or `dark:` twins.
 - **Graceful degradation.** Optional services (BizData, Google, Supabase) are
   gated on presence — the app runs fully without any of them.
 - **Responsive — one adaptive layout, not two.** The same layout reshapes from
   phone to desktop; there is no separate mobile build. It is mobile-first
-  (Tailwind): the base styles *are* the phone layout, and desktop is pinned
+  (Tailwind): the base styles _are_ the phone layout, and desktop is pinned
   behind `lg:` (matching the two-pane map split boundary). The desktop look is
   considered good and must not regress — when improving mobile, change the base
   and restore the current desktop value at `lg:`, never the other way round.
@@ -143,7 +144,7 @@ but it needs reconciling before real conflict resolution.
    the signal to stop.
 7. **Keep it shippable.** Lint and build stay clean on every change; large work is
    phased so the app never sits broken. Match the surrounding code's idiom and
-   comment the *why*, not the *what*.
+   comment the _why_, not the _what_.
 
 ## Environment notes
 

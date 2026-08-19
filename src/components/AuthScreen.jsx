@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, LogIn, MailCheck, RefreshCw, Send } from "lucide-react";
 import AppControls from "./AppControls.jsx";
+import TripLogo from "./TripLogo.jsx";
 import {
   sendMagicLink,
   setLocalOnly,
@@ -84,20 +85,15 @@ export default function AuthScreen() {
   };
 
   return (
-    <div className="relative flex min-h-full flex-col items-center justify-center bg-canvas px-5 py-12">
+    <div className="relative flex min-h-full flex-col items-center justify-center app-canvas px-5 py-12">
       <div className="absolute inset-x-0 top-0 flex justify-center p-4">
         <AppControls />
       </div>
 
-      <div className="card w-full max-w-sm p-7 shadow-xl shadow-brand-950/10">
+      <div className="card rise w-full max-w-sm p-7 shadow-xl shadow-brand-950/10">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-accent-soft text-2xl">
-            🌍
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-fg">
-            {t("app.name")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("auth.tagline")}</p>
+          <TripLogo className="justify-center" />
+          <p className="mt-3 text-sm text-muted">{t("auth.tagline")}</p>
         </div>
 
         {sent ? (

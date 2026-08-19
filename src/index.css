@@ -2,26 +2,27 @@
 @import "leaflet/dist/leaflet.css";
 
 /* ---------------------------------------------------------------------------
-   Brand ramp, anchored on the two supplied colours:
+   Brand ramp — teal, anchored on the logo mark's gradient:
 
-     brand-500  #6260FF   primary / accent
-     brand-100  #E4E4FF   soft fills
+     brand-500  #14B8A6   mark gradient (light stop) / vivid accents
+     brand-700  #0F766E   primary / accent (keeps white text at AA)
+     brand-100  #CCFBF1   soft fills
 
-   The remaining steps are interpolated between and beyond them so every
-   surface, border and state comes from one hue family.
+   The steps follow the teal scale, so every surface, border and state comes
+   from one hue family.
    --------------------------------------------------------------------------- */
 @theme {
-  --color-brand-50: #f4f4ff;
-  --color-brand-100: #e4e4ff;
-  --color-brand-200: #cdccff;
-  --color-brand-300: #adacff;
-  --color-brand-400: #8a88ff;
-  --color-brand-500: #6260ff;
-  --color-brand-600: #4b48ec;
-  --color-brand-700: #3b38c8;
-  --color-brand-800: #2f2d9c;
-  --color-brand-900: #26246f;
-  --color-brand-950: #16154a;
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+  --color-brand-950: #042f2e;
 
   --font-sans:
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -38,50 +39,51 @@
   /* Floating bottom bar. Kept separate from the surface tokens because it sits
      over arbitrary content (the map especially) and needs its own contrast. */
   --c-nav-bg: rgb(255 255 255 / 0.82);
-  --c-nav-border: rgb(38 36 111 / 0.1);
-  --c-nav-idle: #5d5b8c;
-  --c-nav-hover: #1b1a3d;
-  --c-nav-shadow: rgb(38 36 111 / 0.18);
+  --c-nav-border: rgb(4 47 46 / 0.1);
+  --c-nav-idle: #46706b;
+  --c-nav-hover: #0f2e2b;
+  --c-nav-shadow: rgb(15 118 110 / 0.2);
 
-  --c-canvas: #f4f4ff;
+  --c-canvas: #f0fdfa;
   --c-surface: #ffffff;
-  --c-raised: #f4f4ff;
-  --c-fg: #1b1a3d;
-  --c-muted: #5d5b8c;
-  --c-subtle: #908fb8;
-  --c-line: #e4e4ff;
-  --c-line-strong: #cdccff;
-  --c-accent: #6260ff;
-  --c-accent-hover: #4b48ec;
-  --c-accent-soft: #e4e4ff;
+  --c-raised: #e6fbf6;
+  --c-fg: #0f2e2b;
+  --c-muted: #46706b;
+  --c-subtle: #7ba7a1;
+  --c-line: #ccfbf1;
+  --c-line-strong: #99f6e4;
+  --c-accent: #0f766e;
+  --c-accent-hover: #115e59;
+  --c-accent-soft: #ccfbf1;
   --c-on-accent: #ffffff;
-  --c-scrim: rgb(22 21 74 / 0.55);
-  --c-shadow: rgb(38 36 111 / 0.14);
+  --c-scrim: rgb(4 31 29 / 0.55);
+  --c-shadow: rgb(6 60 55 / 0.14);
 
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --c-nav-bg: rgb(38 37 68 / 0.72);
+  --c-nav-bg: rgb(10 43 40 / 0.72);
   --c-nav-border: rgb(255 255 255 / 0.09);
-  --c-nav-idle: #cfcef0;
+  --c-nav-idle: #a7d8d0;
   --c-nav-hover: #ffffff;
   --c-nav-shadow: rgb(0 0 0 / 0.55);
 
-  --c-canvas: #0d0c1a;
-  --c-surface: #16152b;
-  --c-raised: #1e1d3a;
-  --c-fg: #ececff;
-  --c-muted: #a9a8d4;
-  --c-subtle: #7b7aa8;
-  --c-line: #29284d;
-  --c-line-strong: #3a3868;
-  /* Lifted off #6260FF so it keeps contrast against a dark surface. */
-  --c-accent: #8a88ff;
-  --c-accent-hover: #adacff;
-  --c-accent-soft: #262551;
-  --c-on-accent: #0d0c1a;
-  --c-scrim: rgb(5 5 15 / 0.7);
+  --c-canvas: #041f1d;
+  --c-surface: #0a2b28;
+  --c-raised: #103a35;
+  --c-fg: #e6fff9;
+  --c-muted: #8fc7bf;
+  --c-subtle: #5f9089;
+  --c-line: #164e47;
+  --c-line-strong: #1f6b62;
+  /* Lifted to bright teal so it keeps contrast against a dark surface; paired
+     with dark on-accent text. */
+  --c-accent: #2dd4bf;
+  --c-accent-hover: #5eead4;
+  --c-accent-soft: #123f39;
+  --c-on-accent: #04211e;
+  --c-scrim: rgb(2 15 14 / 0.7);
   --c-shadow: rgb(0 0 0 / 0.5);
 
   color-scheme: dark;
@@ -124,20 +126,51 @@
 }
 
 @layer components {
+  /* Landing surfaces (auth, trip picker, shared view, splash). The flat canvas
+     fill reads as sterile on its own, so layer two soft brand-tinted glows and
+     an ultra-faint dot texture over it. Everything is drawn from tokens, so it
+     re-themes with light/dark automatically and needs no `dark:` twin. */
+  .app-canvas {
+    background-color: var(--c-canvas);
+    background-image:
+      radial-gradient(
+        120% 100% at 100% 0%,
+        color-mix(in srgb, var(--c-accent) 10%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        100% 90% at 0% 100%,
+        color-mix(in srgb, var(--c-accent) 7%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(var(--c-line-strong) 0.75px, transparent 0.75px);
+    background-size:
+      100% 100%,
+      100% 100%,
+      22px 22px;
+  }
+
   .card {
     @apply rounded-card border border-line bg-surface;
+    /* A soft, diffuse lift so cards float off the textured canvas rather than
+       sitting flat against it. */
+    box-shadow: 0 2px 10px -4px var(--c-shadow);
   }
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2
            text-sm font-medium text-on-accent transition hover:bg-accent-hover
+           hover:-translate-y-px active:translate-y-0 disabled:hover:translate-y-0
            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
            disabled:opacity-40;
+    box-shadow: 0 4px 16px -6px
+      color-mix(in srgb, var(--color-brand-500) 65%, transparent);
   }
 
   .btn-soft {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent-soft px-4 py-2
            text-sm font-medium text-accent transition hover:bg-line-strong
+           hover:-translate-y-px active:translate-y-0 disabled:hover:translate-y-0
            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
   }
 
@@ -184,17 +217,16 @@
     color: var(--c-nav-hover);
   }
 
-  /* Pinned to the base brand purple in both themes rather than the themed
-     accent: white-on-purple is the look, and dark mode's lifted accent would
-     otherwise pair with dark text. White on #6260FF is 4.57:1, which clears
-     AA for normal text. */
+  /* Pinned to a fixed teal in both themes rather than the themed accent: dark
+     mode's lifted accent would otherwise pair with dark text. brand-700 keeps
+     white text above 5:1, which clears AA for normal text. */
   .nav-pill-active {
-    background: var(--color-brand-500);
+    background: var(--color-brand-700);
     color: #ffffff;
     /* The glow is what makes the active pill read as lit rather than filled. */
     box-shadow:
-      0 2px 14px color-mix(in srgb, var(--color-brand-500) 60%, transparent),
-      0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent);
+      0 2px 14px color-mix(in srgb, var(--color-brand-600) 60%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--color-brand-600) 45%, transparent);
   }
 }
 
@@ -328,4 +360,58 @@
 ::selection {
   background: var(--c-accent-soft);
   color: var(--c-fg);
+}
+
+/* ---------------------------------------------------------------------------
+   Gentle entrance motion for landing screens — a fade + rise. Kept CSS-only
+   (no animation library) to match the hand-built ethos, and fully disabled for
+   anyone who prefers reduced motion.
+   --------------------------------------------------------------------------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger direct children (e.g. a grid of trip cards) so they arrive in
+   sequence rather than all at once. */
+.rise-stagger > * {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rise-stagger > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.rise-stagger > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.rise-stagger > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.rise-stagger > *:nth-child(4) {
+  animation-delay: 0.16s;
+}
+.rise-stagger > *:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.rise-stagger > *:nth-child(6) {
+  animation-delay: 0.24s;
+}
+.rise-stagger > *:nth-child(n + 7) {
+  animation-delay: 0.28s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .rise-stagger > * {
+    animation: none;
+  }
 }

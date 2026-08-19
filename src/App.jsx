@@ -122,7 +122,7 @@ export default function App() {
   // we don't flash the sign-in screen or the placeholder demo trip.
   if (showSplash) {
     return (
-      <div className="grid min-h-full place-items-center bg-canvas">
+      <div className="grid min-h-full place-items-center app-canvas">
         <span className="animate-pulse text-3xl" aria-hidden>
           🌍
         </span>

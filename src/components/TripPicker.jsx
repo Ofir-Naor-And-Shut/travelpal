@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { Check, LogOut, Plus, Trash2, X } from "lucide-react";
 import AppControls from "./AppControls.jsx";
+import TripLogo from "./TripLogo.jsx";
 import {
   acceptTripInvitation,
   createTrip,
@@ -57,12 +58,15 @@ export default function TripPicker({ onSelect }) {
   const startNew = () => onSelect(createTrip({ title: t("trips.newTitle") }));
 
   return (
-    <div className="min-h-full bg-canvas">
+    <div className="min-h-full app-canvas">
       <div className="mx-auto max-w-4xl px-5 py-8 md:px-8">
         {/* Account + app controls */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-          <AccountBar session={session} localOnly={localOnly} t={t} />
-          <AppControls />
+          <TripLogo />
+          <div className="flex items-center gap-3">
+            <AccountBar session={session} localOnly={localOnly} t={t} />
+            <AppControls />
+          </div>
         </div>
 
         {invitations.length > 0 && (
@@ -121,14 +125,14 @@ export default function TripPicker({ onSelect }) {
           </section>
         )}
 
-        <header className="mb-6">
+        <header className="rise mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-fg">
             {t("picker.title")}
           </h1>
           <p className="mt-1 text-sm text-muted">{t("picker.subtitle")}</p>
         </header>
 
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="rise-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {trips.map((trip) => {
             const { label, nights } = range(trip);
             return (

@@ -18,7 +18,7 @@ preview`, `npm run lint`.
 - **Destinations planner** — ordered stops with a nights stepper. Dates cascade
   automatically: change the nights at stop 2 and everything downstream shifts.
   The header ring tracks planned nights against the trip length.
-- **Transport legs** — each stop carries the journey *out* of it as an ordered
+- **Transport legs** — each stop carries the journey _out_ of it as an ordered
   list of **segments**, so "bus to the airport, flight, train into town" is
   three hops rather than one lossy "plane". Every segment has a mode, an
   **origin station** and a **destination station**; duration, distance and cost
@@ -42,12 +42,12 @@ preview`, `npm run lint`.
   a **Reserved** section and an opt-in **Accommodation** section. A night
   normally inherits the destination's hotel; adding accommodation overrides
   just that night (for a mid-stay move) with its own cost, address and uploaded
-  booking documents. The override's cost *replaces* the destination's nightly
+  booking documents. The override's cost _replaces_ the destination's nightly
   rate for that night rather than adding to it. Every entry takes a **time**, a cost and a completion
   checkbox; reservations also carry their own uploaded confirmation.
   Attractions come from **two search sources in one box**: typing runs a
   free-text place lookup (Nominatim, biased to a box around the destination so
-  "museum" returns museums *here*), while the category chips browse **BizData**
+  "museum" returns museums _here_), while the category chips browse **BizData**
   for businesses in that city — each result carrying phone, website and opening
   hours. Both store coordinates. Consecutive attractions are joined by a
   **route leg** — mode, distance and an estimated duration — and the map
@@ -63,13 +63,13 @@ preview`, `npm run lint`.
 Two brand colours, extended into a single ramp in `src/index.css` under
 `@theme` so the whole UI stays in one hue family:
 
-| Token       | Hex       | Used for                       |
-| ----------- | --------- | ------------------------------ |
-| `brand-500` | `#6260FF` | Accent, primary buttons, pins  |
-| `brand-100` | `#E4E4FF` | Soft fills, active states      |
+| Token       | Hex       | Used for                      |
+| ----------- | --------- | ----------------------------- |
+| `brand-700` | `#0F766E` | Accent, primary buttons, pins |
+| `brand-500` | `#14B8A6` | Logo gradient, vivid accents  |
+| `brand-100` | `#CCFBF1` | Soft fills, active states     |
 
-The intermediate steps (`brand-50` … `brand-950`) are interpolated between and
-beyond those two.
+The ramp follows the teal scale (`brand-50` … `brand-950`).
 
 On top of the ramp sits a set of **semantic tokens** — `canvas`, `surface`,
 `raised`, `fg`, `muted`, `subtle`, `line`, `line-strong`, `accent`,
@@ -98,7 +98,7 @@ keys, so dragging still follows the cursor.
 Everything is local to the browser — there is no backend.
 
 - **Trip structure** (destinations, nights, costs, day entries, document
-  *metadata*) lives in `localStorage` under `project-travel:trip:v2`.
+  _metadata_) lives in `localStorage` under `project-travel:trip:v2`.
 - **Uploaded files** live in **IndexedDB** via `idb-keyval`, keyed `doc:<id>`.
   localStorage caps out near 5 MB and only holds strings; IndexedDB stores Blobs
   directly, so a passport scan or a PDF ticket fits comfortably.
