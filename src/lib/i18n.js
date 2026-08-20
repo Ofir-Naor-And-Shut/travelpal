@@ -233,6 +233,12 @@ const STRINGS = {
     "details.tagAccommodation": "Night {n} · Accommodation",
     "details.tagReservation": "Night {n} · {name}",
     "details.tagTransport": "Transport · {mode}",
+    "details.accommodation": "Accommodation",
+    "details.accommodationNone": "Not set yet",
+    "details.accommodationMultiple": "{n} different stays",
+    "details.country": "Country",
+    "details.travelShort": "Travel",
+    "details.lodgingShort": "Lodging",
 
     // documents
     "docs.title": "Documents",
@@ -339,6 +345,8 @@ const STRINGS = {
     "budget.originTransport": "Transport to the first stop",
     "budget.lastStop": "Last stop",
     "budget.lastStopNote": "Counted on the stop before it",
+    "budget.destination": "Destination",
+    "budget.unplannedNights": "{n} nights not planned yet",
     "budget.note":
       "Sleeping costs multiply the nightly rate by the nights at each stop, except on nights with their own accommodation, which replace it. Transport is counted on the leg leaving each destination. Attractions and reservations are totalled from the daily planner.",
 
@@ -357,6 +365,9 @@ const STRINGS = {
     "map.close": "Close map",
     "map.resize": "Resize map panel",
     "map.resizeHint": "Drag to resize · double-click to reset",
+    "map.zoomIn": "Zoom in",
+    "map.zoomOut": "Zoom out",
+    "map.recenter": "Fit route to view",
 
     // misc
     "misc.comingNext": "Coming next",
@@ -458,7 +469,8 @@ const STRINGS = {
     "auth.trustNote":
       "מאובטח ופרטי. המידע שלכם לא יוצא מהמכשיר הזה, אלא אם תבחרו לסנכרן אותו.",
     "auth.welcomeTitle": "ברוכים השבים",
-    "auth.welcomeSubtitle": "הזינו את כתובת האימייל שלכם כדי להיכנס או ליצור חשבון.",
+    "auth.welcomeSubtitle":
+      "הזינו את כתובת האימייל שלכם כדי להיכנס או ליצור חשבון.",
     "auth.emailLabel": "כתובת אימייל",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "שליחת קישור כניסה",
@@ -629,6 +641,12 @@ const STRINGS = {
     "details.tagAccommodation": "לילה {n} · לינה",
     "details.tagReservation": "לילה {n} · {name}",
     "details.tagTransport": "תחבורה · {mode}",
+    "details.accommodation": "לינה",
+    "details.accommodationNone": "טרם נקבע",
+    "details.accommodationMultiple": "{n} מקומות לינה שונים",
+    "details.country": "מדינה",
+    "details.travelShort": "נסיעה",
+    "details.lodgingShort": "לינה",
     "docs.title": "מסמכים",
     "docs.file": "קובץ",
     "docs.files": "קבצים",
@@ -726,6 +744,8 @@ const STRINGS = {
     "budget.originTransport": "תחבורה לעצירה הראשונה",
     "budget.lastStop": "העצירה האחרונה",
     "budget.lastStopNote": "נספר בעלות העצירה שלפניה",
+    "budget.destination": "יעד",
+    "budget.unplannedNights": "{n} לילות עדיין לא מתוכננים",
     "budget.note":
       "עלות הלינה מוכפלת במספר הלילות בכל עצירה, למעט לילות עם לינה משלהם — שמחליפה אותה. התחבורה נספרת על הקטע היוצא מכל יעד. אטרקציות והזמנות מסוכמות מהתכנון היומי.",
 
@@ -743,6 +763,9 @@ const STRINGS = {
     "map.close": "סגירת המפה",
     "map.resize": "שינוי רוחב המפה",
     "map.resizeHint": "גררו לשינוי הגודל · לחיצה כפולה לאיפוס",
+    "map.zoomIn": "הגדלה",
+    "map.zoomOut": "הקטנה",
+    "map.recenter": "התאמת המסלול לתצוגה",
 
     "misc.comingNext": "בקרוב",
     "discover.body": "עיינו בעצירות מומלצות והוסיפו אותן ישירות למסלול.",

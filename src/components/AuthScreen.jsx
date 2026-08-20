@@ -155,175 +155,177 @@ export default function AuthScreen() {
           </div>
 
           {sent ? (
-          <div className="rounded-xl border border-line bg-raised px-4 py-5 text-center">
-            <MailCheck size={22} className="mx-auto mb-2 text-accent" />
-            <p className="font-medium text-fg">{t("auth.sentTitle")}</p>
-            <p className="mt-1 text-sm text-muted">
-              {t("auth.sentBody", { email: email.trim() })}
-            </p>
-            <div className="mt-4 flex flex-col items-center gap-1.5">
-              <button
-                type="button"
-                className="btn-soft !py-1.5 text-xs"
-                onClick={resendLink}
-                disabled={resend === "sending"}
-              >
-                {resend === "sent" ? (
-                  <Check size={14} className="text-accent" />
-                ) : (
-                  <RefreshCw
-                    size={14}
-                    className={resend === "sending" ? "animate-spin" : ""}
-                  />
-                )}
-                {resend === "sending"
-                  ? t("auth.resending")
-                  : resend === "sent"
-                    ? t("auth.resent")
-                    : t("auth.resend")}
-              </button>
-              {resend === "error" && (
-                <p role="alert" className="text-xs text-accent">
-                  {t("auth.error")}
-                </p>
-              )}
-              <button
-                type="button"
-                className="btn-ghost !py-1 text-xs"
-                onClick={() => {
-                  setStatus("idle");
-                  setResend("idle");
-                  setEmail("");
-                }}
-              >
-                {t("auth.differentEmail")}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={submit} noValidate>
-            <label
-              htmlFor="auth-email"
-              className="mb-1.5 block text-sm font-medium text-fg"
-            >
-              {t("auth.emailLabel")}
-            </label>
-            <input
-              id="auth-email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoFocus
-              className="field"
-              placeholder={t("auth.emailPlaceholder")}
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (status === "error") setStatus("idle");
-              }}
-              aria-invalid={status === "error"}
-            />
-            {status === "error" && (
-              <p role="alert" className="mt-1.5 text-sm text-accent">
-                {looksLikeEmail(email)
-                  ? t("auth.error")
-                  : t("auth.invalidEmail")}
+            <div className="rounded-xl border border-line bg-raised px-4 py-5 text-center">
+              <MailCheck size={22} className="mx-auto mb-2 text-accent" />
+              <p className="font-medium text-fg">{t("auth.sentTitle")}</p>
+              <p className="mt-1 text-sm text-muted">
+                {t("auth.sentBody", { email: email.trim() })}
               </p>
-            )}
-
-            <button
-              type="submit"
-              className="btn-primary mt-4 w-full"
-              disabled={status === "sending"}
-            >
-              <Sparkles size={15} />
-              {status === "sending" ? t("auth.sending") : t("auth.send")}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-5 border-t border-line pt-4 text-center">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 text-sm font-medium text-muted underline-offset-2 hover:text-fg hover:underline"
-            onClick={() => setLocalOnly(true)}
-          >
-            {t("auth.localOnly")}
-            <MoveRight size={14} />
-          </button>
-          <p className="mt-1 text-xs text-subtle">{t("auth.localOnlyHint")}</p>
-        </div>
-
-        <div className="mt-4 text-center">
-          {showPassword ? (
-            <form onSubmit={submitPassword} className="text-start">
+              <div className="mt-4 flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  className="btn-soft !py-1.5 text-xs"
+                  onClick={resendLink}
+                  disabled={resend === "sending"}
+                >
+                  {resend === "sent" ? (
+                    <Check size={14} className="text-accent" />
+                  ) : (
+                    <RefreshCw
+                      size={14}
+                      className={resend === "sending" ? "animate-spin" : ""}
+                    />
+                  )}
+                  {resend === "sending"
+                    ? t("auth.resending")
+                    : resend === "sent"
+                      ? t("auth.resent")
+                      : t("auth.resend")}
+                </button>
+                {resend === "error" && (
+                  <p role="alert" className="text-xs text-accent">
+                    {t("auth.error")}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="btn-ghost !py-1 text-xs"
+                  onClick={() => {
+                    setStatus("idle");
+                    setResend("idle");
+                    setEmail("");
+                  }}
+                >
+                  {t("auth.differentEmail")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={submit} noValidate>
+              <label
+                htmlFor="auth-email"
+                className="mb-1.5 block text-sm font-medium text-fg"
+              >
+                {t("auth.emailLabel")}
+              </label>
               <input
+                id="auth-email"
                 type="email"
                 inputMode="email"
                 autoComplete="email"
+                autoFocus
                 className="field"
                 placeholder={t("auth.emailPlaceholder")}
-                value={pwEmail}
+                value={email}
                 onChange={(e) => {
-                  setPwEmail(e.target.value);
-                  if (pwStatus === "error") setPwStatus("idle");
+                  setEmail(e.target.value);
+                  if (status === "error") setStatus("idle");
                 }}
+                aria-invalid={status === "error"}
               />
-              <input
-                type="password"
-                autoComplete="current-password"
-                className="field mt-2"
-                placeholder={t("auth.passwordLabel")}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (pwStatus === "error") setPwStatus("idle");
-                }}
-                aria-invalid={pwStatus === "error"}
-              />
-              {pwStatus === "error" && (
+              {status === "error" && (
                 <p role="alert" className="mt-1.5 text-sm text-accent">
-                  {t("auth.passwordError")}
+                  {looksLikeEmail(email)
+                    ? t("auth.error")
+                    : t("auth.invalidEmail")}
                 </p>
               )}
+
               <button
                 type="submit"
-                className="btn-soft mt-3 w-full !py-1.5 text-sm"
-                disabled={pwStatus === "sending"}
+                className="btn-primary mt-4 w-full"
+                disabled={status === "sending"}
               >
-                <LogIn size={14} />
-                {pwStatus === "sending"
-                  ? t("auth.passwordSigningIn")
-                  : t("auth.passwordSignIn")}
-              </button>
-              <button
-                type="button"
-                className="btn-ghost mt-1.5 w-full !py-1 text-xs"
-                onClick={() => {
-                  setShowPassword(false);
-                  setPwStatus("idle");
-                  setPassword("");
-                }}
-              >
-                {t("auth.backToMagicLink")}
+                <Sparkles size={15} />
+                {status === "sending" ? t("auth.sending") : t("auth.send")}
               </button>
             </form>
-          ) : (
+          )}
+
+          <div className="mt-5 border-t border-line pt-4 text-center">
             <button
               type="button"
-              className="text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
-              onClick={() => setShowPassword(true)}
+              className="inline-flex items-center gap-1 text-sm font-medium text-muted underline-offset-2 hover:text-fg hover:underline"
+              onClick={() => setLocalOnly(true)}
             >
-              {t("auth.passwordToggle")}
+              {t("auth.localOnly")}
+              <MoveRight size={14} />
             </button>
-          )}
-        </div>
+            <p className="mt-1 text-xs text-subtle">
+              {t("auth.localOnlyHint")}
+            </p>
+          </div>
 
-        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-subtle">
-          <Lock size={12} />
-          {t("auth.trustNote")}
-        </p>
-      </div>
+          <div className="mt-4 text-center">
+            {showPassword ? (
+              <form onSubmit={submitPassword} className="text-start">
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  className="field"
+                  placeholder={t("auth.emailPlaceholder")}
+                  value={pwEmail}
+                  onChange={(e) => {
+                    setPwEmail(e.target.value);
+                    if (pwStatus === "error") setPwStatus("idle");
+                  }}
+                />
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  className="field mt-2"
+                  placeholder={t("auth.passwordLabel")}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (pwStatus === "error") setPwStatus("idle");
+                  }}
+                  aria-invalid={pwStatus === "error"}
+                />
+                {pwStatus === "error" && (
+                  <p role="alert" className="mt-1.5 text-sm text-accent">
+                    {t("auth.passwordError")}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  className="btn-soft mt-3 w-full !py-1.5 text-sm"
+                  disabled={pwStatus === "sending"}
+                >
+                  <LogIn size={14} />
+                  {pwStatus === "sending"
+                    ? t("auth.passwordSigningIn")
+                    : t("auth.passwordSignIn")}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost mt-1.5 w-full !py-1 text-xs"
+                  onClick={() => {
+                    setShowPassword(false);
+                    setPwStatus("idle");
+                    setPassword("");
+                  }}
+                >
+                  {t("auth.backToMagicLink")}
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
+                onClick={() => setShowPassword(true)}
+              >
+                {t("auth.passwordToggle")}
+              </button>
+            )}
+          </div>
+
+          <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-subtle">
+            <Lock size={12} />
+            {t("auth.trustNote")}
+          </p>
+        </div>
       </div>
     </div>
   );

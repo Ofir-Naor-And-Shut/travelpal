@@ -5,15 +5,15 @@ import {
   Minus,
   Plus,
   Trash2,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   moveDestination,
   removeDestination,
   setNights,
   updateDestination,
-} from '../lib/store.js'
-import { formatDay } from '../lib/store.js'
-import { useI18n } from '../lib/i18n.js'
+} from "../lib/store.js";
+import { formatDay } from "../lib/store.js";
+import { useI18n } from "../lib/i18n.js";
 
 export default function DestinationRow({
   dest,
@@ -29,9 +29,10 @@ export default function DestinationRow({
   dropBefore = false,
   dropAfter = false,
 }) {
-  const { t } = useI18n()
+  const { t } = useI18n();
 
-  const nightWord = dest.nights === 1 ? t('plan.night') : t('plan.nightsPlural')
+  const nightWord =
+    dest.nights === 1 ? t("plan.night") : t("plan.nightsPlural");
 
   return (
     <li
@@ -39,11 +40,11 @@ export default function DestinationRow({
       onMouseEnter={() => onHover?.(dest.id)}
       onMouseLeave={() => onHover?.(null)}
       className={`relative rounded-xl border transition-all ${
-        isDragging ? 'opacity-40' : ''
+        isDragging ? "opacity-40" : ""
       } ${
         active && !isDragging
-          ? 'border-accent bg-raised shadow-sm'
-          : 'border-line bg-surface shadow-sm hover:shadow-md'
+          ? "border-accent bg-raised shadow-sm"
+          : "border-line bg-surface shadow-sm hover:shadow-md"
       }`}
     >
       {/* Insertion line: shows exactly where the row will land, which reads
@@ -52,7 +53,7 @@ export default function DestinationRow({
         <span
           aria-hidden
           className={`pointer-events-none absolute inset-x-2 z-10 h-0.5 rounded-full bg-accent ${
-            dropBefore ? '-top-px' : '-bottom-px'
+            dropBefore ? "-top-px" : "-bottom-px"
           }`}
         />
       )}
@@ -61,7 +62,7 @@ export default function DestinationRow({
         <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
           <span
             {...gripProps}
-            title={t('plan.dragHint')}
+            title={t("plan.dragHint")}
             aria-hidden
             className="-ms-1 cursor-grab text-subtle transition hover:text-fg active:cursor-grabbing"
           >
@@ -70,9 +71,7 @@ export default function DestinationRow({
           <span
             aria-hidden
             className={`tabular grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold transition ${
-              active
-                ? 'bg-accent text-on-accent'
-                : 'bg-accent-soft text-accent'
+              active ? "bg-accent text-on-accent" : "bg-accent-soft text-accent"
             }`}
           >
             {index + 1}
@@ -86,11 +85,11 @@ export default function DestinationRow({
               onDoubleClick={(e) => {
                 // Overrides the browser's select-a-word, which is the trade the
                 // shortcut asks for.
-                e.preventDefault()
-                onOpenDay?.(dest.id)
+                e.preventDefault();
+                onOpenDay?.(dest.id);
               }}
-              aria-label={t('plan.nameLabel', { n: index + 1 })}
-              title={t('plan.openDayHint')}
+              aria-label={t("plan.nameLabel", { n: index + 1 })}
+              title={t("plan.openDayHint")}
               className="w-full truncate rounded border-none bg-transparent p-0 text-[15px] font-semibold text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
             />
             <p className="tabular truncate text-xs text-muted">
@@ -110,7 +109,7 @@ export default function DestinationRow({
               className="stepper-btn !size-6"
               onClick={() => setNights(dest.id, dest.nights - 1)}
               disabled={dest.nights <= 0}
-              aria-label={t('plan.removeNight', { name: dest.name })}
+              aria-label={t("plan.removeNight", { name: dest.name })}
             >
               <Minus size={13} />
             </button>
@@ -124,7 +123,7 @@ export default function DestinationRow({
               type="button"
               className="stepper-btn !size-6"
               onClick={() => setNights(dest.id, dest.nights + 1)}
-              aria-label={t('plan.addNight', { name: dest.name })}
+              aria-label={t("plan.addNight", { name: dest.name })}
             >
               <Plus size={13} />
             </button>
@@ -138,7 +137,7 @@ export default function DestinationRow({
             className="btn-ghost !px-1.5 !py-1"
             disabled={isFirst}
             onClick={() => moveDestination(dest.id, -1)}
-            aria-label={t('plan.moveEarlier', { name: dest.name })}
+            aria-label={t("plan.moveEarlier", { name: dest.name })}
           >
             <ChevronUp size={16} />
           </button>
@@ -147,7 +146,7 @@ export default function DestinationRow({
             className="btn-ghost !px-1.5 !py-1"
             disabled={isLast}
             onClick={() => moveDestination(dest.id, 1)}
-            aria-label={t('plan.moveLater', { name: dest.name })}
+            aria-label={t("plan.moveLater", { name: dest.name })}
           >
             <ChevronDown size={16} />
           </button>
@@ -155,12 +154,12 @@ export default function DestinationRow({
             type="button"
             className="btn-ghost !px-1.5 !py-1"
             onClick={() => removeDestination(dest.id)}
-            aria-label={t('plan.remove', { name: dest.name })}
+            aria-label={t("plan.remove", { name: dest.name })}
           >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
     </li>
-  )
+  );
 }

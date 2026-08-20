@@ -6,13 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  FolderOpen,
-  Map as MapIcon,
-  MapPinned,
-  PlayCircle,
-  Wallet,
-} from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import BottomNav from "./components/BottomNav.jsx";
 import TripHeader from "./components/TripHeader.jsx";
 import PlanView from "./components/PlanView.jsx";
@@ -54,13 +48,6 @@ const MAP_WIDTH_KEY = "project-travel:map-width";
 const DEFAULT_MAP_PCT = 42;
 const MIN_MAP_PX = 300;
 const MIN_CONTENT_PX = 420;
-
-const TABS = [
-  { id: "plan", key: "tab.destinations", icon: MapPinned },
-  { id: "details", key: "tab.details", icon: FolderOpen },
-  { id: "view", key: "tab.dayByDay", icon: PlayCircle },
-  { id: "budget", key: "tab.budget", icon: Wallet },
-];
 
 /**
  * Screen gate. Four states, in order:
@@ -342,30 +329,6 @@ function TripEditor({ onBackToTrips }) {
             onChangeView={setView}
             onBackToTrips={onBackToTrips}
           />
-
-          {/* Duplicates the floating bottom nav, so it's only worth its
-              vertical space on desktop; phones navigate from the bottom bar. */}
-          <nav
-            aria-label={t("nav.sections")}
-            className="hidden shrink-0 gap-1 border-b border-line bg-surface px-5 md:px-8 lg:flex"
-          >
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setView(tab.id)}
-                aria-current={view === tab.id ? "true" : undefined}
-                className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${
-                  view === tab.id
-                    ? "border-accent font-semibold text-accent"
-                    : "border-transparent text-muted hover:text-fg"
-                }`}
-              >
-                <tab.icon size={16} strokeWidth={2.1} />
-                {t(tab.key)}
-              </button>
-            ))}
-          </nav>
 
           {/* Padded so the last row clears the floating bar. */}
           <div className="min-h-0 flex-1 overflow-y-auto pb-24">

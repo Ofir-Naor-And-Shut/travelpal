@@ -1748,7 +1748,7 @@ function liveDayEntries(trip) {
  * rather than adding to it — you only sleep in one bed a night, so counting
  * both would inflate the budget.
  */
-function sleepingCost(trip, dest) {
+export function sleepingCost(trip, dest) {
   const nightly = num(dest.sleeping?.cost);
   return Array.from({ length: dest.nights }, (_, n) => {
     const override = getDay(trip, dayKey(dest.id, n)).accommodation;

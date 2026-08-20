@@ -239,7 +239,9 @@ export default function TripPicker({ onSelect }) {
                     <span
                       className={`absolute end-3 top-3 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider ${STATUS_STYLE[tripStatus]}`}
                     >
-                      {t(`picker.status${tripStatus[0].toUpperCase()}${tripStatus.slice(1)}`)}
+                      {t(
+                        `picker.status${tripStatus[0].toUpperCase()}${tripStatus.slice(1)}`,
+                      )}
                     </span>
                   </div>
 
@@ -310,7 +312,11 @@ function AccountBar({ session, localOnly, t }) {
   // so this just needs the sign-out action, not a redundant email label.
   if (email) {
     return (
-      <button type="button" className="btn-ghost !py-1.5 text-sm" onClick={signOut}>
+      <button
+        type="button"
+        className="btn-ghost !py-1.5 text-sm"
+        onClick={signOut}
+      >
         <LogOut size={14} />
         {t("picker.signOut")}
       </button>

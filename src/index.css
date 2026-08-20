@@ -268,20 +268,6 @@
   font-family: var(--font-sans);
 }
 
-.leaflet-control-zoom a {
-  background: var(--c-surface) !important;
-  color: var(--c-fg) !important;
-  border-color: var(--c-line) !important;
-}
-
-/* Leaflet pins the zoom control to the *physical* top-left, but our own map
-   chrome anchors with logical properties — so the top-left corner is taken by
-   the day-route badge in LTR and by the basemap picker in RTL. Drop the zoom
-   control below that top chrome row so it never sits under either one. */
-.leaflet-top.leaflet-left .leaflet-control-zoom {
-  margin-top: 3.25rem;
-}
-
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background: var(--c-surface);

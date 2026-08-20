@@ -203,18 +203,15 @@ function DayCard({
 
   // Tailwind has no logical border-color utility, so the coloured start-edge
   // stripe (mirrors correctly in RTL) is set directly via CSS custom props.
-  const railColor = focused || isToday || isOpen ? "var(--c-accent)" : "var(--c-line)";
+  const railColor =
+    focused || isToday || isOpen ? "var(--c-accent)" : "var(--c-line)";
 
   return (
     <div
       ref={cardRef}
       style={{ borderInlineStartWidth: 4, borderInlineStartColor: railColor }}
       className={`card transition-all ${
-        focused
-          ? "ring-2 ring-accent"
-          : isToday
-            ? "ring-2 ring-accent/40"
-            : ""
+        focused ? "ring-2 ring-accent" : isToday ? "ring-2 ring-accent/40" : ""
       }`}
     >
       <div className="flex items-start gap-4 p-4">
@@ -440,7 +437,8 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="col-head">
-          <Landmark size={13} className="text-cat-attractions" /> {t("attractions.title")}
+          <Landmark size={13} className="text-cat-attractions" />{" "}
+          {t("attractions.title")}
         </h4>
         {total > 0 && (
           <span className="tabular text-xs font-semibold text-fg">
@@ -600,7 +598,8 @@ function ReservationsSection({ dayKeyValue, reservations, currency }) {
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="col-head">
-          <CalendarCheck size={13} className="text-cat-reservations" /> {t("reserved.title")}
+          <CalendarCheck size={13} className="text-cat-reservations" />{" "}
+          {t("reserved.title")}
         </h4>
         {total > 0 && (
           <span className="tabular text-xs font-semibold text-fg">
@@ -647,7 +646,10 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
   return (
     <li
       className="rounded-lg border border-line bg-surface p-2"
-      style={{ borderInlineStartWidth: 3, borderInlineStartColor: "var(--color-cat-reservations)" }}
+      style={{
+        borderInlineStartWidth: 3,
+        borderInlineStartColor: "var(--color-cat-reservations)",
+      }}
     >
       <div className="flex flex-wrap items-center gap-2">
         <DoneCheckbox
@@ -684,7 +686,9 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
               placeholder="0"
               value={r.cost || ""}
               onChange={(e) =>
-                updateReservation(dayKeyValue, r.id, { cost: num(e.target.value) })
+                updateReservation(dayKeyValue, r.id, {
+                  cost: num(e.target.value),
+                })
               }
             />
           </label>
