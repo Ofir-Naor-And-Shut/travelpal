@@ -17,7 +17,7 @@ import {
   useCloudMode,
   useTripRole,
 } from "../lib/store.js";
-import { signOut, useSession } from "../lib/auth.js";
+import { sessionEmail, signOut, useSession } from "../lib/auth.js";
 import { exportTripPdf } from "../lib/exportPdf.js";
 import ShareModal from "./ShareModal.jsx";
 import { useI18n } from "../lib/i18n.js";
@@ -43,6 +43,7 @@ const SECTIONS = [
 export default function TripMenu({ trip, view, onChangeView, onBackToTrips }) {
   const { t } = useI18n();
   const { session } = useSession();
+  const email = sessionEmail(session);
   const cloudMode = useCloudMode();
   const role = useTripRole(trip.id);
 
@@ -211,16 +212,23 @@ export default function TripMenu({ trip, view, onChangeView, onBackToTrips }) {
 
           {/* Only signed-in users have a session to end; local-only users sign
               in from the picker instead. */}
-          {session && (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={signOut}
-              className={itemClass}
-            >
-              <LogOut size={16} className="shrink-0" />
-              {t("picker.signOut")}
-            </button>
+          {email && (
+            <>
+              <div className="my-1 border-t border-line" />
+              <p className="px-3 pb-1 pt-2.5 text-[0.7rem] font-semibold uppercase tracking-wide text-subtle">
+                {t("account.label")}
+              </p>
+              <p className="truncate px-3 pb-2 text-sm text-fg">{email}</p>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={signOut}
+                className={itemClass}
+              >
+                <LogOut size={16} className="shrink-0" />
+                {t("picker.signOut")}
+              </button>
+            </>
           )}
         </div>
       )}

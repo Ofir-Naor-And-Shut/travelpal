@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
-import { Check, Pencil } from "lucide-react";
+import { CalendarDays, Check, Moon, Pencil } from "lucide-react";
 import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
 import TripSwitcher from "./TripSwitcher.jsx";
@@ -98,7 +98,7 @@ export default function TripHeader({
             </div>
           ) : (
             <>
-              <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-fg md:text-2xl">
+              <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-accent md:text-2xl">
                 <span className="truncate">{trip.title}</span>
                 <span aria-hidden>{trip.emoji}</span>
                 <button
@@ -110,12 +110,15 @@ export default function TripHeader({
                   <Pencil size={15} />
                 </button>
               </h1>
-              <p className="tabular mt-0.5 text-sm text-muted">{range}</p>
+              <p className="tabular mt-1 flex items-center gap-1.5 text-sm text-muted">
+                <CalendarDays size={14} />
+                {range}
+              </p>
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 rounded-xl border border-line bg-raised px-4 py-2.5">
           <div className="text-end">
             <p className="tabular text-xl font-semibold text-fg">
               {formatMoney(stats.total, trip.currency)}
@@ -144,7 +147,7 @@ export default function TripHeader({
             </label>
           </div>
 
-          <div className="flex items-center gap-2.5 border-s border-line ps-6">
+          <div className="flex items-center gap-2.5 border-s border-line ps-4">
             <ProgressRing
               value={stats.plannedNights}
               total={stats.totalNights}
@@ -155,7 +158,10 @@ export default function TripHeader({
               })}
             />
             <div className="text-sm leading-tight">
-              <p className="font-semibold text-fg">{t("header.nights")}</p>
+              <p className="flex items-center gap-1 font-semibold text-fg">
+                <Moon size={13} className="text-muted" />
+                {t("header.nights")}
+              </p>
               <p className="text-muted">{t("header.planned")}</p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { format, isSameDay } from "date-fns";
 import {
+  ArrowRight,
   Bed,
   CalendarCheck,
   ChevronDown,
@@ -109,37 +110,55 @@ export default function ItineraryView({
             />
 
             {day.leg.length > 0 && day.next && (
-              <p
-                className="my-1 ms-16 inline-flex items-center gap-2 rounded-full border bg-surface px-3 py-1 text-xs"
+              <div
+                className="my-1.5 ms-16 flex items-center justify-between gap-3 rounded-xl border p-2.5 text-xs"
                 style={{
-                  borderColor: `${modeColor(day.leg[0].mode)}66`,
-                  color: modeColor(day.leg[0].mode),
+                  borderColor: `${modeColor(day.leg[0].mode)}40`,
+                  background: `${modeColor(day.leg[0].mode)}14`,
                 }}
               >
-                {/* One icon per hop, so a connection reads as a connection. */}
-                {day.leg.map((segment, s) => (
-                  <span key={segment.id} className="flex items-center gap-1">
-                    {s > 0 && (
-                      <span aria-hidden className="text-[9px] text-subtle">
-                        ›
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {/* One icon per hop, so a connection reads as a connection. */}
+                  <span
+                    className="flex shrink-0 items-center gap-0.5 rounded-lg px-2 py-1.5"
+                    style={{ background: `${modeColor(day.leg[0].mode)}26` }}
+                  >
+                    {day.leg.map((segment, s) => (
+                      <span
+                        key={segment.id}
+                        className="flex items-center gap-0.5"
+                      >
+                        {s > 0 && (
+                          <span aria-hidden className="text-[9px] text-subtle">
+                            ›
+                          </span>
+                        )}
+                        <TransportIcon
+                          mode={segment.mode}
+                          size={14}
+                          style={{ color: modeColor(segment.mode) }}
+                        />
                       </span>
-                    )}
-                    <TransportIcon
-                      mode={segment.mode}
-                      size={13}
-                      style={{ color: modeColor(segment.mode) }}
-                    />
+                    ))}
                   </span>
-                ))}
-                <span className="tabular">
-                  {t("day.to", { name: day.next.name })}
-                  {day.leg.reduce((s, x) => s + num(x.durationMin), 0)
-                    ? ` · ${formatDuration(
-                        day.leg.reduce((s, x) => s + num(x.durationMin), 0),
-                      )}`
-                    : ""}
-                </span>
-              </p>
+                  <span
+                    className="tabular min-w-0 truncate font-medium"
+                    style={{ color: modeColor(day.leg[0].mode) }}
+                  >
+                    {t("day.to", { name: day.next.name })}
+                    {day.leg.reduce((s, x) => s + num(x.durationMin), 0)
+                      ? ` · ${formatDuration(
+                          day.leg.reduce((s, x) => s + num(x.durationMin), 0),
+                        )}`
+                      : ""}
+                  </span>
+                </div>
+                <ArrowRight
+                  size={15}
+                  className="shrink-0"
+                  style={{ color: modeColor(day.leg[0].mode) }}
+                />
+              </div>
             )}
           </li>
         ))}
@@ -182,11 +201,20 @@ function DayCard({
     return () => clearTimeout(timer);
   }, [focused, onFocusHandled]);
 
+  // Tailwind has no logical border-color utility, so the coloured start-edge
+  // stripe (mirrors correctly in RTL) is set directly via CSS custom props.
+  const railColor = focused || isToday || isOpen ? "var(--c-accent)" : "var(--c-line)";
+
   return (
     <div
       ref={cardRef}
-      className={`card transition-shadow ${
-        focused ? "ring-2 ring-accent" : isToday ? "ring-2 ring-accent/40" : ""
+      style={{ borderInlineStartWidth: 4, borderInlineStartColor: railColor }}
+      className={`card transition-all ${
+        focused
+          ? "ring-2 ring-accent"
+          : isToday
+            ? "ring-2 ring-accent/40"
+            : ""
       }`}
     >
       <div className="flex items-start gap-4 p-4">
@@ -208,11 +236,11 @@ function DayCard({
           </p>
           <p className="truncate text-[15px] font-semibold">{day.dest.name}</p>
 
-          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+          <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs text-muted">
             {/* The night's own accommodation wins over the destination's. */}
             {(accommodation?.name || day.dest.sleeping?.name) && (
-              <span className="inline-flex items-center gap-1.5">
-                <Bed size={13} />
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-raised px-2 py-1">
+                <Bed size={13} className="text-cat-sleeping" />
                 {accommodation?.name || day.dest.sleeping.name}
                 {accommodation?.name && (
                   <span className="rounded-full bg-accent-soft px-1.5 text-[9px] font-bold uppercase text-accent">
@@ -222,12 +250,12 @@ function DayCard({
               </span>
             )}
             {accommodation?.documents.length > 0 && (
-              <span className="tabular inline-flex items-center gap-1.5">
+              <span className="tabular inline-flex items-center gap-1.5 rounded-md bg-raised px-2 py-1">
                 <Paperclip size={13} /> {accommodation.documents.length}
               </span>
             )}
             {totalItems > 0 && (
-              <span className="tabular inline-flex items-center gap-1.5">
+              <span className="tabular inline-flex items-center gap-1.5 rounded-md bg-raised px-2 py-1">
                 <CalendarCheck size={13} />{" "}
                 {t("day.done", { done: doneItems, total: totalItems })}
               </span>
@@ -307,7 +335,7 @@ function AccommodationSection({
       <section className="rounded-xl border border-line bg-raised p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h4 className="col-head">
-            <Bed size={13} /> {t("dayStay.title")}
+            <Bed size={13} className="text-cat-sleeping" /> {t("dayStay.title")}
           </h4>
           <button
             type="button"
@@ -330,7 +358,7 @@ function AccommodationSection({
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h4 className="col-head">
-          <Bed size={13} /> {t("dayStay.title")}
+          <Bed size={13} className="text-cat-sleeping" /> {t("dayStay.title")}
         </h4>
         <button
           type="button"
@@ -412,7 +440,7 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="col-head">
-          <Landmark size={13} /> {t("attractions.title")}
+          <Landmark size={13} className="text-cat-attractions" /> {t("attractions.title")}
         </h4>
         {total > 0 && (
           <span className="tabular text-xs font-semibold text-fg">
@@ -431,7 +459,7 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
             <Fragment key={a.id}>
               <li
                 {...drag.itemProps(i)}
-                className={`relative rounded-lg p-1.5 transition-colors ${
+                className={`relative rounded-lg border border-transparent p-1.5 transition-colors hover:border-line hover:bg-surface ${
                   drag.dragIndex === i ? "opacity-40" : ""
                 }`}
               >
@@ -490,29 +518,33 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                   </button>
                   {/* Time + cost drop to their own full-width row on phones, so
                       neither is squeezed; on desktop they sit inline as before. */}
-                  <div className="order-3 flex basis-full items-center gap-2 lg:order-none lg:basis-auto">
+                  <div className="order-3 flex basis-full items-end gap-2 lg:order-none lg:basis-auto">
                     <TimeField
                       value={a.time}
                       onChange={(time) =>
                         updateAttraction(dayKeyValue, a.id, { time })
                       }
-                      label={t("attractions.time")}
+                      label={t("field.time")}
                       className="flex-1 lg:!w-20 lg:flex-none"
                     />
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="field tabular flex-1 lg:!w-24 lg:flex-none"
-                      placeholder="0"
-                      value={a.cost || ""}
-                      onChange={(e) =>
-                        updateAttraction(dayKeyValue, a.id, {
-                          cost: num(e.target.value),
-                        })
-                      }
-                      aria-label={t("attractions.cost")}
-                    />
+                    <label className="flex flex-1 flex-col gap-0.5 lg:!w-24 lg:flex-none">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-subtle">
+                        {t("field.cost")}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="field tabular w-full"
+                        placeholder="0"
+                        value={a.cost || ""}
+                        onChange={(e) =>
+                          updateAttraction(dayKeyValue, a.id, {
+                            cost: num(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -568,7 +600,7 @@ function ReservationsSection({ dayKeyValue, reservations, currency }) {
     <section className="rounded-xl border border-line bg-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="col-head">
-          <CalendarCheck size={13} /> {t("reserved.title")}
+          <CalendarCheck size={13} className="text-cat-reservations" /> {t("reserved.title")}
         </h4>
         {total > 0 && (
           <span className="tabular text-xs font-semibold text-fg">
@@ -613,7 +645,10 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
   );
 
   return (
-    <li className="rounded-lg border border-line bg-surface p-2">
+    <li
+      className="rounded-lg border border-line bg-surface p-2"
+      style={{ borderInlineStartWidth: 3, borderInlineStartColor: "var(--color-cat-reservations)" }}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <DoneCheckbox
           checked={r.done}
@@ -630,25 +665,29 @@ function ReservationRow({ dayKeyValue, reservation: r }) {
         />
         {/* Time + cost drop to their own full-width row on phones; inline on
             desktop as before. */}
-        <div className="order-4 flex basis-full items-center gap-2 lg:order-none lg:basis-auto">
+        <div className="order-4 flex basis-full items-end gap-2 lg:order-none lg:basis-auto">
           <TimeField
             value={r.time}
             onChange={(time) => updateReservation(dayKeyValue, r.id, { time })}
-            label={t("reserved.time")}
+            label={t("field.time")}
             className="flex-1 lg:!w-20 lg:flex-none"
           />
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="field tabular flex-1 lg:!w-24 lg:flex-none"
-            placeholder="0"
-            value={r.cost || ""}
-            onChange={(e) =>
-              updateReservation(dayKeyValue, r.id, { cost: num(e.target.value) })
-            }
-            aria-label={t("reserved.cost")}
-          />
+          <label className="flex flex-1 flex-col gap-0.5 lg:!w-24 lg:flex-none">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-subtle">
+              {t("field.cost")}
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="field tabular w-full"
+              placeholder="0"
+              value={r.cost || ""}
+              onChange={(e) =>
+                updateReservation(dayKeyValue, r.id, { cost: num(e.target.value) })
+              }
+            />
+          </label>
         </div>
         <button
           type="button"

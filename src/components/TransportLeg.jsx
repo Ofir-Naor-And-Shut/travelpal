@@ -75,11 +75,11 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
         style={{ background: leadColor }}
       />
 
-      <div className="relative flex items-center gap-2 py-2 ps-3">
+      <div className="relative flex items-center gap-2 py-2 ps-10">
         {/* Every mode in the journey, in order. */}
         <span
-          className="flex shrink-0 items-center gap-0.5 rounded-full border-2 bg-surface px-1.5 py-1"
-          style={{ borderColor: leadColor }}
+          className="flex shrink-0 items-center gap-0.5 rounded-full border-2 px-1.5 py-1"
+          style={{ borderColor: leadColor, background: `${leadColor}17` }}
           title={segments.map((s) => t(`mode.${s.mode}`)).join(" → ")}
         >
           {segments.length === 0 ? (
@@ -111,10 +111,14 @@ export default function TransportLeg({ from, to, currency, suggestedKm }) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="inline-flex items-center gap-2 rounded-full border bg-surface px-3 py-1
+          className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5
                      text-xs font-medium transition hover:shadow-sm
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          style={{ borderColor: `${leadColor}66`, color: leadColor }}
+          style={{
+            borderColor: `${leadColor}55`,
+            color: leadColor,
+            background: `${leadColor}17`,
+          }}
         >
           <span className="tabular">
             {summary.length

@@ -38,9 +38,13 @@ export default function DestinationRow({
       {...dragProps}
       onMouseEnter={() => onHover?.(dest.id)}
       onMouseLeave={() => onHover?.(null)}
-      className={`relative rounded-xl transition-colors ${
+      className={`relative rounded-xl border transition-all ${
         isDragging ? 'opacity-40' : ''
-      } ${active && !isDragging ? 'bg-raised' : 'hover:bg-raised/60'}`}
+      } ${
+        active && !isDragging
+          ? 'border-accent bg-raised shadow-sm'
+          : 'border-line bg-surface shadow-sm hover:shadow-md'
+      }`}
     >
       {/* Insertion line: shows exactly where the row will land, which reads
           the same whether you came from above or below. */}
@@ -65,10 +69,10 @@ export default function DestinationRow({
           </span>
           <span
             aria-hidden
-            className={`tabular grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold transition ${
+            className={`tabular grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold transition ${
               active
-                ? 'border-accent bg-accent text-on-accent'
-                : 'border-line-strong bg-surface text-fg'
+                ? 'bg-accent text-on-accent'
+                : 'bg-accent-soft text-accent'
             }`}
           >
             {index + 1}
@@ -100,29 +104,31 @@ export default function DestinationRow({
             enough to show the column header, where alignment matters; below
             that the row wraps and natural sizing keeps it compact. */}
         <div className="flex shrink-0 items-center justify-center gap-2 @[700px]:w-[116px]">
-          <button
-            type="button"
-            className="stepper-btn"
-            onClick={() => setNights(dest.id, dest.nights - 1)}
-            disabled={dest.nights <= 0}
-            aria-label={t('plan.removeNight', { name: dest.name })}
-          >
-            <Minus size={14} />
-          </button>
-          <span className="tabular w-10 text-center text-sm font-semibold">
-            {dest.nights}
-            <span className="block text-[10px] font-normal text-muted">
-              {nightWord}
+          <div className="flex items-center gap-1.5 rounded-full bg-raised px-1.5 py-1">
+            <button
+              type="button"
+              className="stepper-btn !size-6"
+              onClick={() => setNights(dest.id, dest.nights - 1)}
+              disabled={dest.nights <= 0}
+              aria-label={t('plan.removeNight', { name: dest.name })}
+            >
+              <Minus size={13} />
+            </button>
+            <span className="tabular w-10 text-center text-sm font-semibold">
+              {dest.nights}
+              <span className="block text-[10px] font-normal text-muted">
+                {nightWord}
+              </span>
             </span>
-          </span>
-          <button
-            type="button"
-            className="stepper-btn"
-            onClick={() => setNights(dest.id, dest.nights + 1)}
-            aria-label={t('plan.addNight', { name: dest.name })}
-          >
-            <Plus size={14} />
-          </button>
+            <button
+              type="button"
+              className="stepper-btn !size-6"
+              onClick={() => setNights(dest.id, dest.nights + 1)}
+              aria-label={t('plan.addNight', { name: dest.name })}
+            >
+              <Plus size={13} />
+            </button>
+          </div>
         </div>
 
         {/* Reorder + delete */}

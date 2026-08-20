@@ -6,7 +6,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { Map as MapIcon } from "lucide-react";
+import {
+  FolderOpen,
+  Map as MapIcon,
+  MapPinned,
+  PlayCircle,
+  Wallet,
+} from "lucide-react";
 import BottomNav from "./components/BottomNav.jsx";
 import TripHeader from "./components/TripHeader.jsx";
 import PlanView from "./components/PlanView.jsx";
@@ -50,10 +56,10 @@ const MIN_MAP_PX = 300;
 const MIN_CONTENT_PX = 420;
 
 const TABS = [
-  { id: "plan", key: "tab.destinations" },
-  { id: "details", key: "tab.details" },
-  { id: "view", key: "tab.dayByDay" },
-  { id: "budget", key: "tab.budget" },
+  { id: "plan", key: "tab.destinations", icon: MapPinned },
+  { id: "details", key: "tab.details", icon: FolderOpen },
+  { id: "view", key: "tab.dayByDay", icon: PlayCircle },
+  { id: "budget", key: "tab.budget", icon: Wallet },
 ];
 
 /**
@@ -349,12 +355,13 @@ function TripEditor({ onBackToTrips }) {
                 type="button"
                 onClick={() => setView(tab.id)}
                 aria-current={view === tab.id ? "true" : undefined}
-                className={`-mb-px border-b-2 px-3 py-3 text-sm font-medium transition ${
+                className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${
                   view === tab.id
-                    ? "border-accent text-fg"
+                    ? "border-accent font-semibold text-accent"
                     : "border-transparent text-muted hover:text-fg"
                 }`}
               >
+                <tab.icon size={16} strokeWidth={2.1} />
                 {t(tab.key)}
               </button>
             ))}

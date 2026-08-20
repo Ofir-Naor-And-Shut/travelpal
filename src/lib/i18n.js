@@ -14,7 +14,7 @@ const INTL_LOCALES = { en: "en-GB", he: "he-IL" };
 const STRINGS = {
   en: {
     // shell
-    "app.name": "Project Travel",
+    "app.name": "TravelPal",
     "nav.main": "Main",
     "nav.sections": "Trip sections",
     "nav.view": "View",
@@ -41,6 +41,13 @@ const STRINGS = {
     // auth (magic-link sign in / sign up)
     "auth.tagline":
       "Plan trips that live in your browser — and in your account.",
+    "auth.heroHeadline": "Plan every trip, offline and in your pocket.",
+    "auth.heroBody":
+      "Organize itineraries, track budgets, and explore interactive maps — all without worrying about a connection.",
+    "auth.trustNote":
+      "Secure & private. Your data never leaves this device unless you choose to sync it.",
+    "auth.welcomeTitle": "Welcome back",
+    "auth.welcomeSubtitle": "Enter your email to sign in or create an account.",
     "auth.emailLabel": "Email address",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "Send magic link",
@@ -66,6 +73,14 @@ const STRINGS = {
     // trip picker (the landing screen after signing in)
     "picker.title": "Your trips",
     "picker.subtitle": "Pick a trip to open, or start a new one.",
+    "picker.welcomeName": "Welcome back, {name}!",
+    "picker.welcomeSubtitle": "Ready for your next adventure?",
+    "picker.statusActive": "Active",
+    "picker.statusUpcoming": "Upcoming",
+    "picker.statusPast": "Past",
+    "picker.filterUpcoming": "Upcoming",
+    "picker.filterPast": "Past",
+    "picker.viewDetails": "View details",
     "picker.new": "New trip",
     "picker.open": "Open {name}",
     "picker.nights": "{count} nights",
@@ -87,10 +102,12 @@ const STRINGS = {
     "header.allTrips": "All trips",
     "header.menu": "Menu",
     "header.goTo": "Go to",
+    "account.label": "Account",
 
     // language + theme
     "lang.label": "Language",
     "lang.change": "Change language",
+    "theme.change": "Change theme",
     "theme.label": "Theme",
     "theme.light": "Light",
     "theme.dark": "Dark",
@@ -247,6 +264,8 @@ const STRINGS = {
     "day.show": "Show",
     "day.hide": "Hide",
     "day.to": "To {name}",
+    "field.time": "Time",
+    "field.cost": "Cost",
     "attractions.title": "Attractions",
     "attractions.placeholder": "Temple, museum, viewpoint…",
     "attractions.add": "Add attraction",
@@ -408,7 +427,7 @@ const STRINGS = {
   },
 
   he: {
-    "app.name": "מסע",
+    "app.name": "TravelPal",
     "nav.main": "ראשי",
     "nav.sections": "חלקי הטיול",
     "nav.view": "תצוגה",
@@ -433,6 +452,13 @@ const STRINGS = {
 
     // auth (magic-link sign in / sign up)
     "auth.tagline": "לתכנן טיולים שנשמרים בדפדפן — ועכשיו גם בחשבון שלך.",
+    "auth.heroHeadline": "לתכנן כל טיול, אופליין וממש בכיס שלכם.",
+    "auth.heroBody":
+      "לארגן מסלולים, לעקוב אחרי תקציב ולחקור מפות אינטראקטיביות — בלי לדאוג לחיבור לאינטרנט.",
+    "auth.trustNote":
+      "מאובטח ופרטי. המידע שלכם לא יוצא מהמכשיר הזה, אלא אם תבחרו לסנכרן אותו.",
+    "auth.welcomeTitle": "ברוכים השבים",
+    "auth.welcomeSubtitle": "הזינו את כתובת האימייל שלכם כדי להיכנס או ליצור חשבון.",
     "auth.emailLabel": "כתובת אימייל",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "שליחת קישור כניסה",
@@ -458,6 +484,14 @@ const STRINGS = {
     // trip picker (the landing screen after signing in)
     "picker.title": "הטיולים שלך",
     "picker.subtitle": "בחרו טיול לפתיחה, או התחילו טיול חדש.",
+    "picker.welcomeName": "ברוכים השבים, {name}!",
+    "picker.welcomeSubtitle": "מוכנים להרפתקה הבאה שלכם?",
+    "picker.statusActive": "פעיל",
+    "picker.statusUpcoming": "בקרוב",
+    "picker.statusPast": "עבר",
+    "picker.filterUpcoming": "בקרוב",
+    "picker.filterPast": "עבר",
+    "picker.viewDetails": "לצפייה בפרטים",
     "picker.new": "טיול חדש",
     "picker.open": "פתיחת {name}",
     "picker.nights": "{count} לילות",
@@ -479,9 +513,11 @@ const STRINGS = {
     "header.allTrips": "כל הטיולים",
     "header.menu": "תפריט",
     "header.goTo": "מעבר אל",
+    "account.label": "חשבון",
 
     "lang.label": "שפה",
     "lang.change": "שינוי שפה",
+    "theme.change": "שינוי ערכת נושא",
     "theme.label": "ערכת נושא",
     "theme.light": "בהיר",
     "theme.dark": "כהה",
@@ -618,6 +654,8 @@ const STRINGS = {
     "day.show": "הצגת",
     "day.hide": "הסתרת",
     "day.to": "אל {name}",
+    "field.time": "שעה",
+    "field.cost": "עלות",
     "attractions.title": "אטרקציות",
     "attractions.placeholder": "מקדש, מוזיאון, נקודת תצפית…",
     "attractions.add": "הוספת אטרקציה",

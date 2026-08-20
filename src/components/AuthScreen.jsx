@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { Check, LogIn, MailCheck, RefreshCw, Send } from "lucide-react";
+import {
+  BedDouble,
+  Check,
+  Lock,
+  LogIn,
+  MailCheck,
+  MoveRight,
+  Plane,
+  RefreshCw,
+  Sparkles,
+  UtensilsCrossed,
+} from "lucide-react";
 import AppControls from "./AppControls.jsx";
 import {
   sendMagicLink,
@@ -84,23 +95,66 @@ export default function AuthScreen() {
   };
 
   return (
-    <div className="relative flex min-h-full flex-col items-center justify-center bg-canvas px-5 py-12">
-      <div className="absolute inset-x-0 top-0 flex justify-center p-4">
+    <div className="bg-wander relative flex min-h-full flex-col lg:flex-row">
+      <div className="absolute inset-x-0 top-0 z-10 flex justify-center p-4 lg:justify-end lg:pe-6">
         <AppControls />
       </div>
 
-      <div className="card w-full max-w-sm p-7 shadow-xl shadow-brand-950/10">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-accent-soft text-2xl">
-            🌍
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-fg">
-            {t("app.name")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("auth.tagline")}</p>
-        </div>
+      {/* Hero panel — sets the mood; hidden on phones where the card below
+          carries the same message more compactly. Transparent so the shared
+          page backdrop shows through both halves. */}
+      <div className="relative hidden lg:flex lg:w-1/2 lg:items-center lg:justify-center lg:p-16 xl:p-24">
+        <div className="relative z-10 w-full max-w-md">
+          <img
+            src="/logo.png"
+            alt={t("app.name")}
+            className="mb-8 h-20 w-20 rounded-2xl shadow-sm"
+          />
 
-        {sent ? (
+          <h1 className="text-4xl font-semibold leading-tight tracking-tight text-fg">
+            {t("auth.heroHeadline")}
+          </h1>
+          <p className="mt-4 max-w-sm text-base text-muted">
+            {t("auth.heroBody")}
+          </p>
+
+          <div className="mt-10 flex gap-3">
+            <div className="grid size-14 place-items-center rounded-2xl border border-line bg-surface/80 shadow-sm backdrop-blur">
+              <Plane size={22} className="text-cat-transport" />
+            </div>
+            <div className="grid size-14 place-items-center rounded-2xl border border-line bg-surface/80 shadow-sm backdrop-blur">
+              <BedDouble size={22} className="text-cat-sleeping" />
+            </div>
+            <div className="grid size-14 place-items-center rounded-2xl border border-line bg-surface/80 shadow-sm backdrop-blur">
+              <UtensilsCrossed size={22} className="text-cat-reservations" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Form panel */}
+      <div className="flex flex-1 flex-col items-center justify-center px-5 py-16 lg:w-1/2 lg:px-16">
+        <div className="card w-full max-w-sm p-7 shadow-xl shadow-shadow/20">
+          <div className="mb-6 text-center lg:hidden">
+            <h1 className="sr-only">{t("app.name")}</h1>
+            <img
+              src="/logo.png"
+              alt={t("app.name")}
+              className="mx-auto mb-3 h-16 w-16 rounded-2xl shadow-sm"
+            />
+            <p className="mt-1 text-sm text-muted">{t("auth.tagline")}</p>
+          </div>
+
+          <div className="mb-6 hidden text-center lg:block lg:text-start">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg">
+              {t("auth.welcomeTitle")}
+            </h2>
+            <p className="mt-1.5 text-sm text-muted">
+              {t("auth.welcomeSubtitle")}
+            </p>
+          </div>
+
+          {sent ? (
           <div className="rounded-xl border border-line bg-raised px-4 py-5 text-center">
             <MailCheck size={22} className="mx-auto mb-2 text-accent" />
             <p className="font-medium text-fg">{t("auth.sentTitle")}</p>
@@ -182,7 +236,7 @@ export default function AuthScreen() {
               className="btn-primary mt-4 w-full"
               disabled={status === "sending"}
             >
-              <Send size={15} />
+              <Sparkles size={15} />
               {status === "sending" ? t("auth.sending") : t("auth.send")}
             </button>
           </form>
@@ -191,10 +245,11 @@ export default function AuthScreen() {
         <div className="mt-5 border-t border-line pt-4 text-center">
           <button
             type="button"
-            className="text-sm font-medium text-muted underline-offset-2 hover:text-fg hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-muted underline-offset-2 hover:text-fg hover:underline"
             onClick={() => setLocalOnly(true)}
           >
             {t("auth.localOnly")}
+            <MoveRight size={14} />
           </button>
           <p className="mt-1 text-xs text-subtle">{t("auth.localOnlyHint")}</p>
         </div>
@@ -263,6 +318,12 @@ export default function AuthScreen() {
             </button>
           )}
         </div>
+
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-subtle">
+          <Lock size={12} />
+          {t("auth.trustNote")}
+        </p>
+      </div>
       </div>
     </div>
   );

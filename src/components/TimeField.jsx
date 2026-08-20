@@ -72,30 +72,34 @@ export default function TimeField({
   }
 
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      // Always read left-to-right, even inside the Hebrew RTL layout.
-      dir="ltr"
-      value={draft}
-      placeholder="--:--"
-      maxLength={5}
-      aria-label={label}
-      className={`field tabular ${className}`}
-      onChange={(e) => setDraft(format(e.target.value))}
-      onBlur={(e) => commit(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          commit(e.currentTarget.value)
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault()
-          step(e.shiftKey ? 60 : 5)
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault()
-          step(e.shiftKey ? -60 : -5)
-        }
-      }}
-    />
+    <label className={`flex flex-col gap-0.5 ${className}`}>
+      <span className="text-[9px] font-semibold uppercase tracking-wide text-subtle">
+        {label}
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        // Always read left-to-right, even inside the Hebrew RTL layout.
+        dir="ltr"
+        value={draft}
+        placeholder="--:--"
+        maxLength={5}
+        className="field tabular w-full"
+        onChange={(e) => setDraft(format(e.target.value))}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit(e.currentTarget.value)
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            step(e.shiftKey ? 60 : 5)
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            step(e.shiftKey ? -60 : -5)
+          }
+        }}
+      />
+    </label>
   )
 }
