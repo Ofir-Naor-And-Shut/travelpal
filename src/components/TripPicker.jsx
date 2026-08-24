@@ -1,15 +1,27 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
-import { Check, LogOut, MoreVertical, Plus, X } from "lucide-react";
+import {
+  Check,
+  ImagePlus,
+  Loader2,
+  LogOut,
+  MoreVertical,
+  Plus,
+  X,
+} from "lucide-react";
 import AppControls from "./AppControls.jsx";
+import TripAvatar from "./TripAvatar.jsx";
 import {
   acceptTripInvitation,
   createTrip,
   deleteTrip,
   leaveSharedTrip,
+  useCloudMode,
   useTripInvitations,
   useTripList,
 } from "../lib/store.js";
+import { MAX_FILE_BYTES, formatBytes } from "../lib/docs.js";
+import { saveTripCover } from "../lib/tripCover.js";
 import {
   sessionEmail,
   setLocalOnly,
@@ -41,6 +53,7 @@ export default function TripPicker({ onSelect }) {
   const invitations = useTripInvitations();
   const { session } = useSession();
   const localOnly = useLocalOnly();
+  const cloudMode = useCloudMode();
   const name = firstNameFrom(sessionEmail(session));
   const [filter, setFilter] = useState("upcoming");
 
@@ -117,9 +130,11 @@ export default function TripPicker({ onSelect }) {
                 const { label, nights } = range(trip);
                 return (
                   <li key={trip.id} className="card p-5">
-                    <span className="text-3xl" aria-hidden>
-                      {trip.emoji}
-                    </span>
+                    <TripAvatar
+                      trip={trip}
+                      size={40}
+                      emojiClassName="text-3xl"
+                    />
                     <span className="mt-3 block truncate text-lg font-semibold text-fg">
                       {trip.title}
                     </span>
@@ -232,10 +247,8 @@ export default function TripPicker({ onSelect }) {
                              hover:shadow-lg hover:shadow-brand-950/10
                              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                  <div className="relative flex h-24 items-center justify-center bg-gradient-to-br from-accent-soft via-raised to-canvas">
-                    <span className="text-4xl" aria-hidden>
-                      {trip.emoji}
-                    </span>
+                  <div className="relative flex h-24 items-center justify-center overflow-hidden bg-gradient-to-br from-accent-soft via-raised to-canvas">
+                    <TripAvatar trip={trip} cover emojiClassName="text-4xl" />
                     <span
                       className={`absolute end-3 top-3 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider ${STATUS_STYLE[tripStatus]}`}
                     >
@@ -296,12 +309,98 @@ export default function TripPicker({ onSelect }) {
                     <LogOut size={15} />
                   </button>
                 )}
+                <CoverUpload trip={trip} cloudMode={cloudMode} />
               </li>
             );
           })}
         </ul>
       </div>
     </div>
+  );
+}
+
+/**
+ * Upload a cover photo for a trip straight from the picker. The bytes go to
+ * IndexedDB (and, signed in, Storage) exactly like a trip document; the trip
+ * keeps only the reference. Sits on the card banner as a small camera button.
+ */
+function CoverUpload({ trip, cloudMode }) {
+  const { t } = useI18n();
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function ingest(file) {
+    if (!file) return;
+    setError("");
+    if (!file.type.startsWith("image/")) {
+      setError(t("cover.imageOnly"));
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError(
+        t("docs.tooBig", {
+          name: file.name,
+          size: formatBytes(file.size),
+          max: formatBytes(MAX_FILE_BYTES),
+        }),
+      );
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await saveTripCover({
+        tripId: trip.id,
+        role: trip.role,
+        file,
+        cloudMode,
+      });
+    } catch (err) {
+      console.error("Cover upload failed", err);
+      setError(t("cover.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        aria-label={t("cover.change", { name: trip.title })}
+        className="absolute end-2 top-14 grid size-8 place-items-center rounded-full
+                   bg-surface/70 text-fg backdrop-blur transition hover:bg-raised
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
+                   disabled:cursor-progress"
+      >
+        {busy ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : (
+          <ImagePlus size={15} />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={(e) => {
+          ingest(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      {error && (
+        <p
+          role="alert"
+          className="absolute inset-x-2 bottom-2 z-10 truncate rounded-md bg-surface/95 px-2 py-1 text-[11px] font-medium text-fg shadow"
+        >
+          {error}
+        </p>
+      )}
+    </>
   );
 }
 

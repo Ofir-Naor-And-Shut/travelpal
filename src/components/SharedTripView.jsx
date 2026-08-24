@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import AppControls from "./AppControls.jsx";
+import TripAvatar from "./TripAvatar.jsx";
 import { fetchSharedTrip } from "../lib/sharing.js";
 import {
   formatDay,
@@ -100,7 +101,7 @@ export default function SharedTripView({ token }) {
         <header className="mb-8">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-fg">
             <span className="truncate">{trip.title}</span>
-            <span aria-hidden>{trip.emoji}</span>
+            <TripAvatar trip={trip} size={24} emojiClassName="" />
           </h1>
           <p className="tabular mt-1 text-sm text-muted">
             {format(parseISO(trip.startDate), "dd/MM/yy")} –{" "}

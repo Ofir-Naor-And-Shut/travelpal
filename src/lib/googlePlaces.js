@@ -197,6 +197,69 @@ export async function resolveGooglePlace(placeId, { details = false } = {}) {
 }
 
 /**
+ * Photo URLs for a place matching `query` — for trip/destination/attraction
+ * imagery. One Text Search (biased to `center` when given, so a place resolves
+ * near the trip rather than to somewhere of the same name elsewhere).
+ *
+ * A bare country/city often resolves to one administrative pin with a single,
+ * unflattering photo — the source of the "weird picture". Callers instead ask
+ * for the region's attractions, which returns many landmarks; we pool their
+ * photos and rank wide, large images first (they read as scenery and crop
+ * cleanly into a banner). Empty when nothing usable is found.
+ */
+export async function fetchPlacePhotos(
+  query,
+  { center, signal, limit = 10, maxWidth = 1200, radiusMeters = 50000 } = {},
+) {
+  const { placesService } = await legacyServices();
+
+  const request = { query };
+  if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
+    request.location = new window.google.maps.LatLng(center.lat, center.lng);
+    request.radius = radiusMeters;
+  }
+
+  const rows = await new Promise((resolve, reject) => {
+    placesService.textSearch(request, (results, status) => {
+      if (!statusOk(status)) {
+        reject(new Error(`Photo search failed: ${status}`));
+        return;
+      }
+      resolve(results ?? []);
+    });
+  });
+
+  if (signal?.aborted) {
+    const error = new Error("Aborted");
+    error.name = "AbortError";
+    throw error;
+  }
+
+  // Pool photos from the top results so there's a real choice to rank, not a
+  // lone administrative pin's one photo.
+  const pool = rows
+    .filter((p) => p.photos?.length)
+    .slice(0, 6)
+    .flatMap((p) => p.photos);
+  if (!pool.length) return [];
+
+  // Landscape and large first: those are the flattering, banner-friendly shots.
+  const ranked = pool.sort((a, b) => {
+    const landscape = (p) => (Number(p.width) >= Number(p.height) ? 1 : 0);
+    const byShape = landscape(b) - landscape(a);
+    if (byShape) return byShape;
+    return (Number(b.width) || 0) - (Number(a.width) || 0);
+  });
+
+  return ranked.slice(0, limit).map((ph) => ph.getUrl({ maxWidth }));
+}
+
+/** The query that yields attractive, on-topic imagery for a place — its
+ *  landmarks rather than a lone administrative pin. Shared so the auto-pick
+ *  and the header's "Sync photo" stay in step. */
+export const attractionsQuery = (place) => `tourist attractions in ${place}`;
+
+/**
  * Text search — for category browsing, where results need coordinates up
  * front rather than a pick-then-resolve flow. Same legacy Places API; phone/
  * website/hours still require a per-result Details call, so those are left

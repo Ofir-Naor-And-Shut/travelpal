@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
+import TripAvatar from "./TripAvatar.jsx";
 import {
   createTrip,
   deleteTrip,
   switchTrip,
   useTripList,
-} from '../lib/store.js'
-import { useI18n } from '../lib/i18n.js'
+} from "../lib/store.js";
+import { useI18n } from "../lib/i18n.js";
 
 /**
  * Switch between trips, create a new one, or delete one.
@@ -17,33 +18,33 @@ import { useI18n } from '../lib/i18n.js'
  * properties so it mirrors correctly in Hebrew.
  */
 export default function TripSwitcher() {
-  const { t } = useI18n()
-  const { activeId, trips } = useTripList()
+  const { t } = useI18n();
+  const { activeId, trips } = useTripList();
 
-  const [open, setOpen] = useState(false)
-  const boxRef = useRef(null)
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return undefined
+    if (!open) return undefined;
     const onAway = (e) => {
-      if (!boxRef.current?.contains(e.target)) setOpen(false)
-    }
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onAway)
-    document.addEventListener('keydown', onKey)
+      if (!boxRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onAway);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('mousedown', onAway)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+      document.removeEventListener("mousedown", onAway);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
-  const active = trips.find((trip) => trip.id === activeId)
+  const active = trips.find((trip) => trip.id === activeId);
 
   const handleDelete = (trip) => {
     // Deleting a trip takes its stops, days and budget with it — guard it.
-    if (!window.confirm(t('trips.confirmDelete', { name: trip.title }))) return
-    deleteTrip(trip.id)
-  }
+    if (!window.confirm(t("trips.confirmDelete", { name: trip.title }))) return;
+    deleteTrip(trip.id);
+  };
 
   return (
     <div ref={boxRef} className="relative">
@@ -52,12 +53,12 @@ export default function TripSwitcher() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={t('trips.switch')}
+        aria-label={t("trips.switch")}
         className="inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-line-strong
                    bg-surface px-2.5 py-2 text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <span aria-hidden>{active?.emoji}</span>
+        <TripAvatar trip={active} size={16} />
         <span className="truncate">{active?.title}</span>
         <ChevronDown size={14} className="shrink-0 text-muted" />
       </button>
@@ -65,12 +66,12 @@ export default function TripSwitcher() {
       {open && (
         <ul
           role="listbox"
-          aria-label={t('trips.label')}
+          aria-label={t("trips.label")}
           className="absolute top-full z-50 mt-1 max-h-[70vh] min-w-[15rem] overflow-y-auto rounded-xl
                      border border-line bg-surface shadow-lg shadow-brand-950/20 end-0"
         >
           {trips.map((trip) => {
-            const current = trip.id === activeId
+            const current = trip.id === activeId;
             return (
               <li
                 key={trip.id}
@@ -81,16 +82,16 @@ export default function TripSwitcher() {
                 <button
                   type="button"
                   onClick={() => {
-                    switchTrip(trip.id)
-                    setOpen(false)
+                    switchTrip(trip.id);
+                    setOpen(false);
                   }}
                   className={`flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-start text-sm transition ${
                     current
-                      ? 'bg-accent-soft font-semibold text-fg'
-                      : 'text-muted hover:bg-raised hover:text-fg'
+                      ? "bg-accent-soft font-semibold text-fg"
+                      : "text-muted hover:bg-raised hover:text-fg"
                   }`}
                 >
-                  <span aria-hidden>{trip.emoji}</span>
+                  <TripAvatar trip={trip} size={16} />
                   <span className="truncate">{trip.title}</span>
                   {current && <Check size={14} className="ms-auto shrink-0" />}
                 </button>
@@ -100,7 +101,7 @@ export default function TripSwitcher() {
                   <button
                     type="button"
                     onClick={() => handleDelete(trip)}
-                    aria-label={t('trips.delete', { name: trip.title })}
+                    aria-label={t("trips.delete", { name: trip.title })}
                     className="grid w-9 shrink-0 place-items-center text-subtle transition
                                hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2
                                focus-visible:outline-accent"
@@ -109,25 +110,25 @@ export default function TripSwitcher() {
                   </button>
                 )}
               </li>
-            )
+            );
           })}
 
           <li className="border-t border-line">
             <button
               type="button"
               onClick={() => {
-                createTrip({ title: t('trips.newTitle') })
-                setOpen(false)
+                createTrip({ title: t("trips.newTitle") });
+                setOpen(false);
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm font-medium text-accent
                          transition hover:bg-raised"
             >
               <Plus size={15} className="shrink-0" />
-              {t('trips.new')}
+              {t("trips.new")}
             </button>
           </li>
         </ul>
       )}
     </div>
-  )
+  );
 }

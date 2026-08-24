@@ -13,6 +13,11 @@ import {
   isTripDownloaded,
   saveTripOffline,
 } from "./offlineCache.js";
+import {
+  attractionsQuery,
+  fetchPlacePhotos,
+  hasGoogleKey,
+} from "./googlePlaces.js";
 
 const STORAGE_KEY = "project-travel:trip:v2";
 const LEGACY_KEY = "project-travel:trip:v1";
@@ -294,6 +299,12 @@ function tripDefaults() {
     id: newId(),
     title: "New trip",
     emoji: "🌍",
+    // A Places photo of the first destination's country; empty means the
+    // emoji still stands in for it.
+    photoUrl: "",
+    // An uploaded cover photo (a doc reference into IndexedDB/Storage). When
+    // set it supersedes photoUrl and the emoji.
+    coverDoc: null,
     startDate: format(today, "yyyy-MM-dd"),
     endDate: format(addDays(today, 1), "yyyy-MM-dd"),
     currency: "EUR",
@@ -632,6 +643,8 @@ async function enterCloudMode(previousMode) {
       id: row.id,
       title: t.title,
       emoji: t.emoji,
+      photoUrl: t.photoUrl,
+      coverDoc: t.coverDoc,
       startDate: t.startDate,
       endDate: t.endDate,
     };
@@ -816,7 +829,7 @@ let state;
 let tripRoles = new Map();
 // Shared trips not yet accepted or declined — kept separate from `trips`/
 // `order` so they never show as editable until the user actually accepts.
-// `{ id, title, emoji, startDate, endDate }[]`, cloud mode only.
+// `{ id, title, emoji, photoUrl, startDate, endDate }[]`, cloud mode only.
 let invitations = [];
 const invitationListeners = new Set();
 function notifyInvitations() {
@@ -917,6 +930,8 @@ function computeRegistry() {
         id,
         title: trip.title,
         emoji: trip.emoji,
+        photoUrl: trip.photoUrl,
+        coverDoc: trip.coverDoc,
         startDate: trip.startDate,
         endDate: trip.endDate,
         // 'owner' everywhere in local-only mode (no ownership concept there);
@@ -1176,6 +1191,7 @@ function mapDestinations(fn) {
 }
 
 export function addDestination(partial) {
+  const wasFirst = state.destinations.length === 0;
   mapDestinations((list) => {
     const next = [...list];
     // The stop that used to be last now needs a leg out to the newcomer.
@@ -1195,12 +1211,75 @@ export function addDestination(partial) {
     );
     return next;
   });
+  if (wasFirst) maybeAutoTripPhoto();
+}
+
+/**
+ * Give a brand-new trip a picture once it has a first stop: a Places photo of
+ * that stop's country. Skipped when the trip already has a picture (so a manual
+ * choice is never overwritten) or when there's no Google key. Best-effort — a
+ * failure just leaves the emoji in place.
+ */
+async function maybeAutoTripPhoto() {
+  if (state.photoUrl || state.coverDoc || !hasGoogleKey()) return;
+  const first = state.destinations[0];
+  const query = first?.country || first?.name;
+  if (!query) return;
+  // Bias the country lookup to the actual stop, so a place named the same
+  // elsewhere doesn't win and its imagery stays on-topic.
+  const center = isPlaced(first)
+    ? { lat: first.lat, lng: first.lng }
+    : undefined;
+  const tripId = state.id;
+  try {
+    const [url] = await fetchPlacePhotos(attractionsQuery(query), {
+      limit: 1,
+      center,
+    });
+    // The user may have switched trips or set a picture while this was in
+    // flight — only apply if the same trip is still bare.
+    if (url && state.id === tripId && !state.photoUrl)
+      updateTrip({ photoUrl: url });
+  } catch {
+    /* leave the emoji */
+  }
 }
 
 export function updateDestination(id, patch) {
   mapDestinations((list) =>
     list.map((d) => (d.id === id ? { ...d, ...patch } : d)),
   );
+}
+
+/** Full trip object for an id (any trip, not just the active one). */
+export function getTripById(id) {
+  return trips.get(id);
+}
+
+/**
+ * Set (or clear, with `null`) a trip's uploaded cover photo, by id — so the
+ * picker can change a trip that isn't the active one. The blob lives in
+ * IndexedDB (and, signed in, Storage); this only records the reference and
+ * clears any remote photo it supersedes.
+ */
+export function setTripCover(tripId, coverDoc) {
+  if (cloudModeActive && !isOnline()) return;
+  const trip = trips.get(tripId);
+  if (!trip) return;
+  const next = {
+    ...trip,
+    coverDoc: coverDoc || null,
+    photoUrl: "",
+    updatedAt: new Date().toISOString(),
+  };
+  trips.set(tripId, next);
+  if (tripId === activeId) {
+    state = next;
+    listeners.forEach((l) => l());
+  }
+  persistTrip(next);
+  pushTrip(next);
+  refreshRegistry();
 }
 
 export function removeDestination(id) {

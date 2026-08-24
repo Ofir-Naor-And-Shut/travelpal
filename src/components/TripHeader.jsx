@@ -5,6 +5,7 @@ import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
 import TripSwitcher from "./TripSwitcher.jsx";
 import TripMenu from "./TripMenu.jsx";
+import TripPhotoControl from "./TripPhotoControl.jsx";
 import { CURRENCIES, updateTrip } from "../lib/store.js";
 import { currencySymbol, formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
@@ -100,7 +101,7 @@ export default function TripHeader({
             <>
               <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-accent md:text-2xl">
                 <span className="truncate">{trip.title}</span>
-                <span aria-hidden>{trip.emoji}</span>
+                <TripPhotoControl trip={trip} />
                 <button
                   type="button"
                   className="btn-ghost !px-2 !py-1"

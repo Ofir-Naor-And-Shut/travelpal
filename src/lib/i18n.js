@@ -116,6 +116,18 @@ const STRINGS = {
 
     // header
     "header.editTrip": "Edit trip name and dates",
+    "header.editPicture": "Edit trip picture",
+    "header.picture": "Trip picture",
+    "header.shufflePhoto": "Sync photo",
+    "header.uploadPhoto": "Upload photo",
+    "header.useEmoji": "Use emoji",
+    "header.pictureHint": "Add a destination to pick a photo.",
+    "header.pictureFromFirst":
+      "Auto photo is from {place}, your first destination.",
+    "header.pictureUploadOnly": "Upload your own cover photo.",
+    "cover.change": "Change cover photo for {name}",
+    "cover.imageOnly": "Please choose an image file.",
+    "cover.failed": "Couldn’t save the cover. Please try again.",
     "header.title": "Trip title",
     "header.startDate": "Trip start date",
     "header.endDate": "Trip end date",
@@ -537,6 +549,18 @@ const STRINGS = {
     "theme.switchTo": "החלפת ערכת נושא (כרגע {mode})",
 
     "header.editTrip": "עריכת שם הטיול והתאריכים",
+    "header.editPicture": "עריכת תמונת הטיול",
+    "header.picture": "תמונת הטיול",
+    "header.shufflePhoto": "סנכרון תמונה",
+    "header.uploadPhoto": "העלאת תמונה",
+    "header.useEmoji": "שימוש באימוג׳י",
+    "header.pictureHint": "הוסיפו יעד כדי לבחור תמונה.",
+    "header.pictureFromFirst":
+      "התמונה האוטומטית מגיעה מ{place}, היעד הראשון שלך.",
+    "header.pictureUploadOnly": "העלו תמונת שער משלכם.",
+    "cover.change": "החלפת תמונת השער של {name}",
+    "cover.imageOnly": "בחרו קובץ תמונה.",
+    "cover.failed": "שמירת התמונה נכשלה. נסו שוב.",
     "header.title": "שם הטיול",
     "header.startDate": "תאריך התחלה",
     "header.endDate": "תאריך סיום",
