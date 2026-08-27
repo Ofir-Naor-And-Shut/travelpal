@@ -121,6 +121,8 @@ function makeDestination(partial = {}) {
     nights: 2,
     sleeping: { name: "", cost: 0 },
     notes: "",
+    // A Places photo of the destination, filled in lazily after it's placed.
+    photoUrl: "",
     travelDocs: [],
     sleepingDocs: [],
     // Segments leaving THIS destination for the next one. Empty on the last.
@@ -212,6 +214,8 @@ export function makeAttraction(partial = {}) {
     phone: "",
     website: "",
     openingHours: "",
+    // A Places photo of the attraction; set on add or filled in lazily.
+    photoUrl: "",
     // How you travel from THIS attraction to the next one that day.
     legOut: null,
     ...partial,
@@ -1251,6 +1255,49 @@ export function updateDestination(id, patch) {
   );
 }
 
+// Destinations we've already tried to fetch a photo for this session, so a
+// failed lookup isn't retried on every re-render of its row.
+const destPhotoTried = new Set();
+
+/**
+ * Give a placed destination a Places photo of its landmarks, once. Best-effort
+ * and idempotent: no-ops without a key, when the stop already has a photo or
+ * isn't placed, and never retries the same stop within a session. Called lazily
+ * from the row so both new and pre-existing stops get filled in.
+ */
+export async function ensureDestinationPhoto(destId) {
+  if (!hasGoogleKey()) return;
+  const dest = state.destinations.find((d) => d.id === destId);
+  if (!dest || dest.photoUrl || !isPlaced(dest)) return;
+
+  const query = dest.name || dest.country;
+  if (!query) return;
+  const tried = `${state.id}:${destId}`;
+  if (destPhotoTried.has(tried)) return;
+  destPhotoTried.add(tried);
+
+  const tripId = state.id;
+  try {
+    const [url] = await fetchPlacePhotos(attractionsQuery(query), {
+      limit: 1,
+      center: { lat: dest.lat, lng: dest.lng },
+    });
+    if (url && state.id === tripId) {
+      // The stop may have been removed or filled meanwhile — re-check before write.
+      const current = state.destinations.find((d) => d.id === destId);
+      if (current && !current.photoUrl)
+        updateDestination(destId, { photoUrl: url });
+    } else if (!url) {
+      // Nothing found this time — let a later attempt retry rather than
+      // permanently giving up on this stop.
+      destPhotoTried.delete(tried);
+    }
+  } catch {
+    // Transient (cold SDK, network) — clear the flag so a re-render retries.
+    destPhotoTried.delete(tried);
+  }
+}
+
 /** Full trip object for an id (any trip, not just the active one). */
 export function getTripById(id) {
   return trips.get(id);
@@ -1542,6 +1589,7 @@ function mutateDay(key, fn) {
 }
 
 export function addAttraction(key, partial = {}) {
+  const created = makeAttraction({ ...partial, legOut: null });
   mutateDay(key, (day) => {
     const next = [...day.attractions];
     // The one that used to be last now needs a leg on to the newcomer.
@@ -1552,9 +1600,11 @@ export function addAttraction(key, partial = {}) {
         legOut: prev.legOut ?? { mode: "walk", durationMin: 0, distanceKm: 0 },
       };
     }
-    next.push(makeAttraction({ ...partial, legOut: null }));
+    next.push(created);
     return { ...day, attractions: next };
   });
+  // A Google pick already carries its photo; anything else placed gets one.
+  if (!created.photoUrl) ensureAttractionPhoto(key, created.id);
 }
 
 /**
@@ -1625,6 +1675,42 @@ export function updateAttraction(key, id, patch) {
       a.id === id ? { ...a, ...patch } : a,
     ),
   }));
+}
+
+// Attractions already tried this session, so a miss isn't retried each render.
+const attractionPhotoTried = new Set();
+
+/**
+ * Give a placed attraction its own Places photo, once. Best-effort and
+ * idempotent — used for stops that arrived without one (a free-text or BizData
+ * pick, or an older save). `single` keeps the lookup to the attraction itself
+ * rather than pooling nearby places.
+ */
+export async function ensureAttractionPhoto(key, id) {
+  if (!hasGoogleKey()) return;
+  const att = state.days[key]?.attractions?.find((a) => a.id === id);
+  if (!att || att.photoUrl || !isPlaced(att) || !att.name) return;
+
+  const tried = `${state.id}:${key}:${id}`;
+  if (attractionPhotoTried.has(tried)) return;
+  attractionPhotoTried.add(tried);
+
+  const tripId = state.id;
+  try {
+    const [url] = await fetchPlacePhotos(att.name, {
+      limit: 1,
+      center: { lat: att.lat, lng: att.lng },
+      single: true,
+    });
+    if (url && state.id === tripId) {
+      const cur = state.days[key]?.attractions?.find((a) => a.id === id);
+      if (cur && !cur.photoUrl) updateAttraction(key, id, { photoUrl: url });
+    } else if (!url) {
+      attractionPhotoTried.delete(tried);
+    }
+  } catch {
+    attractionPhotoTried.delete(tried);
+  }
 }
 
 export function removeAttraction(key, id) {

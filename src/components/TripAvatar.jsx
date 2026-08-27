@@ -15,6 +15,7 @@ export default function TripAvatar({
   cover = false,
   emojiClassName = "",
   className = "",
+  onUrl,
 }) {
   const [failedUrl, setFailedUrl] = useState("");
   const [blobUrl, setBlobUrl] = useState("");
@@ -46,6 +47,12 @@ export default function TripAvatar({
   const remote =
     trip?.photoUrl && trip.photoUrl !== failedUrl ? trip.photoUrl : "";
   const url = blobUrl || remote;
+
+  // Report the actually-shown URL (a live object URL for an uploaded cover, or
+  // the remote photo) so a parent can preview exactly what's displayed.
+  useEffect(() => {
+    onUrl?.(url);
+  }, [url, onUrl]);
 
   if (url) {
     const onError = () => {

@@ -5,6 +5,7 @@ import {
   RefreshCw,
   Smile,
   Upload,
+  ZoomIn,
 } from "lucide-react";
 import TripAvatar from "./TripAvatar.jsx";
 import { updateTrip, useCloudMode, useTripRole } from "../lib/store.js";
@@ -14,6 +15,7 @@ import {
   formatBytes,
 } from "../lib/docs.js";
 import { saveTripCover } from "../lib/tripCover.js";
+import { openLightbox } from "../lib/lightbox.js";
 import {
   attractionsQuery,
   fetchPlacePhotos,
@@ -36,6 +38,9 @@ export default function TripPhotoControl({ trip }) {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // The picture actually shown (a live object URL for an uploaded cover, or
+  // the remote photo) — what the preview opens.
+  const [displayUrl, setDisplayUrl] = useState("");
   const boxRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -127,7 +132,7 @@ export default function TripPhotoControl({ trip }) {
         aria-label={t("header.editPicture")}
         className="group relative grid place-items-center overflow-hidden rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <TripAvatar trip={trip} size={26} />
+        <TripAvatar trip={trip} size={26} onUrl={setDisplayUrl} />
         <span className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 transition group-hover:opacity-100">
           <ImageIcon size={13} className="text-white" />
         </span>
@@ -139,6 +144,18 @@ export default function TripPhotoControl({ trip }) {
             {t("header.picture")}
           </p>
           <div className="flex flex-col gap-1.5">
+            {displayUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  openLightbox(displayUrl);
+                  setOpen(false);
+                }}
+                className="btn-soft w-full justify-start"
+              >
+                <ZoomIn size={14} /> {t("header.previewPhoto")}
+              </button>
+            )}
             {canShuffle && (
               <button
                 type="button"

@@ -18,6 +18,7 @@ import ResizeHandle from "./components/ResizeHandle.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
 import SharedTripView from "./components/SharedTripView.jsx";
+import PhotoLightbox from "./components/PhotoLightbox.jsx";
 import {
   effectiveLastStop,
   getTripRegistry,
@@ -63,7 +64,18 @@ const MIN_CONTENT_PX = 420;
  * All hooks run before any branch, so the rules of hooks hold; the heavy
  * editor and its map only mount once a trip is actually open.
  */
+// Everything renders inside this; the lightbox sits alongside so a picture
+// preview can open from any screen.
 export default function App() {
+  return (
+    <>
+      <AppScreens />
+      <PhotoLightbox />
+    </>
+  );
+}
+
+function AppScreens() {
   const { session, ready } = useSession();
   const localOnly = useLocalOnly();
   const tripsReady = useTripsReady();

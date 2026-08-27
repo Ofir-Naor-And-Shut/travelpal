@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -7,12 +8,14 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  ensureDestinationPhoto,
   moveDestination,
   removeDestination,
   setNights,
   updateDestination,
 } from "../lib/store.js";
 import { formatDay } from "../lib/store.js";
+import { openLightbox } from "../lib/lightbox.js";
 import { useI18n } from "../lib/i18n.js";
 
 export default function DestinationRow({
@@ -30,6 +33,14 @@ export default function DestinationRow({
   dropAfter = false,
 }) {
   const { t } = useI18n();
+
+  const [brokenPhoto, setBrokenPhoto] = useState(false);
+
+  // Fill in a Places photo once the stop is placed; the store no-ops if it
+  // already has one or there's no key.
+  useEffect(() => {
+    if (!dest.photoUrl) ensureDestinationPhoto(dest.id);
+  }, [dest.id, dest.photoUrl]);
 
   const nightWord =
     dest.nights === 1 ? t("plan.night") : t("plan.nightsPlural");
@@ -76,6 +87,22 @@ export default function DestinationRow({
           >
             {index + 1}
           </span>
+          {dest.photoUrl && !brokenPhoto && (
+            <button
+              type="button"
+              onClick={() => openLightbox(dest.photoUrl)}
+              aria-label={t("photo.view", { name: dest.name })}
+              className="shrink-0 overflow-hidden rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <img
+                src={dest.photoUrl}
+                alt=""
+                aria-hidden
+                onError={() => setBrokenPhoto(true)}
+                className="h-12 w-16 object-cover transition hover:opacity-90"
+              />
+            </button>
+          )}
           <div className="min-w-0">
             <input
               value={dest.name}
