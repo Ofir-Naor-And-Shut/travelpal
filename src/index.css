@@ -329,3 +329,78 @@
   background: var(--c-accent-soft);
   color: var(--c-fg);
 }
+
+/* --- Sign-in screen entrance / shine ------------------------------------- */
+/* Small CSS animations stand in for the framer-motion the source design used —
+   a heavy dep for what amounts to a few fade-ins on one screen. */
+@keyframes auth-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes auth-shine {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+
+.auth-card {
+  animation: auth-pop 0.5s ease both;
+}
+
+/* Staggered rise for the panel/form contents; step delays set inline. */
+.auth-rise {
+  animation: auth-rise 0.5s ease both;
+}
+
+/* Sweeping highlight across the primary button on hover. */
+.auth-shine::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inline-size: 5rem;
+  inset-inline-start: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.35),
+    transparent
+  );
+  filter: blur(8px);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.auth-shine:hover::after {
+  animation: auth-shine 1s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .auth-rise {
+    animation: none;
+  }
+  .auth-shine:hover::after {
+    animation: none;
+  }
+}

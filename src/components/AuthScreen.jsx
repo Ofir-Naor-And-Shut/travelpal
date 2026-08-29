@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import {
+<<<<<<< Updated upstream
   CalendarRange,
+=======
+  ArrowRight,
+>>>>>>> Stashed changes
   Check,
   Eye,
   EyeOff,
   LogIn,
   MailCheck,
+<<<<<<< Updated upstream
   MapPin,
   RefreshCw,
   Send,
@@ -13,6 +18,12 @@ import {
 } from "lucide-react";
 import AppControls from "./AppControls.jsx";
 import DotMap from "./DotMap.jsx";
+=======
+  RefreshCw,
+} from "lucide-react";
+import AppControls from "./AppControls.jsx";
+import AuthMap from "./AuthMap.jsx";
+>>>>>>> Stashed changes
 import {
   sendMagicLink,
   setLocalOnly,
@@ -25,10 +36,21 @@ import { useI18n } from "../lib/i18n.js";
 const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 /**
+<<<<<<< Updated upstream
  * Passwordless sign-in / sign-up, in a split hero + form card. One email field:
  * the first link for an address creates the account, every later one just logs
  * in — so there's no separate "sign up" to get wrong. "Continue without an
  * account" drops into the local-only path the whole app still supports.
+=======
+ * Passwordless sign-in / sign-up. One email field: the first link for an
+ * address creates the account, every later one just logs in — so there's no
+ * separate "sign up" to get wrong. "Continue without an account" drops into the
+ * local-only path the whole app still supports.
+ *
+ * Layout is a two-pane card — a decorative animated map on the side (hidden on
+ * phones), the form on the other — restyled from a travel sign-in design but
+ * kept on the app's semantic tokens so it follows theme and RTL.
+>>>>>>> Stashed changes
  */
 export default function AuthScreen() {
   const { t } = useI18n();
@@ -45,6 +67,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [pwVisible, setPwVisible] = useState(false);
   const [pwStatus, setPwStatus] = useState("idle"); // idle | sending | error
+  const [pwVisible, setPwVisible] = useState(false);
 
   // Let the "Link sent" confirmation settle, then re-arm the button so a second
   // resend is possible if the first mail still hasn't arrived.
@@ -103,11 +126,16 @@ export default function AuthScreen() {
   ];
 
   return (
+<<<<<<< Updated upstream
     <div className="relative flex min-h-full flex-col items-center justify-center bg-canvas px-4 py-10">
+=======
+    <div className="relative flex min-h-full flex-col items-center justify-center bg-canvas p-4">
+>>>>>>> Stashed changes
       <div className="absolute inset-x-0 top-0 flex justify-center p-4">
         <AppControls />
       </div>
 
+<<<<<<< Updated upstream
       <div className="card w-full max-w-4xl overflow-hidden shadow-xl shadow-brand-950/10 lg:flex">
         {/* Hero — the animated map + brand. Hidden on phones, where the form
             side carries a compact brand header instead. */}
@@ -148,14 +176,53 @@ export default function AuthScreen() {
                 {t("app.name")}
               </h1>
               <p className="text-xs text-muted">{t("auth.tagline")}</p>
+=======
+      <div className="auth-card card flex w-full max-w-4xl overflow-hidden shadow-xl shadow-brand-950/10">
+        {/* Side panel — decorative map + brand, hidden on phones. */}
+        <div className="relative hidden w-1/2 overflow-hidden border-e border-line bg-gradient-to-br from-accent-soft to-raised md:block">
+          <AuthMap />
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-8 text-center">
+            <div
+              className="auth-rise mb-5 grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-2xl shadow-lg shadow-brand-500/30"
+              style={{ animationDelay: "0.15s" }}
+            >
+              🌍
+>>>>>>> Stashed changes
             </div>
+            <h2
+              className="auth-rise mb-2 bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-3xl font-bold tracking-tight text-transparent"
+              style={{ animationDelay: "0.25s" }}
+            >
+              {t("app.name")}
+            </h2>
+            <p
+              className="auth-rise max-w-xs text-sm text-muted"
+              style={{ animationDelay: "0.35s" }}
+            >
+              {t("auth.tagline")}
+            </p>
           </div>
+<<<<<<< Updated upstream
 
           <div className="mb-7 hidden lg:block">
             <h1 className="text-2xl font-bold tracking-tight text-fg">
               {t("auth.welcome")}
             </h1>
             <p className="mt-1 text-sm text-muted">{t("auth.welcomeSub")}</p>
+=======
+        </div>
+
+        {/* Form pane. */}
+        <div className="flex w-full flex-col justify-center p-8 md:w-1/2 md:p-10">
+          <div className="mb-6 text-center md:hidden">
+            <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-accent-soft text-2xl">
+              🌍
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight text-fg">
+              {t("app.name")}
+            </h1>
+            <p className="mt-1 text-sm text-muted">{t("auth.tagline")}</p>
+>>>>>>> Stashed changes
           </div>
 
           {sent ? (
@@ -205,6 +272,7 @@ export default function AuthScreen() {
               </div>
             </div>
           ) : (
+<<<<<<< Updated upstream
             <form onSubmit={submit} noValidate>
               <label
                 htmlFor="auth-email"
@@ -244,6 +312,56 @@ export default function AuthScreen() {
                 {status === "sending" ? t("auth.sending") : t("auth.send")}
               </button>
             </form>
+=======
+            <>
+              <h1 className="mb-1 hidden text-2xl font-bold tracking-tight text-fg md:block md:text-3xl">
+                {t("auth.welcome")}
+              </h1>
+              <p className="mb-6 hidden text-sm text-muted md:block">
+                {t("auth.welcomeSub")}
+              </p>
+
+              <form onSubmit={submit} noValidate>
+                <label
+                  htmlFor="auth-email"
+                  className="mb-1.5 block text-sm font-medium text-fg"
+                >
+                  {t("auth.emailLabel")}
+                </label>
+                <input
+                  id="auth-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoFocus
+                  className="field"
+                  placeholder={t("auth.emailPlaceholder")}
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (status === "error") setStatus("idle");
+                  }}
+                  aria-invalid={status === "error"}
+                />
+                {status === "error" && (
+                  <p role="alert" className="mt-1.5 text-sm text-accent">
+                    {looksLikeEmail(email)
+                      ? t("auth.error")
+                      : t("auth.invalidEmail")}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="auth-shine relative mt-4 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-brand-500 to-brand-700 px-4 py-2.5 text-sm font-medium text-white transition hover:from-brand-600 hover:to-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+                  disabled={status === "sending"}
+                >
+                  {status === "sending" ? t("auth.sending") : t("auth.send")}
+                  <ArrowRight size={15} className="rtl:-scale-x-100" />
+                </button>
+              </form>
+            </>
+>>>>>>> Stashed changes
           )}
 
           <div className="mt-5 border-t border-line pt-4 text-center">
@@ -289,7 +407,13 @@ export default function AuthScreen() {
                     type="button"
                     className="absolute inset-y-0 end-0 flex items-center pe-3 text-subtle transition hover:text-fg"
                     onClick={() => setPwVisible((v) => !v)}
+<<<<<<< Updated upstream
                     aria-label={t("auth.passwordLabel")}
+=======
+                    aria-label={t(
+                      pwVisible ? "auth.hidePassword" : "auth.showPassword",
+                    )}
+>>>>>>> Stashed changes
                   >
                     {pwVisible ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -316,7 +440,10 @@ export default function AuthScreen() {
                     setShowPassword(false);
                     setPwStatus("idle");
                     setPassword("");
+<<<<<<< Updated upstream
                     setPwVisible(false);
+=======
+>>>>>>> Stashed changes
                   }}
                 >
                   {t("auth.backToMagicLink")}
