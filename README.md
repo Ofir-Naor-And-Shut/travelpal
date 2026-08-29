@@ -6,8 +6,6 @@ budget, and keep every booking document attached to the stop it belongs to.
 
 ## Running it
 
-
-
 ```bash
 npm run dev
 ```
