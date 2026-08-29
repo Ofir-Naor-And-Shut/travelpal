@@ -41,6 +41,11 @@ const STRINGS = {
     // auth (magic-link sign in / sign up)
     "auth.tagline":
       "Plan trips that live in your browser — and in your account.",
+    "auth.welcome": "Welcome back",
+    "auth.welcomeSub": "Sign in to sync your trips across every device.",
+    "auth.featurePlan": "Plan every stop, night by night",
+    "auth.featureMap": "Follow your route on a live map",
+    "auth.featureOffline": "Works offline — your trips stay private",
     "auth.emailLabel": "Email address",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "Send magic link",
@@ -433,6 +438,11 @@ const STRINGS = {
 
     // auth (magic-link sign in / sign up)
     "auth.tagline": "לתכנן טיולים שנשמרים בדפדפן — ועכשיו גם בחשבון שלך.",
+    "auth.welcome": "ברוכים השבים",
+    "auth.welcomeSub": "התחברו כדי לסנכרן את הטיולים בין כל המכשירים.",
+    "auth.featurePlan": "לתכנן כל עצירה, לילה אחר לילה",
+    "auth.featureMap": "לעקוב אחרי המסלול על מפה חיה",
+    "auth.featureOffline": "עובד גם ללא חיבור — הטיולים נשארים פרטיים",
     "auth.emailLabel": "כתובת אימייל",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "שליחת קישור כניסה",
