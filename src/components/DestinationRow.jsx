@@ -50,12 +50,8 @@ export default function DestinationRow({
       {...dragProps}
       onMouseEnter={() => onHover?.(dest.id)}
       onMouseLeave={() => onHover?.(null)}
-      className={`relative rounded-xl border transition-all ${
-        isDragging ? "opacity-40" : ""
-      } ${
-        active && !isDragging
-          ? "border-accent bg-raised shadow-sm"
-          : "border-line bg-surface shadow-sm hover:shadow-md"
+      className={`glass-card relative ${isDragging ? "opacity-40" : ""} ${
+        active && !isDragging ? "glass-card-active" : ""
       }`}
     >
       {/* Insertion line: shows exactly where the row will land, which reads

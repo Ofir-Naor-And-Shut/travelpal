@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { Map as MapIcon } from "lucide-react";
-import BottomNav from "./components/BottomNav.jsx";
+import TopNav from "./components/TopNav.jsx";
 import TripHeader from "./components/TripHeader.jsx";
 import PlanView from "./components/PlanView.jsx";
 import ItineraryView from "./components/ItineraryView.jsx";
@@ -205,6 +205,11 @@ function TripEditor({ onBackToTrips }) {
   }, []);
 
   const splitRef = useRef(null);
+  // The main content scrolls in an inner overflow container (not the window),
+  // so the floating TopNav watches this node to know when to collapse. Held in
+  // state (via a callback ref) rather than a ref so TopNav re-renders and wires
+  // up its scroll listener once the node actually mounts.
+  const [scrollEl, setScrollEl] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [mapPct, setMapPct] = useState(() => {
     const saved = Number(localStorage.getItem(MAP_WIDTH_KEY));
@@ -342,8 +347,9 @@ function TripEditor({ onBackToTrips }) {
             onBackToTrips={onBackToTrips}
           />
 
-          {/* Padded so the last row clears the floating bar. */}
-          <div className="min-h-0 flex-1 overflow-y-auto pb-24">
+          {/* Bottom padding clears the mobile map button; the scroll ref lets
+              the floating TopNav collapse in response to this pane's scroll. */}
+          <div ref={setScrollEl} className="min-h-0 flex-1 overflow-y-auto pb-24">
             {view === "plan" && (
               <PlanView
                 trip={trip}
@@ -427,7 +433,7 @@ function TripEditor({ onBackToTrips }) {
         )}
       </div>
 
-      <BottomNav active={view} onChange={setView} />
+      <TopNav active={view} onChange={setView} scrollContainer={scrollEl} />
     </div>
   );
 }

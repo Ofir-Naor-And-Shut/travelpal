@@ -133,6 +133,45 @@
     @apply rounded-card border border-line bg-surface;
   }
 
+  /* Glassmorphic card — the "profile card" look, re-tinted into the brand
+     palette. A soft vertical gradient from the plain surface down into a faint
+     accent wash, a hairline accent-tinted border, and a diffuse coloured glow
+     instead of the flat drop shadow. Reads from tokens, so light/dark and RTL
+     all fall out for free (the gradient is top-to-bottom, so it never flips). */
+  .glass-card {
+    border-radius: 1.375rem;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 16%, var(--c-line));
+    background: linear-gradient(
+      168deg,
+      var(--c-surface) 0%,
+      var(--c-surface) 44%,
+      color-mix(in srgb, var(--c-accent-soft) 62%, var(--c-surface)) 100%
+    );
+    box-shadow:
+      0 14px 32px -16px color-mix(in srgb, var(--c-accent) 45%, transparent),
+      0 6px 16px -10px var(--c-shadow);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .glass-card:hover {
+    box-shadow:
+      0 20px 40px -16px color-mix(in srgb, var(--c-accent) 55%, transparent),
+      0 8px 20px -10px var(--c-shadow);
+  }
+
+  /* Selected / hovered-on-map state: lift the border to the full accent and
+     add a matching ring so the row reads as focused without changing size. */
+  .glass-card-active {
+    border-color: var(--c-accent);
+    box-shadow:
+      0 0 0 1px var(--c-accent),
+      0 20px 44px -16px color-mix(in srgb, var(--c-accent) 60%, transparent),
+      0 8px 20px -10px var(--c-shadow);
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2
            text-sm font-medium text-on-accent transition hover:bg-accent-hover

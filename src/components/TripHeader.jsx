@@ -27,8 +27,10 @@ export default function TripHeader({
     "dd/MM/yy",
   )}`;
 
+  // pt-14 reserves the top band for the floating TopNav so the header row
+  // (trip switcher / controls) never sits behind it.
   return (
-    <header className="border-b border-line bg-surface px-5 pt-4 md:px-8">
+    <header className="border-b border-line bg-surface px-5 pt-14 md:px-8">
       {/* Language + theme sit at the inline-start of the header. On phones the
           row wraps so the trip switcher drops to its own line rather than being
           clipped off the edge; on desktop it stays a single row. */}
@@ -119,7 +121,7 @@ export default function TripHeader({
           )}
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-line bg-raised px-4 py-2.5">
+        <div className="glass-card flex items-center gap-4 px-4 py-2.5">
           <div className="text-end">
             <p className="tabular text-xl font-semibold text-fg">
               {formatMoney(stats.total, trip.currency)}
