@@ -1,6 +1,6 @@
 /**
- * Renders a static snapshot of the trip map for the PDF export: CARTO Voyager
- * basemap tiles (the app's default light basemap, legible on white paper), the
+ * Renders a static snapshot of the trip map for the PDF export: Esri World
+ * Street Map tiles (the app's default light basemap, legible on white paper), the
  * colour-per-segment route arcs, and numbered destination pins. It mirrors
  * TripMap's whole-trip view — origin/last stop are shown only when opted in and
  * placed — so the printout matches what the user sees on screen.
@@ -13,7 +13,10 @@ import { arcPoints, splitArc } from "./arc.js";
 import { effectiveLastStop, isPlaced, legOf, modeColor } from "./store.js";
 
 const TILE = 256;
-const TILE_URL = "https://a.basemaps.cartocdn.com/rastertiles/voyager";
+// Keyless Esri tiles, matching TripMap's Streets basemap. Path order is
+// {z}/{y}/{x} (row before column) and there is no @2x variant, unlike CARTO.
+const TILE_URL =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile";
 const PAD = 72; // px kept clear around the route so pins/labels aren't clipped
 const MAX_W = 1200;
 const MAX_H = 780;
@@ -180,7 +183,7 @@ export async function renderTripMapImage(trip, destinations) {
       const dx = tx * TILE - originPxX;
       const dy = ty * TILE - originPxY;
       jobs.push(
-        loadTile(`${TILE_URL}/${zoom}/${wx}/${ty}@2x.png`).then((img) => {
+        loadTile(`${TILE_URL}/${zoom}/${ty}/${wx}`).then((img) => {
           if (img) ctx.drawImage(img, dx, dy, TILE, TILE);
         }),
       );
@@ -230,7 +233,7 @@ export async function renderTripMapImage(trip, destinations) {
   }
 
   // --- Attribution (required by the tile provider) -------------------------
-  const credit = "© OpenStreetMap · © CARTO";
+  const credit = "© Esri";
   ctx.font = "11px Arial, sans-serif";
   const tw = ctx.measureText(credit).width;
   ctx.fillStyle = "rgba(255,255,255,0.75)";

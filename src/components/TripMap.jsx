@@ -24,29 +24,41 @@ import { useI18n } from "../lib/i18n.js";
 import { useTheme } from "../lib/theme.js";
 
 /**
- * Basemaps. Voyager leads because it keeps street names, parks and water
+ * Basemaps. Streets leads because it keeps street names, parks and water
  * legible at every zoom without the clutter of raw OSM tiles.
  *
+ * All sources here are keyless — the map must work with no account or API key,
+ * same graceful-degradation rule the search inputs follow. (CARTO's free
+ * Voyager/Positron tiles used to fill these two slots but now stamp an
+ * "API KEY REQUIRED" watermark across every tile, so they were swapped for
+ * Esri's keyless equivalents — the same provider the Satellite basemap uses.)
+ *
  * `darkUrl` swaps in a natively dark tileset where one exists, which reads far
- * better than dimming a light one with a CSS filter.
+ * better than dimming a light one with a CSS filter. `maxNativeZoom` caps the
+ * deepest zoom a source actually ships tiles for; Leaflet upscales past it so
+ * the day planner can still zoom to city level.
  */
 const BASEMAPS = [
   {
     id: "voyager",
     key: "map.streets",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    subdomains: "abcd",
-    maxZoom: 20,
-    attribution: "© OpenStreetMap · © CARTO",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    // Single host, no {s} in the URL — but Leaflet still reads
+    // options.subdomains.length on every tile, so it must be set.
+    subdomains: "abc",
+    maxZoom: 19,
+    attribution: "© Esri",
   },
   {
     id: "positron",
     key: "map.minimal",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    darkUrl: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    subdomains: "abcd",
-    maxZoom: 20,
-    attribution: "© OpenStreetMap · © CARTO",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    darkUrl:
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    subdomains: "abc",
+    maxZoom: 19,
+    maxNativeZoom: 16,
+    attribution: "© Esri",
   },
   {
     id: "terrain",
@@ -486,6 +498,7 @@ export default function TripMap({
             url={tileUrl}
             subdomains={basemap.subdomains}
             maxZoom={basemap.maxZoom}
+            maxNativeZoom={basemap.maxNativeZoom}
             detectRetina
             // A natively dark tileset shouldn't also get the CSS dimming filter.
             className={basemap.darkUrl ? "tile-no-dim" : undefined}
