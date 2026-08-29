@@ -4,6 +4,8 @@ A multi-stop trip planner in the spirit of Stippl: lay out destinations, dial in
 how many nights you spend at each, connect them with transport legs, track the
 budget, and keep every booking document attached to the stop it belongs to.
 
+
+
 ## Running it
 
 ```bash
