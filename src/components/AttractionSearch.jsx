@@ -162,7 +162,6 @@ export default function AttractionSearch({ center, onSelect }) {
       phone: resolved.phone ?? "",
       website: resolved.website ?? "",
       openingHours: resolved.openingHours ?? "",
-      photoUrl: resolved.photoUrl ?? "",
     });
     setQuery("");
     setPlaceHits([]);

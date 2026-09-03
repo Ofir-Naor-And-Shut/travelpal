@@ -16,17 +16,13 @@ import {
 } from "../lib/docs.js";
 import { saveTripCover } from "../lib/tripCover.js";
 import { openLightbox } from "../lib/lightbox.js";
-import {
-  attractionsQuery,
-  fetchPlacePhotos,
-  hasGoogleKey,
-} from "../lib/googlePlaces.js";
+import { PEXELS_URL, fetchPexelsPhotos, hasPexelsKey } from "../lib/pexels.js";
 import { useI18n } from "../lib/i18n.js";
 
 /**
  * The trip picture in the header, with a small popover to change it: shuffle a
- * Places photo of the first destination's country, upload your own cover, or
- * fall back to the emoji. Upload and emoji work with no Google key; only the
+ * Pexels photo of the first destination's country, upload your own cover, or
+ * fall back to the emoji. Upload and emoji work with no Pexels key; only the
  * automatic photo needs one.
  */
 export default function TripPhotoControl({ trip }) {
@@ -46,15 +42,7 @@ export default function TripPhotoControl({ trip }) {
 
   const first = trip.destinations?.[0];
   const query = first?.country || first?.name || "";
-  const canShuffle = hasGoogleKey() && Boolean(query);
-  // Coordinates of the first stop, to keep the country lookup on the right one.
-  const center =
-    first &&
-    Number.isFinite(first.lat) &&
-    Number.isFinite(first.lng) &&
-    !(first.lat === 0 && first.lng === 0)
-      ? { lat: first.lat, lng: first.lng }
-      : undefined;
+  const canShuffle = hasPexelsKey() && Boolean(query);
 
   // A different first stop means a different set of candidate photos.
   useEffect(() => {
@@ -76,10 +64,7 @@ export default function TripPhotoControl({ trip }) {
     try {
       let list = photos;
       if (list.length === 0) {
-        list = await fetchPlacePhotos(attractionsQuery(query), {
-          limit: 10,
-          center,
-        });
+        list = await fetchPexelsPhotos(query, { perPage: 10 });
         setPhotos(list);
       }
       if (list.length === 0) return;
@@ -200,10 +185,23 @@ export default function TripPhotoControl({ trip }) {
           <p className="mt-2 text-[11px] text-subtle">
             {canShuffle
               ? t("header.pictureFromFirst", { place: query })
-              : hasGoogleKey()
+              : hasPexelsKey()
                 ? t("header.pictureHint")
                 : t("header.pictureUploadOnly")}
           </p>
+
+          {canShuffle && (
+            <p className="mt-1 text-[11px] text-subtle">
+              <a
+                href={PEXELS_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="underline hover:text-fg"
+              >
+                {t("photo.pexels")}
+              </a>
+            </p>
+          )}
 
           {error && (
             <p role="alert" className="mt-2 text-[11px] font-medium text-fg">

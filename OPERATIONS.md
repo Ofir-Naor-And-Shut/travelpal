@@ -200,6 +200,7 @@ committed). Only variables prefixed `VITE_` reach the browser.
 | `VITE_SUPABASE_ANON_KEY`   | Supabase anon/publishable key (RLS-protected).                                                                                       | Public                                 |
 | `VITE_SITE_URL`            | The deployed app URL that magic-link emails redirect back to. Required in production; falls back to the current origin in local dev. | Public                                 |
 | `VITE_GOOGLE_MAPS_API_KEY` | _(Optional)_ enables Google place search + Google map. Omit to use free OpenStreetMap instead.                                       | Public, but **restrict it** (see §9.6) |
+| `VITE_PEXELS_API_KEY`      | _(Optional)_ enables Pexels photos for trip covers + destination cards. Omit to fall back to the emoji picture.                       | Public                                 |
 
 The edge function additionally uses server-side `SUPABASE_URL`,
 `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL` — these are set
@@ -300,7 +301,7 @@ Only if you want Google's search/map instead of the free OpenStreetMap one:
 
 1. Set production environment variables in your host's dashboard:
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SITE_URL` (= your domain),
-   and optionally `VITE_GOOGLE_MAPS_API_KEY`.
+   and optionally `VITE_GOOGLE_MAPS_API_KEY` and `VITE_PEXELS_API_KEY`.
 2. Connect the repo to a static host (Vercel/Netlify/Cloudflare Pages). Build
    command: `npm run build`. Output directory: `dist`. These hosts auto-build on
    every git push.

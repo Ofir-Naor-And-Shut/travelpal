@@ -3,11 +3,11 @@ import { objectUrlFor } from "../lib/docs.js";
 
 /**
  * A trip's picture, in order of preference: an uploaded cover (a blob in
- * IndexedDB/Storage), then a Places photo URL, then the emoji.
+ * IndexedDB/Storage), then a Pexels photo URL, then the emoji.
  *
  * `cover` fills the parent (the picker card banner); otherwise it's a small
- * rounded thumbnail sized by `size`. A remote photo that fails to load
- * (Google's links can lapse) falls back to the emoji rather than a broken image.
+ * rounded thumbnail sized by `size`. A remote photo that fails to load falls
+ * back to the emoji rather than showing a broken image.
  */
 export default function TripAvatar({
   trip,
@@ -56,7 +56,9 @@ export default function TripAvatar({
 
   if (url) {
     const onError = () => {
-      if (!blobUrl) setFailedUrl(trip.photoUrl);
+      if (!blobUrl) {
+        setFailedUrl(trip.photoUrl);
+      }
     };
     if (cover) {
       return (

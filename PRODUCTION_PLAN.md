@@ -43,20 +43,22 @@ problems that don't matter for personal use:
   businesses; trip covers and destination cards want curated travel
   photography.
 
-**Recommendation:**
+**Decision (taken):** decorative photos now come from **Pexels**
+(`src/lib/pexels.js`, gated on `VITE_PEXELS_API_KEY`). Google is no longer used
+for any imagery, and **attraction photos were removed entirely** rather than
+kept on a place-specific source.
 
-- [ ] Move **decorative photos** (trip cover + destination cards) to
-      **Unsplash or Pexels**. Their CDN URLs are stable and cacheable (kills the
-      expiry bug and makes the self-heal machinery unnecessary on those surfaces),
-      licensing permits storing the URL, free tiers are generous, and the imagery
-      is better for this use.
-- [ ] Keep **Google Places only** where place-specific data is genuinely needed
-      (attraction search already uses it for hours/phone/website). That is a
-      bounded, legitimate use.
-- [ ] If any Google-sourced photo/data is retained, store **`place_id`** and
-      re-resolve on demand (Place Details) instead of persisting photo URLs.
-- [ ] Honor attribution for whichever source is used (a small "Photo: name /
-      Unsplash" credit). Both Unsplash and Pexels require it.
+- [x] Move **decorative photos** (trip cover + destination cards) to
+      **Pexels**. Their CDN URLs are stable and cacheable (kills the expiry bug
+      and let the self-heal machinery be deleted on those surfaces), licensing
+      permits storing the URL, and the free tier is generous.
+- [x] Drop Google from photos: `fetchPlacePhotos` / `attractionsQuery` removed,
+      Place Details no longer requests the `photos` field, and the attraction
+      thumbnail + its lazy fetch/self-heal were removed.
+- [x] Honor attribution — a "Photos from Pexels" credit (i18n `photo.pexels`)
+      links back to Pexels in the trip-picture popover.
+- [ ] If any Google-sourced photo/data is ever retained again, store
+      **`place_id`** and re-resolve on demand rather than persisting photo URLs.
 
 **Note:** The existing self-heal (`refreshTripPhoto` / `refreshDestinationPhoto`
 / `refreshAttractionPhoto`) is the correct fallback **if** Google is retained on
@@ -244,9 +246,9 @@ The app is already local-first; a PWA shell makes "works offline" real.
 
 ## Open decisions (need your input)
 
-1. **Photo source:** Unsplash vs. Pexels for decorative photos — or keep Google
-   everywhere and accept the cost/ToS trade-off? (Recommendation: Unsplash or
-   Pexels for covers/destinations, Google only for attraction specifics.)
+1. **Photo source:** ~~Unsplash vs. Pexels~~ — **decided: Pexels** for
+   decorative photos (trip cover + destination cards); Google dropped from
+   imagery and attraction photos removed.
 2. **Hosting target:** Vercel / Netlify / Cloudflare Pages?
 3. **Regions/compliance:** EU/UK users at launch? (Determines GDPR scope.)
 4. **Free vs. paid tiers:** any usage limits per user to cap third-party cost?

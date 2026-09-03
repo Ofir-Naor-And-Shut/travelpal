@@ -34,9 +34,11 @@ export default function DestinationRow({
 }) {
   const { t } = useI18n();
 
-  const [brokenPhoto, setBrokenPhoto] = useState(false);
+  // The URL of a stored photo that failed to load — hides that image and
+  // falls back to the order badge alone.
+  const [failedPhoto, setFailedPhoto] = useState("");
 
-  // Fill in a Places photo once the stop is placed; the store no-ops if it
+  // Fill in a Pexels photo once the stop is placed; the store no-ops if it
   // already has one or there's no key.
   useEffect(() => {
     if (!dest.photoUrl) ensureDestinationPhoto(dest.id);
@@ -83,7 +85,7 @@ export default function DestinationRow({
           >
             {index + 1}
           </span>
-          {dest.photoUrl && !brokenPhoto && (
+          {dest.photoUrl && dest.photoUrl !== failedPhoto && (
             <button
               type="button"
               onClick={() => openLightbox(dest.photoUrl)}
@@ -94,7 +96,9 @@ export default function DestinationRow({
                 src={dest.photoUrl}
                 alt=""
                 aria-hidden
-                onError={() => setBrokenPhoto(true)}
+                onError={() => {
+                  setFailedPhoto(dest.photoUrl);
+                }}
                 className="h-12 w-16 object-cover transition hover:opacity-90"
               />
             </button>

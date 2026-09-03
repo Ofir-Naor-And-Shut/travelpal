@@ -37,7 +37,6 @@ import {
   updateReservation,
 } from "../lib/store.js";
 import { distanceShort } from "../lib/places.js";
-import { openLightbox } from "../lib/lightbox.js";
 import { useDragReorder } from "../lib/useDragReorder.js";
 import { formatDuration, formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
@@ -486,27 +485,6 @@ function AttractionsSection({ dayKeyValue, attractions, currency, center }) {
                   >
                     {i + 1}
                   </span>
-
-                  {a.photoUrl && (
-                    <button
-                      type="button"
-                      onClick={() => openLightbox(a.photoUrl)}
-                      aria-label={t("photo.view", {
-                        name: a.name || t("attractions.fallback"),
-                      })}
-                      className="shrink-0 overflow-hidden rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >
-                      <img
-                        src={a.photoUrl}
-                        alt=""
-                        aria-hidden
-                        onError={(e) => {
-                          e.currentTarget.parentElement.style.display = "none";
-                        }}
-                        className="h-10 w-14 object-cover transition hover:opacity-90"
-                      />
-                    </button>
-                  )}
 
                   <DoneCheckbox
                     checked={a.done}

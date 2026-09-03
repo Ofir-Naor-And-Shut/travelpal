@@ -13,11 +13,7 @@ import {
   isTripDownloaded,
   saveTripOffline,
 } from "./offlineCache.js";
-import {
-  attractionsQuery,
-  fetchPlacePhotos,
-  hasGoogleKey,
-} from "./googlePlaces.js";
+import { fetchPexelsPhotos, hasPexelsKey } from "./pexels.js";
 
 const STORAGE_KEY = "project-travel:trip:v2";
 const LEGACY_KEY = "project-travel:trip:v1";
@@ -121,7 +117,7 @@ function makeDestination(partial = {}) {
     nights: 2,
     sleeping: { name: "", cost: 0 },
     notes: "",
-    // A Places photo of the destination, filled in lazily after it's placed.
+    // A Pexels photo of the destination, filled in lazily after it's placed.
     photoUrl: "",
     travelDocs: [],
     sleepingDocs: [],
@@ -214,8 +210,6 @@ export function makeAttraction(partial = {}) {
     phone: "",
     website: "",
     openingHours: "",
-    // A Places photo of the attraction; set on add or filled in lazily.
-    photoUrl: "",
     // How you travel from THIS attraction to the next one that day.
     legOut: null,
     ...partial,
@@ -303,7 +297,7 @@ function tripDefaults() {
     id: newId(),
     title: "New trip",
     emoji: "🌍",
-    // A Places photo of the first destination's country; empty means the
+    // A Pexels photo of the first destination's country; empty means the
     // emoji still stands in for it.
     photoUrl: "",
     // An uploaded cover photo (a doc reference into IndexedDB/Storage). When
@@ -1219,27 +1213,28 @@ export function addDestination(partial) {
 }
 
 /**
+ * A Pexels photo of a trip's first stop's country — the source for the auto
+ * trip cover. Returns "" when there's no stop to key off or nothing is found.
+ */
+async function fetchCountryPhotoFor(trip) {
+  const first = trip.destinations?.[0];
+  const query = first?.country || first?.name;
+  if (!query) return "";
+  const [url] = await fetchPexelsPhotos(query, { perPage: 1 });
+  return url || "";
+}
+
+/**
  * Give a brand-new trip a picture once it has a first stop: a Places photo of
  * that stop's country. Skipped when the trip already has a picture (so a manual
  * choice is never overwritten) or when there's no Google key. Best-effort — a
  * failure just leaves the emoji in place.
  */
 async function maybeAutoTripPhoto() {
-  if (state.photoUrl || state.coverDoc || !hasGoogleKey()) return;
-  const first = state.destinations[0];
-  const query = first?.country || first?.name;
-  if (!query) return;
-  // Bias the country lookup to the actual stop, so a place named the same
-  // elsewhere doesn't win and its imagery stays on-topic.
-  const center = isPlaced(first)
-    ? { lat: first.lat, lng: first.lng }
-    : undefined;
+  if (state.photoUrl || state.coverDoc || !hasPexelsKey()) return;
   const tripId = state.id;
   try {
-    const [url] = await fetchPlacePhotos(attractionsQuery(query), {
-      limit: 1,
-      center,
-    });
+    const url = await fetchCountryPhotoFor(state);
     // The user may have switched trips or set a picture while this was in
     // flight — only apply if the same trip is still bare.
     if (url && state.id === tripId && !state.photoUrl)
@@ -1266,7 +1261,7 @@ const destPhotoTried = new Set();
  * from the row so both new and pre-existing stops get filled in.
  */
 export async function ensureDestinationPhoto(destId) {
-  if (!hasGoogleKey()) return;
+  if (!hasPexelsKey()) return;
   const dest = state.destinations.find((d) => d.id === destId);
   if (!dest || dest.photoUrl || !isPlaced(dest)) return;
 
@@ -1278,10 +1273,7 @@ export async function ensureDestinationPhoto(destId) {
 
   const tripId = state.id;
   try {
-    const [url] = await fetchPlacePhotos(attractionsQuery(query), {
-      limit: 1,
-      center: { lat: dest.lat, lng: dest.lng },
-    });
+    const [url] = await fetchPexelsPhotos(query, { perPage: 1 });
     if (url && state.id === tripId) {
       // The stop may have been removed or filled meanwhile — re-check before write.
       const current = state.destinations.find((d) => d.id === destId);
@@ -1603,8 +1595,6 @@ export function addAttraction(key, partial = {}) {
     next.push(created);
     return { ...day, attractions: next };
   });
-  // A Google pick already carries its photo; anything else placed gets one.
-  if (!created.photoUrl) ensureAttractionPhoto(key, created.id);
 }
 
 /**
@@ -1675,42 +1665,6 @@ export function updateAttraction(key, id, patch) {
       a.id === id ? { ...a, ...patch } : a,
     ),
   }));
-}
-
-// Attractions already tried this session, so a miss isn't retried each render.
-const attractionPhotoTried = new Set();
-
-/**
- * Give a placed attraction its own Places photo, once. Best-effort and
- * idempotent — used for stops that arrived without one (a free-text or BizData
- * pick, or an older save). `single` keeps the lookup to the attraction itself
- * rather than pooling nearby places.
- */
-export async function ensureAttractionPhoto(key, id) {
-  if (!hasGoogleKey()) return;
-  const att = state.days[key]?.attractions?.find((a) => a.id === id);
-  if (!att || att.photoUrl || !isPlaced(att) || !att.name) return;
-
-  const tried = `${state.id}:${key}:${id}`;
-  if (attractionPhotoTried.has(tried)) return;
-  attractionPhotoTried.add(tried);
-
-  const tripId = state.id;
-  try {
-    const [url] = await fetchPlacePhotos(att.name, {
-      limit: 1,
-      center: { lat: att.lat, lng: att.lng },
-      single: true,
-    });
-    if (url && state.id === tripId) {
-      const cur = state.days[key]?.attractions?.find((a) => a.id === id);
-      if (cur && !cur.photoUrl) updateAttraction(key, id, { photoUrl: url });
-    } else if (!url) {
-      attractionPhotoTried.delete(tried);
-    }
-  } catch {
-    attractionPhotoTried.delete(tried);
-  }
 }
 
 export function removeAttraction(key, id) {
