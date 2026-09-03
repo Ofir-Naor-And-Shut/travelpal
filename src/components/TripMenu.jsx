@@ -26,7 +26,7 @@ import { useI18n } from "../lib/i18n.js";
  * trips, export, download, sign out — behind one toggle, so the header stays
  * uncluttered (and doesn't overflow on a phone). Section navigation itself
  * lives in the bottom nav now, so this menu doesn't duplicate it. Mirrors the
- * click-away + Escape dismissal of AppControls/TripSwitcher, and uses logical
+ * click-away + Escape dismissal of AppControls, and uses logical
  * properties so it anchors to the inline-start edge in both languages.
  */
 export default function TripMenu({ trip, onBackToTrips }) {

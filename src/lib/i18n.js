@@ -144,6 +144,7 @@ const STRINGS = {
     "header.exportPdf": "Export PDF",
     "header.overplanned":
       "You’ve planned {planned} nights but the trip is only {total} nights long. Extend the end date or trim a stop.",
+    "header.budgetSummary": "Budget and nights planned",
 
     // offline downloads (cloud mode)
     "offline.download": "Download for offline",
@@ -581,6 +582,7 @@ const STRINGS = {
     "header.exportPdf": "ייצוא ל-PDF",
     "header.overplanned":
       "תכננת {planned} לילות אך הטיול נמשך {total} לילות בלבד. הארך את תאריך הסיום או קצר עצירה.",
+    "header.budgetSummary": "תקציב ולילות מתוכננים",
     "offline.download": "הורדה לשימוש לא מקוון",
     "offline.downloaded": "זמין גם לא מקוון",
     "offline.banner":
