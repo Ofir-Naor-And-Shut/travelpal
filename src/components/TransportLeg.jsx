@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import {
   Bus,
   Car,
+  CircleDashed,
   Clock,
   Coins,
   Footprints,
@@ -36,6 +37,7 @@ import { useDragReorder } from "../lib/useDragReorder.js";
 import { useI18n } from "../lib/i18n.js";
 
 const ICONS = {
+  none: CircleDashed,
   plane: Plane,
   train: TrainFront,
   bus: Bus,
@@ -265,6 +267,11 @@ function SegmentRow({
           }
           aria-label={t("transport.mode")}
         >
+          {/* Not a real choice — a passively-created leg's placeholder value,
+              so the select reads correctly until a mode is actually picked. */}
+          <option value="none" hidden disabled>
+            {t("mode.none")}
+          </option>
           {TRANSPORT_MODES.map((m) => (
             <option key={m.id} value={m.id}>
               {t(`mode.${m.id}`)}
@@ -435,21 +442,31 @@ function ExtraFields({ destId, segment, currency }) {
                     <X size={11} />
                   </button>
                 </span>
-                <input
-                  type="number"
-                  min="0"
-                  step={field.step}
-                  className="field tabular mt-1 !py-1 !text-xs"
-                  value={segment[field.key] || ""}
-                  placeholder="0"
-                  autoFocus={pinned.has(field.key) && !segment[field.key]}
-                  aria-label={label}
-                  onChange={(e) =>
-                    updateSegment(destId, segment.id, {
-                      [field.key]: num(e.target.value),
-                    })
-                  }
-                />
+                {field.key === "durationMin" ? (
+                  <DurationInputs
+                    minutes={segment.durationMin}
+                    onChange={(v) =>
+                      updateSegment(destId, segment.id, { durationMin: v })
+                    }
+                    autoFocus={pinned.has(field.key) && !segment[field.key]}
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    min="0"
+                    step={field.step}
+                    className="field tabular mt-1 !py-1 !text-xs"
+                    value={segment[field.key] || ""}
+                    placeholder="0"
+                    autoFocus={pinned.has(field.key) && !segment[field.key]}
+                    aria-label={label}
+                    onChange={(e) =>
+                      updateSegment(destId, segment.id, {
+                        [field.key]: num(e.target.value),
+                      })
+                    }
+                  />
+                )}
               </label>
             );
           })}
@@ -477,5 +494,56 @@ function ExtraFields({ destId, segment, currency }) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Hours + minutes side by side, easier to reason about than one raw minutes
+ * total. Store-agnostic — the caller decides what `onChange(totalMinutes)`
+ * does, so both a transport segment and an attraction leg can reuse it.
+ */
+export function DurationInputs({ minutes, onChange, autoFocus }) {
+  const { t } = useI18n();
+  const total = num(minutes);
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+
+  const commit = (h, m) => {
+    const clampedH = Math.max(0, Math.round(h) || 0);
+    const clampedM = Math.min(59, Math.max(0, Math.round(m) || 0));
+    onChange(clampedH * 60 + clampedM);
+  };
+
+  return (
+    <div className="mt-1 flex items-center gap-1">
+      <input
+        type="number"
+        min="0"
+        step="1"
+        className="field tabular !w-14 !py-1 !text-xs"
+        value={hours || ""}
+        placeholder="0"
+        autoFocus={autoFocus}
+        aria-label={t("transport.hours")}
+        onChange={(e) => commit(e.target.value, mins)}
+      />
+      <span className="text-[10px] text-subtle">
+        {t("transport.hoursShort")}
+      </span>
+      <input
+        type="number"
+        min="0"
+        max="59"
+        step="1"
+        className="field tabular !w-14 !py-1 !text-xs"
+        value={mins || ""}
+        placeholder="0"
+        aria-label={t("transport.minutes")}
+        onChange={(e) => commit(hours, e.target.value)}
+      />
+      <span className="text-[10px] text-subtle">
+        {t("transport.minutesShort")}
+      </span>
+    </div>
   );
 }

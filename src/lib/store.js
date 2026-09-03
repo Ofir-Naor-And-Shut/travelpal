@@ -39,6 +39,10 @@ const newId = () => {
  * Each mode carries its own colour so a leg reads the same way in the list, on
  * the map and in the legend. Train keeps the brand teal; the rest fan out into
  * hues that stay legible on top of a colourful basemap.
+ *
+ * "none" (no transport chosen) is deliberately not part of this list — it's
+ * the passive default a leg is born with, never an option in the mode picker
+ * itself, so it's handled separately below.
  */
 export const TRANSPORT_MODES = [
   { id: "plane", label: "Flight", color: "#E4572E" },
@@ -49,11 +53,15 @@ export const TRANSPORT_MODES = [
   { id: "walk", label: "Walk", color: "#57A773" },
 ];
 
+const NO_TRANSPORT_COLOR = "#8a8f98";
+
 export function modeColor(mode) {
+  if (mode === "none") return NO_TRANSPORT_COLOR;
   return TRANSPORT_MODES.find((m) => m.id === mode)?.color ?? "#17858F";
 }
 
 export function modeLabel(mode) {
+  if (mode === "none") return "No transport";
   return TRANSPORT_MODES.find((m) => m.id === mode)?.label ?? "Travel";
 }
 
@@ -1197,14 +1205,16 @@ export function addDestination(partial) {
       const prev = next[next.length - 1];
       next[next.length - 1] = {
         ...prev,
-        transportOut: legOf(prev).length ? prev.transportOut : [makeSegment()],
+        transportOut: legOf(prev).length
+          ? prev.transportOut
+          : [makeSegment({ mode: "none" })],
       };
     }
     next.push(
       makeDestination({
         ...partial,
         // If a last stop is waiting, this newcomer needs a leg out to it too.
-        transportOut: state.lastStop ? [makeSegment()] : [],
+        transportOut: state.lastStop ? [makeSegment({ mode: "none" })] : [],
       }),
     );
     return next;
@@ -1332,7 +1342,7 @@ export function removeDestination(id) {
       transportOut: state.lastStop
         ? legOf(last).length
           ? last.transportOut
-          : [makeSegment()]
+          : [makeSegment({ mode: "none" })]
         : [],
     };
   }
@@ -1378,7 +1388,9 @@ export function reorderDestinations(from, to) {
       const existing = legs[i] ?? [];
       return {
         ...d,
-        transportOut: existing.length ? existing : [makeSegment()],
+        transportOut: existing.length
+          ? existing
+          : [makeSegment({ mode: "none" })],
       };
     });
   });
@@ -1422,7 +1434,9 @@ export function addLastStop(partial = {}) {
     lastStop: makeLastStop(partial),
     destinations: needsSegment
       ? dests.map((d, i) =>
-          i === dests.length - 1 ? { ...d, transportOut: [makeSegment()] } : d,
+          i === dests.length - 1
+            ? { ...d, transportOut: [makeSegment({ mode: "none" })] }
+            : d,
         )
       : dests,
   });
@@ -1589,7 +1603,7 @@ export function addAttraction(key, partial = {}) {
       const prev = next[next.length - 1];
       next[next.length - 1] = {
         ...prev,
-        legOut: prev.legOut ?? { mode: "walk", durationMin: 0, distanceKm: 0 },
+        legOut: prev.legOut ?? { mode: "none", durationMin: 0, distanceKm: 0 },
       };
     }
     next.push(created);
@@ -1646,7 +1660,7 @@ export function setAttractionLeg(key, attractionId, patch) {
         ? {
             ...a,
             legOut: {
-              mode: "walk",
+              mode: "none",
               durationMin: 0,
               distanceKm: 0,
               ...a.legOut,

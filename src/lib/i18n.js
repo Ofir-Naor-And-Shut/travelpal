@@ -203,7 +203,11 @@ const STRINGS = {
 
     // transport
     "transport.mode": "Mode",
-    "transport.duration": "Duration (min)",
+    "transport.duration": "Duration",
+    "transport.hours": "Hours",
+    "transport.minutes": "Minutes",
+    "transport.hoursShort": "h",
+    "transport.minutesShort": "m",
     "transport.distance": "Distance (km)",
     "transport.cost": "Cost",
     "transport.add": "Add transport",
@@ -231,6 +235,7 @@ const STRINGS = {
     "mode.car": "Car",
     "mode.ferry": "Ferry",
     "mode.walk": "Walk",
+    "mode.none": "No transport",
 
     // details
     "details.destinations": "Destinations",
@@ -632,7 +637,11 @@ const STRINGS = {
     "sleeping.docsHint": "אישורי ההזמנה נמצאים בלשונית הפרטים.",
 
     "transport.mode": "אמצעי",
-    "transport.duration": "משך (דקות)",
+    "transport.duration": "משך",
+    "transport.hours": "שעות",
+    "transport.minutes": "דקות",
+    "transport.hoursShort": "ש'",
+    "transport.minutesShort": "ד'",
     "transport.distance": "מרחק (ק״מ)",
     "transport.cost": "עלות",
     "transport.add": "הוספת תחבורה",
@@ -660,6 +669,7 @@ const STRINGS = {
     "mode.car": "רכב",
     "mode.ferry": "מעבורת",
     "mode.walk": "הליכה",
+    "mode.none": "ללא תחבורה",
 
     "details.destinations": "יעדים",
     "details.empty": "הוסיפו יעד תחילה — ההערות והמסמכים שלו יופיעו כאן.",

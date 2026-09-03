@@ -400,8 +400,9 @@ export default function TripMap({
           id: `${from.id}->${to.id}`,
           from,
           to,
-          mode: "train",
-          color: modeColor("train"),
+          mode: "none",
+          color: modeColor("none"),
+          dashed: true,
           points,
           midpoint: points[Math.floor(points.length / 2)],
           badge: null,
@@ -428,6 +429,7 @@ export default function TripMap({
       segments.forEach((segment, s) => {
         const color = modeColor(segment.mode);
         const points = pieces[s];
+        const noTransport = segment.mode === "none";
 
         out.push({
           id: `${from.id}->${to.id}#${segment.id}`,
@@ -435,11 +437,14 @@ export default function TripMap({
           to,
           mode: segment.mode,
           color,
+          dashed: noTransport,
           points,
           // Sits on the arc itself rather than the straight midpoint, so the
           // badge never floats off the line it belongs to.
           midpoint: points[Math.floor(points.length / 2)],
-          badge: modeBadgeIcon(segment.mode, color, inDayMode),
+          badge: noTransport
+            ? null
+            : modeBadgeIcon(segment.mode, color, inDayMode),
           station: !inDayMode
             ? {
                 origin: segment.origin?.name || null,
@@ -463,7 +468,7 @@ export default function TripMap({
   }, [routeKey]);
 
   const usedModes = useMemo(
-    () => [...new Set(legs.map((l) => l.mode))],
+    () => [...new Set(legs.map((l) => l.mode))].filter((m) => m !== "none"),
     [legs],
   );
 
@@ -516,6 +521,7 @@ export default function TripMap({
                 lineCap: "round",
                 lineJoin: "round",
                 interactive: false,
+                dashArray: leg.dashed ? "1 12" : undefined,
                 // Leaflet's default simplification would straighten the arc.
                 smoothFactor: 0,
               }}
@@ -532,6 +538,7 @@ export default function TripMap({
                 opacity: 0.95,
                 lineCap: "round",
                 lineJoin: "round",
+                dashArray: leg.dashed ? "1 12" : undefined,
                 smoothFactor: 0,
               }}
             >
