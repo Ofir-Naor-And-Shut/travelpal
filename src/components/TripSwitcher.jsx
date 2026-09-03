@@ -7,6 +7,7 @@ import {
   switchTrip,
   useTripList,
 } from "../lib/store.js";
+import { useClampToViewport } from "../lib/useClampToViewport.js";
 import { useI18n } from "../lib/i18n.js";
 
 /**
@@ -23,6 +24,8 @@ export default function TripSwitcher() {
 
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
+  const menuRef = useRef(null);
+  const shift = useClampToViewport(open, menuRef);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -65,8 +68,10 @@ export default function TripSwitcher() {
 
       {open && (
         <ul
+          ref={menuRef}
           role="listbox"
           aria-label={t("trips.label")}
+          style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}
           className="absolute top-full z-50 mt-1 max-h-[70vh] min-w-[15rem] overflow-y-auto rounded-xl
                      border border-line bg-surface shadow-lg shadow-brand-950/20 end-0"
         >

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Globe, Laptop, Moon, Sun } from "lucide-react";
 import { LANGUAGES, setLanguage, useI18n } from "../lib/i18n.js";
 import { THEMES, setTheme, useTheme } from "../lib/theme.js";
+import { useClampToViewport } from "../lib/useClampToViewport.js";
 
 const THEME_ICON = { light: Sun, dark: Moon, system: Laptop };
 
@@ -18,6 +19,10 @@ export default function AppControls() {
   const [themeOpen, setThemeOpen] = useState(false);
   const boxRef = useRef(null);
   const themeRef = useRef(null);
+  const langMenuRef = useRef(null);
+  const themeMenuRef = useRef(null);
+  const langShift = useClampToViewport(open, langMenuRef);
+  const themeShift = useClampToViewport(themeOpen, themeMenuRef);
 
   useEffect(() => {
     if (!open && !themeOpen) return undefined;
@@ -61,8 +66,12 @@ export default function AppControls() {
 
         {open && (
           <ul
+            ref={langMenuRef}
             role="listbox"
             aria-label={t("lang.label")}
+            style={{
+              transform: `translate(${langShift.x}px, ${langShift.y}px)`,
+            }}
             className="absolute top-full z-50 mt-1 min-w-[9rem] overflow-hidden rounded-xl border border-line
                        bg-surface shadow-lg shadow-brand-950/20 start-0"
           >
@@ -108,8 +117,12 @@ export default function AppControls() {
 
         {themeOpen && (
           <ul
+            ref={themeMenuRef}
             role="listbox"
             aria-label={t("theme.label")}
+            style={{
+              transform: `translate(${themeShift.x}px, ${themeShift.y}px)`,
+            }}
             className="absolute top-full z-50 mt-1 min-w-[9rem] overflow-hidden rounded-xl border border-line
                        bg-surface shadow-lg shadow-brand-950/20 end-0"
           >

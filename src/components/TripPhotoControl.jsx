@@ -17,6 +17,7 @@ import {
 import { saveTripCover } from "../lib/tripCover.js";
 import { openLightbox } from "../lib/lightbox.js";
 import { PEXELS_URL, fetchPexelsPhotos, hasPexelsKey } from "../lib/pexels.js";
+import { useClampToViewport } from "../lib/useClampToViewport.js";
 import { useI18n } from "../lib/i18n.js";
 
 /**
@@ -38,7 +39,9 @@ export default function TripPhotoControl({ trip }) {
   // the remote photo) — what the preview opens.
   const [displayUrl, setDisplayUrl] = useState("");
   const boxRef = useRef(null);
+  const menuRef = useRef(null);
   const inputRef = useRef(null);
+  const shift = useClampToViewport(open, menuRef);
 
   const first = trip.destinations?.[0];
   const query = first?.country || first?.name || "";
@@ -124,7 +127,11 @@ export default function TripPhotoControl({ trip }) {
       </button>
 
       {open && (
-        <div className="absolute start-0 top-full z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-3 text-fg shadow-lg shadow-brand-950/20">
+        <div
+          ref={menuRef}
+          style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}
+          className="absolute start-0 top-full z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-3 text-fg shadow-lg shadow-brand-950/20"
+        >
           <p className="mb-2 text-xs font-medium text-muted">
             {t("header.picture")}
           </p>

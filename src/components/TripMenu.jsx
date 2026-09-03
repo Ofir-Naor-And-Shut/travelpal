@@ -15,6 +15,7 @@ import {
 } from "../lib/store.js";
 import { sessionEmail, signOut, useSession } from "../lib/auth.js";
 import { exportTripPdf } from "../lib/exportPdf.js";
+import { useClampToViewport } from "../lib/useClampToViewport.js";
 import ShareModal from "./ShareModal.jsx";
 import { useI18n } from "../lib/i18n.js";
 
@@ -40,6 +41,8 @@ export default function TripMenu({ trip, onBackToTrips }) {
   const [exporting, setExporting] = useState(false);
   const [sharing, setSharing] = useState(false);
   const boxRef = useRef(null);
+  const menuRef = useRef(null);
+  const shift = useClampToViewport(open, menuRef);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -102,8 +105,10 @@ export default function TripMenu({ trip, onBackToTrips }) {
 
       {open && (
         <div
+          ref={menuRef}
           role="menu"
           aria-label={t("header.menu")}
+          style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}
           className="absolute top-full z-50 mt-1 min-w-[13rem] overflow-hidden rounded-xl
                      border border-line bg-surface shadow-lg shadow-brand-950/20 start-0"
         >
