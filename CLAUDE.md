@@ -1,8 +1,8 @@
-# Project Travel
+# TravelPal
 
 ## Who you are
 
-You are the lead engineer on **Project Travel**. The person you work with directs
+You are the lead engineer on **TravelPal**. The person you work with directs
 the product — what to build, how it should feel — and relies on you for the
 engineering: architecture, implementation, and the judgment to push back when a
 request is more (or less) than the problem needs. They are not a professional
@@ -17,7 +17,7 @@ trip lives in the browser and works offline, instantly, and privately.
 **Stack:** React + Vite + Tailwind v4 (`@theme` with a semantic-token layer),
 oxlint, Leaflet for maps. No component library — components are hand-built.
 
-**Data model.** The app holds *several* trips. Each is one serializable object;
+**Data model.** The app holds _several_ trips. Each is one serializable object;
 the **active** trip lives in a `useSyncExternalStore` store (`src/lib/store.js`)
 and is what every screen reads via `useTrip`, so features stay oblivious to there
 being more than one. Trips persist one-per-key under `project-travel:trip:<id>`
@@ -32,6 +32,7 @@ keyed `doc:<id>`; they never go in localStorage, and never in Postgres.
 shape factories, and load-time normalization keeps old saves valid.
 
 **Features.**
+
 - **Destinations** — ordered stops, nights stepper, drag-to-reorder with live
   renumbering, and multi-segment transport legs (per hop: mode, origin/destination
   station, opt-in duration/distance/cost). Stations are informative only; the map
@@ -39,14 +40,14 @@ shape factories, and load-time normalization keeps old saves valid.
 - **Details** — per-destination notes plus travel and sleeping documents.
 - **Daily planner** — one card per night with attractions and reservations
   (24-hour times, costs, done-state), plus opt-in per-night accommodation
-  (name, cost, address, documents). This is now the **only place accommodation
-  is entered**: the Destinations tab's per-destination accommodation control
-  (the bed button, its sleeping panel, and the "Accommodation" column) was
-  removed. A night still surfaces, and its cost replaces, any legacy
-  `dest.sleeping` value carried in existing trips (never adds to it) — but new
-  trips have no per-destination default, so sleeping is set night by night.
-  Attraction search blends Nominatim (free text) and BizData (category browsing,
-  returns hours/phone/website). Both persist coordinates.
+  (name, cost, address, documents), which overrides — never adds to — the
+  destination's default for that one night. The Destinations/Plan tab carries
+  that default: a collapsed "Add accommodation"/name badge under each stop
+  expands into the same name/cost/address/documents card as the per-night one;
+  its documents land in `dest.sleepingDocs`, so they show up under the Details
+  tab exactly like before. Attraction search blends Nominatim (free text) and
+  BizData (category browsing, returns hours/phone/website). Both persist
+  coordinates.
 - **Budget** — rollup across sleeping, transport, attractions, reservations.
 - **Map** — Leaflet with four switchable basemaps, curved route arcs split into a
   coloured piece per transport segment with a mode badge, zooming to city level
@@ -58,14 +59,14 @@ shape factories, and load-time normalization keeps old saves valid.
   button back to the picker, and sign-out. Signing in is optional — a "continue
   without an account" escape runs the app fully local-only.
 
-**A Supabase backend** layered *under* the local-first store for cross-device sync
+**A Supabase backend** layered _under_ the local-first store for cross-device sync
 and sharing. A trip is stored as one JSONB row in `public.trips` with owner-only
 RLS. **Local-first stays the working copy — Supabase is the durable, syncable
 backup, not a replacement.** Client in `src/lib/supabase.js`, auth/session in
 `src/lib/auth.js`, schema in `supabase/schema.sql`, credentials in `.env.local`
 (gitignored).
 
-*Done & verified:* **magic-link (passwordless) auth** and the **screen flow** —
+_Done & verified:_ **magic-link (passwordless) auth** and the **screen flow** —
 `AuthScreen` → `TripPicker` (the landing screen) → the editor (`TripEditor`),
 gated in `App.jsx`. `auth.js` exposes `useSession`, `sendMagicLink`, `signOut`,
 `useLocalOnly`/`setLocalOnly`, all no-ops when Supabase isn't configured. A
@@ -82,7 +83,7 @@ index) as a local fallback, never a silent loss (regression-tested in
 real magic-link login: fetch, push, reload round-trip, and delete-sync all
 confirmed against Postgres.
 
-*Still to do:* documents to a Storage bucket, sharing via a `trip_members` table,
+_Still to do:_ documents to a Storage bucket, sharing via a `trip_members` table,
 and realtime, each phased so the app is never left broken. One known rough edge:
 the `touch_updated_at` trigger overwrites the `updated_at` **column** with
 `now()` on update while the client's last-write-wins clock lives in
@@ -102,7 +103,7 @@ but it needs reconciling before real conflict resolution.
   gated on presence — the app runs fully without any of them.
 - **Responsive — one adaptive layout, not two.** The same layout reshapes from
   phone to desktop; there is no separate mobile build. It is mobile-first
-  (Tailwind): the base styles *are* the phone layout, and desktop is pinned
+  (Tailwind): the base styles _are_ the phone layout, and desktop is pinned
   behind `lg:` (matching the two-pane map split boundary). The desktop look is
   considered good and must not regress — when improving mobile, change the base
   and restore the current desktop value at `lg:`, never the other way round.
@@ -143,7 +144,7 @@ but it needs reconciling before real conflict resolution.
    the signal to stop.
 7. **Keep it shippable.** Lint and build stay clean on every change; large work is
    phased so the app never sits broken. Match the surrounding code's idiom and
-   comment the *why*, not the *what*.
+   comment the _why_, not the _what_.
 
 ## Environment notes
 

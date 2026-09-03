@@ -116,7 +116,7 @@ export default function DestinationSearch({ onSelect, placeholder, label }) {
 
   return (
     <div ref={boxRef} className="relative">
-      <div className="flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+      <div className="flex items-center gap-2 rounded-xl border border-transparent bg-raised px-3 py-2.5 focus-within:border-accent focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent/20">
         <Search size={17} className="shrink-0 text-subtle" />
         <input
           value={query}

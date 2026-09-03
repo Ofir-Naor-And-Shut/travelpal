@@ -40,25 +40,42 @@ export function loadGoogleMaps() {
       return;
     }
 
-    const script = document.createElement("script");
-    script.async = true;
-    script.src =
-      "https://maps.googleapis.com/maps/api/js" +
-      `?key=${encodeURIComponent(KEY)}&v=weekly&libraries=places,marker&loading=async` +
-      // Pins predictions AND resolved Place Details to the same language —
-      // otherwise Google infers a language per call (often the OS locale,
-      // not the app's), so a result picked in one script could resolve to a
-      // different one. Google only reads this once per page load; it can't
-      // be changed without reloading, same as the app's own lang toggle.
-      `&language=${encodeURIComponent(currentLang())}`;
-    script.onerror = () => reject(new Error("Google Maps SDK failed to load"));
-    // The bootstrap defines importLibrary before the load event fires.
-    script.onload = () =>
-      window.google?.maps?.importLibrary
-        ? resolve()
-        : reject(new Error("Google Maps SDK loaded without importLibrary"));
+    // Resolve once `importLibrary` actually exists, by polling. This is robust
+    // to two races the plain `script.onload` check isn't: the load event can
+    // fire a tick before Google's bootstrap has defined `importLibrary`, and
+    // the map surface (its own SDK loader) may already be bringing the script
+    // in — in which case we must wait for *that* one rather than inject a
+    // second, conflicting <script>.
+    const started = Date.now();
+    const TIMEOUT_MS = 15000;
+    const waitForReady = () => {
+      if (window.google?.maps?.importLibrary) return resolve();
+      if (Date.now() - started > TIMEOUT_MS)
+        return reject(new Error("Google Maps SDK failed to initialize"));
+      setTimeout(waitForReady, 60);
+    };
 
-    document.head.appendChild(script);
+    const existing = document.querySelector(
+      'script[src*="maps.googleapis.com/maps/api/js"]',
+    );
+    if (!existing) {
+      const script = document.createElement("script");
+      script.async = true;
+      script.src =
+        "https://maps.googleapis.com/maps/api/js" +
+        `?key=${encodeURIComponent(KEY)}&v=weekly&libraries=places,marker&loading=async` +
+        // Pins predictions AND resolved Place Details to the same language —
+        // otherwise Google infers a language per call (often the OS locale,
+        // not the app's), so a result picked in one script could resolve to a
+        // different one. Google only reads this once per page load; it can't
+        // be changed without reloading, same as the app's own lang toggle.
+        `&language=${encodeURIComponent(currentLang())}`;
+      script.onerror = () =>
+        reject(new Error("Google Maps SDK failed to load"));
+      document.head.appendChild(script);
+    }
+
+    waitForReady();
   }).catch((err) => {
     // Let a later attempt retry rather than caching the failure forever.
     loader = null;

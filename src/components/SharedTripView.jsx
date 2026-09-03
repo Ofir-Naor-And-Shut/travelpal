@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import AppControls from "./AppControls.jsx";
+import TripAvatar from "./TripAvatar.jsx";
 import { fetchSharedTrip } from "../lib/sharing.js";
 import {
   formatDay,
@@ -44,9 +45,11 @@ export default function SharedTripView({ token }) {
   if (state.status === "loading") {
     return (
       <div className="grid min-h-full place-items-center bg-canvas">
-        <span className="animate-pulse text-3xl" aria-hidden>
-          🌍
-        </span>
+        <img
+          src="/logo.png"
+          alt={t("app.name")}
+          className="h-12 w-12 animate-pulse rounded-2xl shadow-sm"
+        />
       </div>
     );
   }
@@ -82,16 +85,23 @@ export default function SharedTripView({ token }) {
     <div className="min-h-full bg-canvas">
       <div className="mx-auto max-w-3xl px-5 py-8 md:px-8">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-fg">
-            {t("shared.badge")}
-          </span>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt={t("app.name")}
+              className="h-8 w-8 rounded-lg shadow-sm"
+            />
+            <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-fg">
+              {t("shared.badge")}
+            </span>
+          </div>
           <AppControls />
         </div>
 
         <header className="mb-8">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-fg">
             <span className="truncate">{trip.title}</span>
-            <span aria-hidden>{trip.emoji}</span>
+            <TripAvatar trip={trip} size={24} emojiClassName="" />
           </h1>
           <p className="tabular mt-1 text-sm text-muted">
             {format(parseISO(trip.startDate), "dd/MM/yy")} –{" "}

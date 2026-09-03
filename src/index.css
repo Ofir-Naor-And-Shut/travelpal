@@ -2,29 +2,34 @@
 @import "leaflet/dist/leaflet.css";
 
 /* ---------------------------------------------------------------------------
-   Brand ramp, anchored on the two supplied colours:
-
-     brand-500  #6260FF   primary / accent
-     brand-100  #E4E4FF   soft fills
-
-   The remaining steps are interpolated between and beyond them so every
-   surface, border and state comes from one hue family.
+   Brand ramp — the "wanderlust blue" from the Stitch redesign. Anchored on
+   its literal exported tones (primary-fixed/primary/primary-container/
+   on-primary-fixed-variant/on-primary-fixed); the gaps between them are
+   interpolated so every surface, border and state comes from one hue family.
    --------------------------------------------------------------------------- */
 @theme {
-  --color-brand-50: #f4f4ff;
-  --color-brand-100: #e4e4ff;
-  --color-brand-200: #cdccff;
-  --color-brand-300: #adacff;
-  --color-brand-400: #8a88ff;
-  --color-brand-500: #6260ff;
-  --color-brand-600: #4b48ec;
-  --color-brand-700: #3b38c8;
-  --color-brand-800: #2f2d9c;
-  --color-brand-900: #26246f;
-  --color-brand-950: #16154a;
+  --color-brand-50: #eaf3ff;
+  --color-brand-100: #d8e2ff;
+  --color-brand-200: #bcd4ff;
+  --color-brand-300: #adc7ff;
+  --color-brand-400: #4da3ff;
+  --color-brand-500: #007bff;
+  --color-brand-600: #0070ea;
+  --color-brand-700: #0059bb;
+  --color-brand-800: #004493;
+  --color-brand-900: #002a5c;
+  --color-brand-950: #001a41;
+
+  /* Category tints (Stitch's own names) — constant across themes, reused for
+     budget categories and map transport-leg badges. */
+  --color-cat-sleeping: #a0d2eb; /* lodging-sky */
+  --color-cat-transport: #ffbf00; /* transport-amber */
+  --color-cat-attractions: #86a789; /* nature-sage */
+  --color-cat-reservations: #ff7f6b; /* reservation-coral */
 
   --font-sans:
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --radius-card: 1rem;
 }
@@ -35,53 +40,39 @@
    `dark:` twin.
    --------------------------------------------------------------------------- */
 :root {
-  /* Floating bottom bar. Kept separate from the surface tokens because it sits
-     over arbitrary content (the map especially) and needs its own contrast. */
-  --c-nav-bg: rgb(255 255 255 / 0.82);
-  --c-nav-border: rgb(38 36 111 / 0.1);
-  --c-nav-idle: #5d5b8c;
-  --c-nav-hover: #1b1a3d;
-  --c-nav-shadow: rgb(38 36 111 / 0.18);
-
-  --c-canvas: #f4f4ff;
+  --c-canvas: #f8f9fa;
   --c-surface: #ffffff;
-  --c-raised: #f4f4ff;
-  --c-fg: #1b1a3d;
-  --c-muted: #5d5b8c;
-  --c-subtle: #908fb8;
-  --c-line: #e4e4ff;
-  --c-line-strong: #cdccff;
-  --c-accent: #6260ff;
-  --c-accent-hover: #4b48ec;
-  --c-accent-soft: #e4e4ff;
+  --c-raised: #f3f4f5;
+  --c-fg: #191c1d;
+  --c-muted: #585f6c;
+  --c-subtle: #717786;
+  --c-line: #e1e3e4;
+  --c-line-strong: #c1c6d7;
+  --c-accent: #007bff;
+  --c-accent-hover: #0059bb;
+  --c-accent-soft: #d8e2ff;
   --c-on-accent: #ffffff;
-  --c-scrim: rgb(22 21 74 / 0.55);
-  --c-shadow: rgb(38 36 111 / 0.14);
+  --c-scrim: rgb(25 28 29 / 0.55);
+  --c-shadow: rgb(25 28 29 / 0.14);
 
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --c-nav-bg: rgb(38 37 68 / 0.72);
-  --c-nav-border: rgb(255 255 255 / 0.09);
-  --c-nav-idle: #cfcef0;
-  --c-nav-hover: #ffffff;
-  --c-nav-shadow: rgb(0 0 0 / 0.55);
-
-  --c-canvas: #0d0c1a;
-  --c-surface: #16152b;
-  --c-raised: #1e1d3a;
-  --c-fg: #ececff;
-  --c-muted: #a9a8d4;
-  --c-subtle: #7b7aa8;
-  --c-line: #29284d;
-  --c-line-strong: #3a3868;
-  /* Lifted off #6260FF so it keeps contrast against a dark surface. */
-  --c-accent: #8a88ff;
-  --c-accent-hover: #adacff;
-  --c-accent-soft: #262551;
-  --c-on-accent: #0d0c1a;
-  --c-scrim: rgb(5 5 15 / 0.7);
+  --c-canvas: #111827;
+  --c-surface: #1f2937;
+  --c-raised: #232e3f;
+  --c-fg: #f3f4f6;
+  --c-muted: #9ca3af;
+  --c-subtle: #6b7280;
+  --c-line: #2b3648;
+  --c-line-strong: #374151;
+  /* Lifted off #007BFF so it keeps contrast against a dark surface. */
+  --c-accent: #4da3ff;
+  --c-accent-hover: #7cc0ff;
+  --c-accent-soft: #16324f;
+  --c-on-accent: #0b1622;
+  --c-scrim: rgb(3 6 12 / 0.7);
   --c-shadow: rgb(0 0 0 / 0.5);
 
   color-scheme: dark;
@@ -128,6 +119,45 @@
     @apply rounded-card border border-line bg-surface;
   }
 
+  /* Glassmorphic card — the "profile card" look, re-tinted into the brand
+     palette. A soft vertical gradient from the plain surface down into a faint
+     accent wash, a hairline accent-tinted border, and a diffuse coloured glow
+     instead of the flat drop shadow. Reads from tokens, so light/dark and RTL
+     all fall out for free (the gradient is top-to-bottom, so it never flips). */
+  .glass-card {
+    border-radius: 1.375rem;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 16%, var(--c-line));
+    background: linear-gradient(
+      168deg,
+      var(--c-surface) 0%,
+      var(--c-surface) 44%,
+      color-mix(in srgb, var(--c-accent-soft) 62%, var(--c-surface)) 100%
+    );
+    box-shadow:
+      0 14px 32px -16px color-mix(in srgb, var(--c-accent) 45%, transparent),
+      0 6px 16px -10px var(--c-shadow);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .glass-card:hover {
+    box-shadow:
+      0 20px 40px -16px color-mix(in srgb, var(--c-accent) 55%, transparent),
+      0 8px 20px -10px var(--c-shadow);
+  }
+
+  /* Selected / hovered-on-map state: lift the border to the full accent and
+     add a matching ring so the row reads as focused without changing size. */
+  .glass-card-active {
+    border-color: var(--c-accent);
+    box-shadow:
+      0 0 0 1px var(--c-accent),
+      0 20px 44px -16px color-mix(in srgb, var(--c-accent) 60%, transparent),
+      0 8px 20px -10px var(--c-shadow);
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2
            text-sm font-medium text-on-accent transition hover:bg-accent-hover
@@ -156,7 +186,7 @@
   }
 
   .field {
-    @apply w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg
+    @apply w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm text-fg
            placeholder:text-subtle focus:border-accent focus:outline-none
            focus:ring-2 focus:ring-accent/25;
   }
@@ -165,36 +195,64 @@
     @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted;
   }
 
-  /* --- Floating bottom navigation ---------------------------------------- */
-  .nav-bar {
-    background: var(--c-nav-bg);
-    border: 1px solid var(--c-nav-border);
-    box-shadow:
-      0 8px 32px var(--c-nav-shadow),
-      inset 0 1px 0 rgb(255 255 255 / 0.06);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  /* Shared backdrop for the open, spacious screens (auth, trip picker) — soft
+     accent-tinted blobs plus a faint dotted grid. Left off the busy in-trip
+     editor tabs, where it would compete with dense content. Reads from the
+     theme tokens directly, so light/dark need no separate rule. */
+  .bg-wander {
+    background-color: var(--c-canvas);
+    background-image:
+      radial-gradient(
+        38rem 30rem at 88% -8%,
+        color-mix(in srgb, var(--c-accent) 20%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        30rem 26rem at -6% 68%,
+        color-mix(in srgb, var(--c-accent) 16%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        24rem 20rem at 62% 105%,
+        color-mix(in srgb, var(--color-cat-attractions) 14%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        color-mix(in srgb, var(--c-fg) 6%, transparent) 1px,
+        transparent 1px
+      );
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      22px 22px;
   }
 
-  .nav-item-idle {
-    color: var(--c-nav-idle);
-  }
-
-  .nav-item-idle:hover {
-    color: var(--c-nav-hover);
-  }
-
-  /* Pinned to the base brand purple in both themes rather than the themed
-     accent: white-on-purple is the look, and dark mode's lifted accent would
-     otherwise pair with dark text. White on #6260FF is 4.57:1, which clears
-     AA for normal text. */
-  .nav-pill-active {
-    background: var(--color-brand-500);
-    color: #ffffff;
-    /* The glow is what makes the active pill read as lit rather than filled. */
-    box-shadow:
-      0 2px 14px color-mix(in srgb, var(--color-brand-500) 60%, transparent),
-      0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent);
+  /* The same tint percentages read as almost nothing against a dark surface
+     — dark absorbs more of a blended colour — so boost them here instead of
+     duplicating the whole gradient stack per theme. */
+  [data-theme="dark"] .bg-wander {
+    background-image:
+      radial-gradient(
+        38rem 30rem at 88% -8%,
+        color-mix(in srgb, var(--c-accent) 30%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        30rem 26rem at -6% 68%,
+        color-mix(in srgb, var(--c-accent) 24%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        24rem 20rem at 62% 105%,
+        color-mix(in srgb, var(--color-cat-attractions) 20%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        color-mix(in srgb, var(--c-fg) 8%, transparent) 1px,
+        transparent 1px
+      );
   }
 }
 
@@ -202,20 +260,6 @@
 .leaflet-container {
   background: var(--c-raised);
   font-family: var(--font-sans);
-}
-
-.leaflet-control-zoom a {
-  background: var(--c-surface) !important;
-  color: var(--c-fg) !important;
-  border-color: var(--c-line) !important;
-}
-
-/* Leaflet pins the zoom control to the *physical* top-left, but our own map
-   chrome anchors with logical properties — so the top-left corner is taken by
-   the day-route badge in LTR and by the basemap picker in RTL. Drop the zoom
-   control below that top chrome row so it never sits under either one. */
-.leaflet-top.leaflet-left .leaflet-control-zoom {
-  margin-top: 3.25rem;
 }
 
 .leaflet-popup-content-wrapper,

@@ -1,5 +1,5 @@
 -- ============================================================================
---  Project Travel — Supabase schema, phase 1: trips + owner-only access.
+--  TravelPal — Supabase schema, phase 1: trips + owner-only access.
 --
 --  Run this in the Supabase dashboard → SQL Editor → New query → Run.
 --  It is idempotent: safe to run again after edits.

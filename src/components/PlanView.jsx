@@ -219,8 +219,8 @@ export default function PlanView({
 function EmptyState() {
   const { t } = useI18n();
   return (
-    <div className="mb-4 flex flex-col items-center gap-2 rounded-card border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
-      <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-muted">
+    <div className="glass-card mb-4 flex flex-col items-center gap-2 px-6 py-12 text-center">
+      <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
         <Compass size={20} />
       </span>
       <p className="text-sm font-semibold text-fg">{t("plan.emptyTitle")}</p>

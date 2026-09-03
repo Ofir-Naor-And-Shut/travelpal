@@ -14,7 +14,7 @@ const INTL_LOCALES = { en: "en-GB", he: "he-IL" };
 const STRINGS = {
   en: {
     // shell
-    "app.name": "Project Travel",
+    "app.name": "TravelPal",
     "nav.main": "Main",
     "nav.sections": "Trip sections",
     "nav.view": "View",
@@ -41,6 +41,13 @@ const STRINGS = {
     // auth (magic-link sign in / sign up)
     "auth.tagline":
       "Plan trips that live in your browser — and in your account.",
+    "auth.heroHeadline": "Plan every trip, offline and in your pocket.",
+    "auth.heroBody":
+      "Organize itineraries, track budgets, and explore interactive maps — all without worrying about a connection.",
+    "auth.trustNote":
+      "Secure & private. Your data never leaves this device unless you choose to sync it.",
+    "auth.welcomeTitle": "Welcome back",
+    "auth.welcomeSubtitle": "Enter your email to sign in or create an account.",
     "auth.emailLabel": "Email address",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "Send magic link",
@@ -66,6 +73,14 @@ const STRINGS = {
     // trip picker (the landing screen after signing in)
     "picker.title": "Your trips",
     "picker.subtitle": "Pick a trip to open, or start a new one.",
+    "picker.welcomeName": "Welcome back, {name}!",
+    "picker.welcomeSubtitle": "Ready for your next adventure?",
+    "picker.statusActive": "Active",
+    "picker.statusUpcoming": "Upcoming",
+    "picker.statusPast": "Past",
+    "picker.filterUpcoming": "Upcoming",
+    "picker.filterPast": "Past",
+    "picker.viewDetails": "View details",
     "picker.new": "New trip",
     "picker.open": "Open {name}",
     "picker.nights": "{count} nights",
@@ -86,11 +101,12 @@ const STRINGS = {
       "Remove “{name}” from your trips? You keep nothing local — the owner keeps the trip, and can invite you again if this was a mistake.",
     "header.allTrips": "All trips",
     "header.menu": "Menu",
-    "header.goTo": "Go to",
+    "account.label": "Account",
 
     // language + theme
     "lang.label": "Language",
     "lang.change": "Change language",
+    "theme.change": "Change theme",
     "theme.label": "Theme",
     "theme.light": "Light",
     "theme.dark": "Dark",
@@ -99,6 +115,23 @@ const STRINGS = {
 
     // header
     "header.editTrip": "Edit trip name and dates",
+    "header.editPicture": "Edit trip picture",
+    "header.picture": "Trip picture",
+    "header.shufflePhoto": "Sync photo",
+    "header.previewPhoto": "Preview photo",
+    "header.uploadPhoto": "Upload photo",
+    "header.useEmoji": "Use emoji",
+    "header.pictureHint": "Add a destination to pick a photo.",
+    "header.pictureFromFirst":
+      "Auto photo is from {place}, your first destination.",
+    "header.pictureUploadOnly": "Upload your own cover photo.",
+    "cover.change": "Change cover photo for {name}",
+    "cover.imageOnly": "Please choose an image file.",
+    "cover.failed": "Couldn’t save the cover. Please try again.",
+    "photo.view": "View photo of {name}",
+    "photo.preview": "Photo preview",
+    "photo.close": "Close preview",
+    "photo.pexels": "Photos from Pexels",
     "header.title": "Trip title",
     "header.startDate": "Trip start date",
     "header.endDate": "Trip end date",
@@ -111,6 +144,7 @@ const STRINGS = {
     "header.exportPdf": "Export PDF",
     "header.overplanned":
       "You’ve planned {planned} nights but the trip is only {total} nights long. Extend the end date or trim a stop.",
+    "header.budgetSummary": "Budget and nights planned",
 
     // offline downloads (cloud mode)
     "offline.download": "Download for offline",
@@ -140,6 +174,9 @@ const STRINGS = {
     "plan.moveEarlier": "Move {name} earlier",
     "plan.moveLater": "Move {name} later",
     "plan.remove": "Remove {name}",
+    "plan.addAccommodation": "Add accommodation",
+    "plan.accommodationHint":
+      "The default for every night here — a night with its own accommodation overrides it.",
     "plan.addOrigin": "Add trip origin",
     "plan.originPlaceholder": "Where the trip starts (e.g. home)…",
     "plan.originSearchLabel": "Search for the trip's starting point",
@@ -169,7 +206,11 @@ const STRINGS = {
 
     // transport
     "transport.mode": "Mode",
-    "transport.duration": "Duration (min)",
+    "transport.duration": "Duration",
+    "transport.hours": "Hours",
+    "transport.minutes": "Minutes",
+    "transport.hoursShort": "h",
+    "transport.minutesShort": "m",
     "transport.distance": "Distance (km)",
     "transport.cost": "Cost",
     "transport.add": "Add transport",
@@ -197,6 +238,7 @@ const STRINGS = {
     "mode.car": "Car",
     "mode.ferry": "Ferry",
     "mode.walk": "Walk",
+    "mode.none": "No transport",
 
     // details
     "details.destinations": "Destinations",
@@ -216,6 +258,12 @@ const STRINGS = {
     "details.tagAccommodation": "Night {n} · Accommodation",
     "details.tagReservation": "Night {n} · {name}",
     "details.tagTransport": "Transport · {mode}",
+    "details.accommodation": "Accommodation",
+    "details.accommodationNone": "Not set yet",
+    "details.accommodationMultiple": "{n} different stays",
+    "details.country": "Country",
+    "details.travelShort": "Travel",
+    "details.lodgingShort": "Lodging",
 
     // documents
     "docs.title": "Documents",
@@ -247,6 +295,8 @@ const STRINGS = {
     "day.show": "Show",
     "day.hide": "Hide",
     "day.to": "To {name}",
+    "field.time": "Time",
+    "field.cost": "Cost",
     "attractions.title": "Attractions",
     "attractions.placeholder": "Temple, museum, viewpoint…",
     "attractions.add": "Add attraction",
@@ -320,6 +370,8 @@ const STRINGS = {
     "budget.originTransport": "Transport to the first stop",
     "budget.lastStop": "Last stop",
     "budget.lastStopNote": "Counted on the stop before it",
+    "budget.destination": "Destination",
+    "budget.unplannedNights": "{n} nights not planned yet",
     "budget.note":
       "Sleeping costs multiply the nightly rate by the nights at each stop, except on nights with their own accommodation, which replace it. Transport is counted on the leg leaving each destination. Attractions and reservations are totalled from the daily planner.",
 
@@ -338,6 +390,9 @@ const STRINGS = {
     "map.close": "Close map",
     "map.resize": "Resize map panel",
     "map.resizeHint": "Drag to resize · double-click to reset",
+    "map.zoomIn": "Zoom in",
+    "map.zoomOut": "Zoom out",
+    "map.recenter": "Fit route to view",
 
     // misc
     "misc.comingNext": "Coming next",
@@ -408,7 +463,7 @@ const STRINGS = {
   },
 
   he: {
-    "app.name": "מסע",
+    "app.name": "TravelPal",
     "nav.main": "ראשי",
     "nav.sections": "חלקי הטיול",
     "nav.view": "תצוגה",
@@ -433,6 +488,14 @@ const STRINGS = {
 
     // auth (magic-link sign in / sign up)
     "auth.tagline": "לתכנן טיולים שנשמרים בדפדפן — ועכשיו גם בחשבון שלך.",
+    "auth.heroHeadline": "לתכנן כל טיול, אופליין וממש בכיס שלכם.",
+    "auth.heroBody":
+      "לארגן מסלולים, לעקוב אחרי תקציב ולחקור מפות אינטראקטיביות — בלי לדאוג לחיבור לאינטרנט.",
+    "auth.trustNote":
+      "מאובטח ופרטי. המידע שלכם לא יוצא מהמכשיר הזה, אלא אם תבחרו לסנכרן אותו.",
+    "auth.welcomeTitle": "ברוכים השבים",
+    "auth.welcomeSubtitle":
+      "הזינו את כתובת האימייל שלכם כדי להיכנס או ליצור חשבון.",
     "auth.emailLabel": "כתובת אימייל",
     "auth.emailPlaceholder": "you@example.com",
     "auth.send": "שליחת קישור כניסה",
@@ -458,6 +521,14 @@ const STRINGS = {
     // trip picker (the landing screen after signing in)
     "picker.title": "הטיולים שלך",
     "picker.subtitle": "בחרו טיול לפתיחה, או התחילו טיול חדש.",
+    "picker.welcomeName": "ברוכים השבים, {name}!",
+    "picker.welcomeSubtitle": "מוכנים להרפתקה הבאה שלכם?",
+    "picker.statusActive": "פעיל",
+    "picker.statusUpcoming": "בקרוב",
+    "picker.statusPast": "עבר",
+    "picker.filterUpcoming": "בקרוב",
+    "picker.filterPast": "עבר",
+    "picker.viewDetails": "לצפייה בפרטים",
     "picker.new": "טיול חדש",
     "picker.open": "פתיחת {name}",
     "picker.nights": "{count} לילות",
@@ -478,10 +549,11 @@ const STRINGS = {
       "להסיר את „{name}“ מהטיולים שלך? הטיול נשאר אצל הבעלים, ותוכלו לקבל הזמנה חוזרת אם זו הייתה טעות.",
     "header.allTrips": "כל הטיולים",
     "header.menu": "תפריט",
-    "header.goTo": "מעבר אל",
+    "account.label": "חשבון",
 
     "lang.label": "שפה",
     "lang.change": "שינוי שפה",
+    "theme.change": "שינוי ערכת נושא",
     "theme.label": "ערכת נושא",
     "theme.light": "בהיר",
     "theme.dark": "כהה",
@@ -489,6 +561,23 @@ const STRINGS = {
     "theme.switchTo": "החלפת ערכת נושא (כרגע {mode})",
 
     "header.editTrip": "עריכת שם הטיול והתאריכים",
+    "header.editPicture": "עריכת תמונת הטיול",
+    "header.picture": "תמונת הטיול",
+    "header.shufflePhoto": "סנכרון תמונה",
+    "header.previewPhoto": "תצוגת התמונה",
+    "header.uploadPhoto": "העלאת תמונה",
+    "header.useEmoji": "שימוש באימוג׳י",
+    "header.pictureHint": "הוסיפו יעד כדי לבחור תמונה.",
+    "header.pictureFromFirst":
+      "התמונה האוטומטית מגיעה מ{place}, היעד הראשון שלך.",
+    "header.pictureUploadOnly": "העלו תמונת שער משלכם.",
+    "cover.change": "החלפת תמונת השער של {name}",
+    "cover.imageOnly": "בחרו קובץ תמונה.",
+    "cover.failed": "שמירת התמונה נכשלה. נסו שוב.",
+    "photo.view": "צפייה בתמונה של {name}",
+    "photo.preview": "תצוגת תמונה",
+    "photo.close": "סגירת התצוגה",
+    "photo.pexels": "תמונות מ-Pexels",
     "header.title": "שם הטיול",
     "header.startDate": "תאריך התחלה",
     "header.endDate": "תאריך סיום",
@@ -501,6 +590,7 @@ const STRINGS = {
     "header.exportPdf": "ייצוא ל-PDF",
     "header.overplanned":
       "תכננת {planned} לילות אך הטיול נמשך {total} לילות בלבד. הארך את תאריך הסיום או קצר עצירה.",
+    "header.budgetSummary": "תקציב ולילות מתוכננים",
     "offline.download": "הורדה לשימוש לא מקוון",
     "offline.downloaded": "זמין גם לא מקוון",
     "offline.banner":
@@ -526,6 +616,9 @@ const STRINGS = {
     "plan.moveEarlier": "הזזת {name} מוקדם יותר",
     "plan.moveLater": "הזזת {name} מאוחר יותר",
     "plan.remove": "הסרת {name}",
+    "plan.addAccommodation": "הוספת לינה",
+    "plan.accommodationHint":
+      "ברירת המחדל לכל לילה כאן — לילה עם לינה משלו גובר עליה.",
     "plan.addOrigin": "הוספת מוצא לטיול",
     "plan.originPlaceholder": "מאיפה הטיול מתחיל (למשל הבית)…",
     "plan.originSearchLabel": "חיפוש נקודת המוצא של הטיול",
@@ -550,7 +643,11 @@ const STRINGS = {
     "sleeping.docsHint": "אישורי ההזמנה נמצאים בלשונית הפרטים.",
 
     "transport.mode": "אמצעי",
-    "transport.duration": "משך (דקות)",
+    "transport.duration": "משך",
+    "transport.hours": "שעות",
+    "transport.minutes": "דקות",
+    "transport.hoursShort": "ש'",
+    "transport.minutesShort": "ד'",
     "transport.distance": "מרחק (ק״מ)",
     "transport.cost": "עלות",
     "transport.add": "הוספת תחבורה",
@@ -578,6 +675,7 @@ const STRINGS = {
     "mode.car": "רכב",
     "mode.ferry": "מעבורת",
     "mode.walk": "הליכה",
+    "mode.none": "ללא תחבורה",
 
     "details.destinations": "יעדים",
     "details.empty": "הוסיפו יעד תחילה — ההערות והמסמכים שלו יופיעו כאן.",
@@ -593,6 +691,12 @@ const STRINGS = {
     "details.tagAccommodation": "לילה {n} · לינה",
     "details.tagReservation": "לילה {n} · {name}",
     "details.tagTransport": "תחבורה · {mode}",
+    "details.accommodation": "לינה",
+    "details.accommodationNone": "טרם נקבע",
+    "details.accommodationMultiple": "{n} מקומות לינה שונים",
+    "details.country": "מדינה",
+    "details.travelShort": "נסיעה",
+    "details.lodgingShort": "לינה",
     "docs.title": "מסמכים",
     "docs.file": "קובץ",
     "docs.files": "קבצים",
@@ -618,6 +722,8 @@ const STRINGS = {
     "day.show": "הצגת",
     "day.hide": "הסתרת",
     "day.to": "אל {name}",
+    "field.time": "שעה",
+    "field.cost": "עלות",
     "attractions.title": "אטרקציות",
     "attractions.placeholder": "מקדש, מוזיאון, נקודת תצפית…",
     "attractions.add": "הוספת אטרקציה",
@@ -688,6 +794,8 @@ const STRINGS = {
     "budget.originTransport": "תחבורה לעצירה הראשונה",
     "budget.lastStop": "העצירה האחרונה",
     "budget.lastStopNote": "נספר בעלות העצירה שלפניה",
+    "budget.destination": "יעד",
+    "budget.unplannedNights": "{n} לילות עדיין לא מתוכננים",
     "budget.note":
       "עלות הלינה מוכפלת במספר הלילות בכל עצירה, למעט לילות עם לינה משלהם — שמחליפה אותה. התחבורה נספרת על הקטע היוצא מכל יעד. אטרקציות והזמנות מסוכמות מהתכנון היומי.",
 
@@ -705,6 +813,9 @@ const STRINGS = {
     "map.close": "סגירת המפה",
     "map.resize": "שינוי רוחב המפה",
     "map.resizeHint": "גררו לשינוי הגודל · לחיצה כפולה לאיפוס",
+    "map.zoomIn": "הגדלה",
+    "map.zoomOut": "הקטנה",
+    "map.recenter": "התאמת המסלול לתצוגה",
 
     "misc.comingNext": "בקרוב",
     "discover.body": "עיינו בעצירות מומלצות והוסיפו אותן ישירות למסלול.",

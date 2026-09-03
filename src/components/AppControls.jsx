@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { Check, Globe, Laptop, Moon, Sun, User } from 'lucide-react'
-import { LANGUAGES, setLanguage, useI18n } from '../lib/i18n.js'
-import { THEMES, setTheme, useTheme } from '../lib/theme.js'
-import { sessionEmail, useSession } from '../lib/auth.js'
+import { useEffect, useRef, useState } from "react";
+import { Check, Globe, Laptop, Moon, Sun } from "lucide-react";
+import { LANGUAGES, setLanguage, useI18n } from "../lib/i18n.js";
+import { THEMES, setTheme, useTheme } from "../lib/theme.js";
+import { useClampToViewport } from "../lib/useClampToViewport.js";
 
-const THEME_ICON = { light: Sun, dark: Moon, system: Laptop }
+const THEME_ICON = { light: Sun, dark: Moon, system: Laptop };
 
 /**
  * Language and theme controls. Anchored to the inline-start of the header, so
@@ -12,36 +12,40 @@ const THEME_ICON = { light: Sun, dark: Moon, system: Laptop }
  * a reader of each script expects.
  */
 export default function AppControls() {
-  const { t, lang } = useI18n()
-  const { preference, theme } = useTheme()
-  const { session } = useSession()
-  const email = sessionEmail(session)
+  const { t, lang } = useI18n();
+  const { preference, theme } = useTheme();
 
-  const [open, setOpen] = useState(false)
-  const [acctOpen, setAcctOpen] = useState(false)
-  const boxRef = useRef(null)
-  const acctRef = useRef(null)
+  const [open, setOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const boxRef = useRef(null);
+  const themeRef = useRef(null);
+  const langMenuRef = useRef(null);
+  const themeMenuRef = useRef(null);
+  const langShift = useClampToViewport(open, langMenuRef);
+  const themeShift = useClampToViewport(themeOpen, themeMenuRef);
 
   useEffect(() => {
-    if (!open && !acctOpen) return undefined
+    if (!open && !themeOpen) return undefined;
     const onAway = (e) => {
-      if (open && !boxRef.current?.contains(e.target)) setOpen(false)
-      if (acctOpen && !acctRef.current?.contains(e.target)) setAcctOpen(false)
-    }
+      if (open && !boxRef.current?.contains(e.target)) setOpen(false);
+      if (themeOpen && !themeRef.current?.contains(e.target))
+        setThemeOpen(false);
+    };
     const onKey = (e) => {
-      if (e.key !== 'Escape') return
-      setOpen(false)
-      setAcctOpen(false)
-    }
-    document.addEventListener('mousedown', onAway)
-    document.addEventListener('keydown', onKey)
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      setThemeOpen(false);
+    };
+    document.addEventListener("mousedown", onAway);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('mousedown', onAway)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open, acctOpen])
+      document.removeEventListener("mousedown", onAway);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, themeOpen]);
 
-  const active = LANGUAGES.find((l) => l.code === lang)
+  const active = LANGUAGES.find((l) => l.code === lang);
+  const ThemeIcon = THEME_ICON[theme];
 
   return (
     <div className="flex items-center gap-1.5">
@@ -51,7 +55,7 @@ export default function AppControls() {
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-haspopup="listbox"
-          aria-label={t('lang.change')}
+          aria-label={t("lang.change")}
           className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-2
                      text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -62,8 +66,12 @@ export default function AppControls() {
 
         {open && (
           <ul
+            ref={langMenuRef}
             role="listbox"
-            aria-label={t('lang.label')}
+            aria-label={t("lang.label")}
+            style={{
+              transform: `translate(${langShift.x}px, ${langShift.y}px)`,
+            }}
             className="absolute top-full z-50 mt-1 min-w-[9rem] overflow-hidden rounded-xl border border-line
                        bg-surface shadow-lg shadow-brand-950/20 start-0"
           >
@@ -72,14 +80,14 @@ export default function AppControls() {
                 <button
                   type="button"
                   onClick={() => {
-                    setLanguage(l.code)
-                    setOpen(false)
+                    setLanguage(l.code);
+                    setOpen(false);
                   }}
                   dir={l.dir}
                   className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition ${
                     l.code === lang
-                      ? 'bg-accent-soft font-semibold text-fg'
-                      : 'text-muted hover:bg-raised hover:text-fg'
+                      ? "bg-accent-soft font-semibold text-fg"
+                      : "text-muted hover:bg-raised hover:text-fg"
                   }`}
                 >
                   {l.native}
@@ -91,69 +99,60 @@ export default function AppControls() {
         )}
       </div>
 
-      <div
-        role="group"
-        aria-label={t('theme.label')}
-        className="flex items-center rounded-full border border-line-strong bg-surface p-0.5"
-      >
-        {THEMES.map((mode) => {
-          const Icon = THEME_ICON[mode]
-          const selected = preference === mode
-          return (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setTheme(mode)}
-              aria-pressed={selected}
-              title={t(`theme.${mode}`)}
-              aria-label={t(`theme.${mode}`)}
-              className={`grid size-8 place-items-center rounded-full transition lg:size-6
-                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                  selected
-                    ? 'bg-accent text-on-accent'
-                    : 'text-subtle hover:text-fg'
-                }`}
-            >
-              <Icon size={13} />
-            </button>
-          )
-        })}
-        <span className="sr-only">
-          {t('theme.switchTo', { mode: t(`theme.${theme}`) })}
-        </span>
-      </div>
+      <div ref={themeRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setThemeOpen((v) => !v)}
+          aria-expanded={themeOpen}
+          aria-haspopup="listbox"
+          aria-label={t("theme.change")}
+          title={t(`theme.${theme}`)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-2
+                     text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <ThemeIcon size={14} />
+          <span className="hidden lg:inline">{t(`theme.${theme}`)}</span>
+        </button>
 
-      {/* Signed-in identity. Only shown when there's an account behind the
-          session, so the sign-in screen and local-only mode stay uncluttered. */}
-      {email && (
-        <div ref={acctRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setAcctOpen((v) => !v)}
-            aria-expanded={acctOpen}
-            aria-haspopup="dialog"
-            aria-label={t('account.viewAccount')}
-            className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-2
-                       text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        {themeOpen && (
+          <ul
+            ref={themeMenuRef}
+            role="listbox"
+            aria-label={t("theme.label")}
+            style={{
+              transform: `translate(${themeShift.x}px, ${themeShift.y}px)`,
+            }}
+            className="absolute top-full z-50 mt-1 min-w-[9rem] overflow-hidden rounded-xl border border-line
+                       bg-surface shadow-lg shadow-brand-950/20 end-0"
           >
-            <User size={14} />
-            <span className="hidden max-w-[10rem] truncate lg:inline">{email}</span>
-          </button>
-
-          {acctOpen && (
-            <div
-              role="dialog"
-              aria-label={t('account.label')}
-              className="absolute top-full z-50 mt-1 min-w-[12rem] max-w-[16rem] rounded-xl border border-line
-                         bg-surface p-3 shadow-lg shadow-brand-950/20 end-0"
-            >
-              <p className="text-xs text-muted">{t('account.label')}</p>
-              <p className="mt-0.5 break-all text-sm font-medium text-fg">{email}</p>
-            </div>
-          )}
-        </div>
-      )}
+            {THEMES.map((mode) => {
+              const Icon = THEME_ICON[mode];
+              const selected = preference === mode;
+              return (
+                <li key={mode} role="option" aria-selected={selected}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTheme(mode);
+                      setThemeOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm transition ${
+                      selected
+                        ? "bg-accent-soft font-semibold text-fg"
+                        : "text-muted hover:bg-raised hover:text-fg"
+                    }`}
+                  >
+                    <Icon size={14} className="shrink-0" />
+                    <span className="flex-1">{t(`theme.${mode}`)}</span>
+                    {selected && <Check size={14} className="shrink-0" />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
-  )
+  );
 }

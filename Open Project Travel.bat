@@ -1,14 +1,14 @@
 @echo off
 setlocal EnableExtensions
-title Project Travel
+title TravelPal
 cd /d "%~dp0"
 
 set "PORT=5173"
 set "URL=http://localhost:%PORT%"
 
 echo(
-echo   Project Travel
-echo   ==============
+echo   TravelPal
+echo   =========
 echo(
 
 REM ---------------------------------------------------------------------------
@@ -55,13 +55,13 @@ REM ---------------------------------------------------------------------------
 REM  Start the server in its own minimised window, then wait for it to answer.
 REM ---------------------------------------------------------------------------
 echo   Starting the server...
-start "Project Travel server" /min "%NODE%" "node_modules\vite\bin\vite.js" --port %PORT% --strictPort
+start "TravelPal server" /min "%NODE%" "node_modules\vite\bin\vite.js" --port %PORT% --strictPort
 
 call :waitUp
 if errorlevel 1 (
   echo(
   echo   The server did not respond in time.
-  echo   Look at the minimised "Project Travel server" window for errors.
+  echo   Look at the minimised "TravelPal server" window for errors.
   echo(
   pause
   exit /b 1
@@ -73,7 +73,7 @@ echo(
 echo   Opened %URL%
 echo(
 echo   The server stays running in the minimised window titled
-echo   "Project Travel server" - close it when you are done.
+echo   "TravelPal server" - close it when you are done.
 echo(
 REM  `timeout` refuses to run when stdin is redirected; ping always works.
 ping -n 6 127.0.0.1 >nul 2>nul

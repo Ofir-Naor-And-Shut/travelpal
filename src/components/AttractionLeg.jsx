@@ -1,29 +1,35 @@
-import { useState } from 'react'
-import { TransportIcon } from './TransportLeg.jsx'
-import { TRANSPORT_MODES, modeColor, num, setAttractionLeg } from '../lib/store.js'
-import { estimateDuration } from '../lib/places.js'
-import { formatDuration } from '../lib/money.js'
-import { useI18n } from '../lib/i18n.js'
+import { useState } from "react";
+import { TransportIcon, DurationInputs } from "./TransportLeg.jsx";
+import {
+  TRANSPORT_MODES,
+  modeColor,
+  num,
+  setAttractionLeg,
+} from "../lib/store.js";
+import { estimateDuration } from "../lib/places.js";
+import { formatDuration } from "../lib/money.js";
+import { useI18n } from "../lib/i18n.js";
 
 /** Modes that make sense for hopping between sights inside a city. */
 const CITY_MODES = TRANSPORT_MODES.filter((m) =>
-  ['walk', 'bus', 'car', 'train', 'ferry'].includes(m.id),
-)
+  ["walk", "bus", "car", "train", "ferry"].includes(m.id),
+);
 
 export default function AttractionLeg({ dayKeyValue, from, suggestedKm }) {
-  const { t } = useI18n()
-  const [open, setOpen] = useState(false)
-  const leg = from.legOut
-  if (!leg) return null
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const leg = from.legOut;
+  if (!leg) return null;
 
-  const color = modeColor(leg.mode)
-  const km = num(leg.distanceKm) || suggestedKm
-  const minutes = num(leg.durationMin) || (km ? estimateDuration(km, leg.mode) : 0)
+  const color = modeColor(leg.mode);
+  const km = num(leg.distanceKm) || suggestedKm;
+  const minutes =
+    num(leg.durationMin) || (km ? estimateDuration(km, leg.mode) : 0);
 
   const summary = [
     minutes ? formatDuration(minutes) : null,
-    km ? `${km} ${t('unit.km')}` : null,
-  ].filter(Boolean)
+    km ? `${km} ${t("unit.km")}` : null,
+  ].filter(Boolean);
 
   return (
     <div className="relative ps-2">
@@ -45,7 +51,7 @@ export default function AttractionLeg({ dayKeyValue, from, suggestedKm }) {
         >
           <TransportIcon mode={leg.mode} size={12} strokeWidth={2.4} />
           <span className="tabular">
-            {summary.length ? summary.join(' · ') : t('attractions.addRoute')}
+            {summary.length ? summary.join(" · ") : t("attractions.addRoute")}
           </span>
         </button>
       </div>
@@ -54,14 +60,22 @@ export default function AttractionLeg({ dayKeyValue, from, suggestedKm }) {
         <div className="mb-2 ms-6 max-w-md rounded-lg border border-line bg-raised p-2.5">
           <div className="grid grid-cols-3 gap-2">
             <label className="text-[11px] font-medium text-muted">
-              {t('transport.mode')}
+              {t("transport.mode")}
               <select
                 className="field mt-1 !py-1 !text-xs"
                 value={leg.mode}
                 onChange={(e) =>
-                  setAttractionLeg(dayKeyValue, from.id, { mode: e.target.value })
+                  setAttractionLeg(dayKeyValue, from.id, {
+                    mode: e.target.value,
+                  })
                 }
               >
+                {/* Not a real choice — a passively-created leg's placeholder
+                    value, so the select reads correctly until a mode is
+                    actually picked. */}
+                <option value="none" hidden disabled>
+                  {t("mode.none")}
+                </option>
                 {CITY_MODES.map((m) => (
                   <option key={m.id} value={m.id}>
                     {t(`mode.${m.id}`)}
@@ -71,29 +85,23 @@ export default function AttractionLeg({ dayKeyValue, from, suggestedKm }) {
             </label>
 
             <label className="text-[11px] font-medium text-muted">
-              {t('transport.duration')}
-              <input
-                type="number"
-                min="0"
-                className="field tabular mt-1 !py-1 !text-xs"
-                value={leg.durationMin || ''}
-                placeholder={String(minutes || 0)}
-                onChange={(e) =>
-                  setAttractionLeg(dayKeyValue, from.id, {
-                    durationMin: num(e.target.value),
-                  })
+              {t("transport.duration")}
+              <DurationInputs
+                minutes={leg.durationMin}
+                onChange={(v) =>
+                  setAttractionLeg(dayKeyValue, from.id, { durationMin: v })
                 }
               />
             </label>
 
             <label className="text-[11px] font-medium text-muted">
-              {t('transport.distance')}
+              {t("transport.distance")}
               <input
                 type="number"
                 min="0"
                 step="0.1"
                 className="field tabular mt-1 !py-1 !text-xs"
-                value={leg.distanceKm || ''}
+                value={leg.distanceKm || ""}
                 placeholder={String(suggestedKm || 0)}
                 onChange={(e) =>
                   setAttractionLeg(dayKeyValue, from.id, {
@@ -115,7 +123,7 @@ export default function AttractionLeg({ dayKeyValue, from, suggestedKm }) {
                 })
               }
             >
-              {t('attractions.useEstimate', {
+              {t("attractions.useEstimate", {
                 km: suggestedKm,
                 time: formatDuration(estimateDuration(suggestedKm, leg.mode)),
               })}
@@ -124,5 +132,5 @@ export default function AttractionLeg({ dayKeyValue, from, suggestedKm }) {
         </div>
       )}
     </div>
-  )
+  );
 }

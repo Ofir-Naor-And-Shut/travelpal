@@ -9,7 +9,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { Flag, Home, Layers, X } from "lucide-react";
+import { Flag, Focus, Home, Minus, Plus, X } from "lucide-react";
 import { TransportIcon } from "./TransportLeg.jsx";
 import { arcPoints, splitArc } from "../lib/arc.js";
 import {
@@ -280,6 +280,14 @@ function FitBounds({ points, fallback, soloZoom, maxZoom, fitKey }) {
   return null;
 }
 
+/** Hoists the Leaflet map instance up to the parent, so the custom zoom/
+ * recenter buttons (rendered outside `MapContainer`) can drive it. */
+function MapInstanceCapture({ onReady }) {
+  const map = useMap();
+  useEffect(() => onReady(map), [map, onReady]);
+  return null;
+}
+
 export default function TripMap({
   destinations,
   origin,
@@ -295,7 +303,10 @@ export default function TripMap({
   const [styleId, setStyleId] = useState(
     () => localStorage.getItem(STYLE_KEY) ?? "voyager",
   );
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [leafletMap, setLeafletMap] = useState(null);
+  // Bumped by the recenter button to re-run the same fit-to-route effect
+  // FitBounds already does on route changes, without duplicating its logic.
+  const [refitNonce, setRefitNonce] = useState(0);
 
   // Google only shows up as a choice once a key is configured — same
   // graceful-degradation rule the search inputs follow.
@@ -313,7 +324,6 @@ export default function TripMap({
 
   function chooseStyle(id) {
     setStyleId(id);
-    setPickerOpen(false);
     try {
       localStorage.setItem(STYLE_KEY, id);
     } catch {
@@ -390,8 +400,9 @@ export default function TripMap({
           id: `${from.id}->${to.id}`,
           from,
           to,
-          mode: "train",
-          color: modeColor("train"),
+          mode: "none",
+          color: modeColor("none"),
+          dashed: true,
           points,
           midpoint: points[Math.floor(points.length / 2)],
           badge: null,
@@ -418,6 +429,7 @@ export default function TripMap({
       segments.forEach((segment, s) => {
         const color = modeColor(segment.mode);
         const points = pieces[s];
+        const noTransport = segment.mode === "none";
 
         out.push({
           id: `${from.id}->${to.id}#${segment.id}`,
@@ -425,11 +437,14 @@ export default function TripMap({
           to,
           mode: segment.mode,
           color,
+          dashed: noTransport,
           points,
           // Sits on the arc itself rather than the straight midpoint, so the
           // badge never floats off the line it belongs to.
           midpoint: points[Math.floor(points.length / 2)],
-          badge: modeBadgeIcon(segment.mode, color, inDayMode),
+          badge: noTransport
+            ? null
+            : modeBadgeIcon(segment.mode, color, inDayMode),
           station: !inDayMode
             ? {
                 origin: segment.origin?.name || null,
@@ -453,7 +468,7 @@ export default function TripMap({
   }, [routeKey]);
 
   const usedModes = useMemo(
-    () => [...new Set(legs.map((l) => l.mode))],
+    () => [...new Set(legs.map((l) => l.mode))].filter((m) => m !== "none"),
     [legs],
   );
 
@@ -478,9 +493,11 @@ export default function TripMap({
           center={[45.4642, 9.19]}
           zoom={5}
           scrollWheelZoom
+          zoomControl={false}
           className="h-full w-full"
           attributionControl={false}
         >
+          <MapInstanceCapture onReady={setLeafletMap} />
           <TileLayer
             key={`${basemap.id}:${isDark}`}
             url={tileUrl}
@@ -504,6 +521,7 @@ export default function TripMap({
                 lineCap: "round",
                 lineJoin: "round",
                 interactive: false,
+                dashArray: leg.dashed ? "1 12" : undefined,
                 // Leaflet's default simplification would straighten the arc.
                 smoothFactor: 0,
               }}
@@ -520,6 +538,7 @@ export default function TripMap({
                 opacity: 0.95,
                 lineCap: "round",
                 lineJoin: "round",
+                dashArray: leg.dashed ? "1 12" : undefined,
                 smoothFactor: 0,
               }}
             >
@@ -632,7 +651,7 @@ export default function TripMap({
           <AutoResize />
           <FitBounds
             points={boundsPoints}
-            fitKey={routeKey}
+            fitKey={`${routeKey}#${refitNonce}`}
             // City work needs a much closer view than hopping between countries.
             soloZoom={inDayMode ? 15 : 9}
             maxZoom={inDayMode ? 16 : 11}
@@ -646,7 +665,7 @@ export default function TripMap({
       )}
 
       {/* --- Map controls: close (overlay only) + basemap picker ----------- */}
-      <div className="absolute end-3 top-3 z-[600] flex flex-col items-end gap-2">
+      <div className="absolute end-3 top-3 z-[600] flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2">
         {/* Only the phone overlay is dismissable; the docked desktop pane has
             nothing to close, so onClose is only wired up there. Sits above the
             picker in the same stack so the two never overlap. */}
@@ -655,46 +674,69 @@ export default function TripMap({
             type="button"
             onClick={onClose}
             aria-label={t("map.close")}
-            className="grid size-9 place-items-center rounded-full bg-surface/95 text-fg shadow-md backdrop-blur transition hover:bg-surface lg:hidden"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-surface/95 text-fg shadow-md backdrop-blur transition hover:bg-surface lg:hidden"
           >
             <X size={18} />
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setPickerOpen((v) => !v)}
-          aria-expanded={pickerOpen}
-          className="inline-flex items-center gap-2 rounded-full bg-surface/95 px-3 py-2 text-xs font-semibold text-fg shadow-md backdrop-blur transition hover:bg-surface"
-        >
-          <Layers size={15} />
-          {t(basemap.key)}
-        </button>
 
-        {pickerOpen && (
-          <div
-            role="radiogroup"
-            aria-label={t("map.style")}
-            className="overflow-hidden rounded-xl bg-surface/95 shadow-lg backdrop-blur"
-          >
-            {availableBasemaps.map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                role="radio"
-                aria-checked={b.id === basemap.id}
-                onClick={() => chooseStyle(b.id)}
-                className={`block w-full px-4 py-2 text-start text-xs font-medium transition ${
-                  b.id === basemap.id
-                    ? "bg-accent text-on-accent"
-                    : "text-fg hover:bg-raised"
-                }`}
-              >
-                {t(b.key)}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Every style stays one tap away — a short, fixed list reads better
+            as a segmented row than a dropdown with an extra click. */}
+        <div
+          role="radiogroup"
+          aria-label={t("map.style")}
+          className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-surface/95 p-1 shadow-md backdrop-blur"
+        >
+          {availableBasemaps.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              role="radio"
+              aria-checked={b.id === basemap.id}
+              onClick={() => chooseStyle(b.id)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                b.id === basemap.id
+                  ? "bg-accent text-on-accent"
+                  : "text-fg hover:bg-raised"
+              }`}
+            >
+              {t(b.key)}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* --- Zoom + fit-to-route, Leaflet only (Google keeps its own UI) --- */}
+      {!basemap.google && (
+        <div className="absolute bottom-20 end-3 z-[600] flex flex-col items-end gap-2 lg:bottom-3">
+          <div className="flex flex-col overflow-hidden rounded-xl bg-surface/95 shadow-md backdrop-blur">
+            <button
+              type="button"
+              onClick={() => leafletMap?.zoomIn()}
+              aria-label={t("map.zoomIn")}
+              className="grid size-10 place-items-center border-b border-line text-fg transition hover:bg-raised"
+            >
+              <Plus size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={() => leafletMap?.zoomOut()}
+              aria-label={t("map.zoomOut")}
+              className="grid size-10 place-items-center text-fg transition hover:bg-raised"
+            >
+              <Minus size={17} />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRefitNonce((n) => n + 1)}
+            aria-label={t("map.recenter")}
+            className="grid size-11 place-items-center rounded-full bg-surface/95 text-accent shadow-md backdrop-blur transition hover:bg-raised"
+          >
+            <Focus size={18} />
+          </button>
+        </div>
+      )}
 
       {/* --- Legend, only for modes actually on the route ------------------- */}
       {usedModes.length > 0 && (
@@ -717,11 +759,13 @@ export default function TripMap({
 
       {/* Google renders its own "Google" wordmark/ToS link on the map itself;
           a second attribution line would be redundant and, for the other
-          basemaps, wrong. */}
+          basemaps, wrong. Tucked at the very bottom corner, well below the
+          legend, so it never collides with the zoom/recenter cluster on the
+          opposite side. */}
       {!basemap.google && (
         <p
           dir="ltr"
-          className="pointer-events-none absolute bottom-20 end-1 z-[600] rounded bg-surface/80 px-1.5 py-0.5 text-[10px] text-muted"
+          className="pointer-events-none absolute bottom-1 start-1 z-[600] rounded bg-surface/80 px-1.5 py-0.5 text-[10px] text-muted"
         >
           {basemap.attribution}
         </p>

@@ -43,18 +43,36 @@ const DARK_STYLE = [
  * the library's own recommended pattern of driving the raw Maps JS object
  * from a `useMap()` handle.
  */
-function GooglePolyline({ path, color, casing }) {
+function GooglePolyline({ path, color, casing, dashed }) {
   const map = useMap();
   const lineRef = useRef(null);
 
   useEffect(() => {
     if (!map || !window.google) return undefined;
 
+    // Google Maps has no stroke-dasharray equivalent — a dashed line is a
+    // solid stroke hidden (opacity 0) with a small line symbol repeated along it.
+    const dashIcon = dashed
+      ? [
+          {
+            icon: {
+              path: "M 0,-1 0,1",
+              strokeOpacity: 1,
+              strokeColor: color,
+              scale: casing ? 4 : 2,
+            },
+            offset: "0",
+            repeat: "14px",
+          },
+        ]
+      : undefined;
+
     const line = new window.google.maps.Polyline({
       path: path.map(([lat, lng]) => ({ lat, lng })),
       strokeColor: color,
-      strokeOpacity: casing ? 0.85 : 0.95,
+      strokeOpacity: dashed ? 0 : casing ? 0.85 : 0.95,
       strokeWeight: casing ? 8 : 4,
+      icons: dashIcon,
       zIndex: casing ? 1 : 2,
       map,
     });
@@ -62,7 +80,7 @@ function GooglePolyline({ path, color, casing }) {
 
     return () => line.setMap(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, color, casing, JSON.stringify(path)]);
+  }, [map, color, casing, dashed, JSON.stringify(path)]);
 
   return null;
 }
@@ -216,8 +234,9 @@ export default function GoogleTripMap({
         const points = arcPoints(a, b, { curvature });
         out.push({
           id: `${from.id}->${to.id}`,
-          mode: "train",
-          color: modeColor("train"),
+          mode: "none",
+          color: modeColor("none"),
+          dashed: true,
           points,
           midpoint: points[Math.floor(points.length / 2)],
         });
@@ -236,6 +255,7 @@ export default function GoogleTripMap({
           id: `${from.id}->${to.id}#${segment.id}`,
           mode: segment.mode,
           color: modeColor(segment.mode),
+          dashed: segment.mode === "none",
           points,
           midpoint: points[Math.floor(points.length / 2)],
         });
@@ -266,19 +286,27 @@ export default function GoogleTripMap({
             path={leg.points}
             color="#ffffff"
             casing
+            dashed={leg.dashed}
           />
         ))}
         {legs.map((leg) => (
-          <GooglePolyline key={leg.id} path={leg.points} color={leg.color} />
-        ))}
-        {legs.map((leg) => (
-          <ModeBadge
-            key={`badge-${leg.id}`}
-            position={leg.midpoint}
-            mode={leg.mode}
+          <GooglePolyline
+            key={leg.id}
+            path={leg.points}
             color={leg.color}
+            dashed={leg.dashed}
           />
         ))}
+        {legs
+          .filter((leg) => leg.mode !== "none")
+          .map((leg) => (
+            <ModeBadge
+              key={`badge-${leg.id}`}
+              position={leg.midpoint}
+              mode={leg.mode}
+              color={leg.color}
+            />
+          ))}
         {stops.map((stop, i) => {
           const isOrigin = Boolean(originStop) && stop.id === originStop.id;
           const isLastStop =

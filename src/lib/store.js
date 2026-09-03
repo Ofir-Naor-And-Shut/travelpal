@@ -13,6 +13,7 @@ import {
   isTripDownloaded,
   saveTripOffline,
 } from "./offlineCache.js";
+import { fetchPexelsPhotos, hasPexelsKey } from "./pexels.js";
 
 const STORAGE_KEY = "project-travel:trip:v2";
 const LEGACY_KEY = "project-travel:trip:v1";
@@ -38,6 +39,10 @@ const newId = () => {
  * Each mode carries its own colour so a leg reads the same way in the list, on
  * the map and in the legend. Train keeps the brand teal; the rest fan out into
  * hues that stay legible on top of a colourful basemap.
+ *
+ * "none" (no transport chosen) is deliberately not part of this list — it's
+ * the passive default a leg is born with, never an option in the mode picker
+ * itself, so it's handled separately below.
  */
 export const TRANSPORT_MODES = [
   { id: "plane", label: "Flight", color: "#E4572E" },
@@ -48,11 +53,15 @@ export const TRANSPORT_MODES = [
   { id: "walk", label: "Walk", color: "#57A773" },
 ];
 
+const NO_TRANSPORT_COLOR = "#8a8f98";
+
 export function modeColor(mode) {
+  if (mode === "none") return NO_TRANSPORT_COLOR;
   return TRANSPORT_MODES.find((m) => m.id === mode)?.color ?? "#17858F";
 }
 
 export function modeLabel(mode) {
+  if (mode === "none") return "No transport";
   return TRANSPORT_MODES.find((m) => m.id === mode)?.label ?? "Travel";
 }
 
@@ -114,8 +123,10 @@ function makeDestination(partial = {}) {
     lat: 0,
     lng: 0,
     nights: 2,
-    sleeping: { name: "", cost: 0 },
+    sleeping: { name: "", cost: 0, address: "" },
     notes: "",
+    // A Pexels photo of the destination, filled in lazily after it's placed.
+    photoUrl: "",
     travelDocs: [],
     sleepingDocs: [],
     // Segments leaving THIS destination for the next one. Empty on the last.
@@ -294,6 +305,12 @@ function tripDefaults() {
     id: newId(),
     title: "New trip",
     emoji: "🌍",
+    // A Pexels photo of the first destination's country; empty means the
+    // emoji still stands in for it.
+    photoUrl: "",
+    // An uploaded cover photo (a doc reference into IndexedDB/Storage). When
+    // set it supersedes photoUrl and the emoji.
+    coverDoc: null,
     startDate: format(today, "yyyy-MM-dd"),
     endDate: format(addDays(today, 1), "yyyy-MM-dd"),
     currency: "EUR",
@@ -335,7 +352,7 @@ export function normalize(trip) {
     destinations: (trip.destinations ?? []).map((d) => ({
       ...makeDestination(),
       ...d,
-      sleeping: { name: "", cost: 0, ...d.sleeping },
+      sleeping: { name: "", cost: 0, address: "", ...d.sleeping },
       travelDocs: d.travelDocs ?? [],
       sleepingDocs: d.sleepingDocs ?? [],
       transportOut: normalizeLeg(d.transportOut),
@@ -632,6 +649,8 @@ async function enterCloudMode(previousMode) {
       id: row.id,
       title: t.title,
       emoji: t.emoji,
+      photoUrl: t.photoUrl,
+      coverDoc: t.coverDoc,
       startDate: t.startDate,
       endDate: t.endDate,
     };
@@ -816,7 +835,7 @@ let state;
 let tripRoles = new Map();
 // Shared trips not yet accepted or declined — kept separate from `trips`/
 // `order` so they never show as editable until the user actually accepts.
-// `{ id, title, emoji, startDate, endDate }[]`, cloud mode only.
+// `{ id, title, emoji, photoUrl, startDate, endDate }[]`, cloud mode only.
 let invitations = [];
 const invitationListeners = new Set();
 function notifyInvitations() {
@@ -917,6 +936,8 @@ function computeRegistry() {
         id,
         title: trip.title,
         emoji: trip.emoji,
+        photoUrl: trip.photoUrl,
+        coverDoc: trip.coverDoc,
         startDate: trip.startDate,
         endDate: trip.endDate,
         // 'owner' everywhere in local-only mode (no ownership concept there);
@@ -1176,6 +1197,7 @@ function mapDestinations(fn) {
 }
 
 export function addDestination(partial) {
+  const wasFirst = state.destinations.length === 0;
   mapDestinations((list) => {
     const next = [...list];
     // The stop that used to be last now needs a leg out to the newcomer.
@@ -1183,24 +1205,130 @@ export function addDestination(partial) {
       const prev = next[next.length - 1];
       next[next.length - 1] = {
         ...prev,
-        transportOut: legOf(prev).length ? prev.transportOut : [makeSegment()],
+        transportOut: legOf(prev).length
+          ? prev.transportOut
+          : [makeSegment({ mode: "none" })],
       };
     }
     next.push(
       makeDestination({
         ...partial,
         // If a last stop is waiting, this newcomer needs a leg out to it too.
-        transportOut: state.lastStop ? [makeSegment()] : [],
+        transportOut: state.lastStop ? [makeSegment({ mode: "none" })] : [],
       }),
     );
     return next;
   });
+  if (wasFirst) maybeAutoTripPhoto();
+}
+
+/**
+ * A Pexels photo of a trip's first stop's country — the source for the auto
+ * trip cover. Returns "" when there's no stop to key off or nothing is found.
+ */
+async function fetchCountryPhotoFor(trip) {
+  const first = trip.destinations?.[0];
+  const query = first?.country || first?.name;
+  if (!query) return "";
+  const [url] = await fetchPexelsPhotos(query, { perPage: 1 });
+  return url || "";
+}
+
+/**
+ * Give a brand-new trip a picture once it has a first stop: a Places photo of
+ * that stop's country. Skipped when the trip already has a picture (so a manual
+ * choice is never overwritten) or when there's no Google key. Best-effort — a
+ * failure just leaves the emoji in place.
+ */
+async function maybeAutoTripPhoto() {
+  if (state.photoUrl || state.coverDoc || !hasPexelsKey()) return;
+  const tripId = state.id;
+  try {
+    const url = await fetchCountryPhotoFor(state);
+    // The user may have switched trips or set a picture while this was in
+    // flight — only apply if the same trip is still bare.
+    if (url && state.id === tripId && !state.photoUrl)
+      updateTrip({ photoUrl: url });
+  } catch {
+    /* leave the emoji */
+  }
 }
 
 export function updateDestination(id, patch) {
   mapDestinations((list) =>
     list.map((d) => (d.id === id ? { ...d, ...patch } : d)),
   );
+}
+
+// Destinations we've already tried to fetch a photo for this session, so a
+// failed lookup isn't retried on every re-render of its row.
+const destPhotoTried = new Set();
+
+/**
+ * Give a placed destination a Places photo of its landmarks, once. Best-effort
+ * and idempotent: no-ops without a key, when the stop already has a photo or
+ * isn't placed, and never retries the same stop within a session. Called lazily
+ * from the row so both new and pre-existing stops get filled in.
+ */
+export async function ensureDestinationPhoto(destId) {
+  if (!hasPexelsKey()) return;
+  const dest = state.destinations.find((d) => d.id === destId);
+  if (!dest || dest.photoUrl || !isPlaced(dest)) return;
+
+  const query = dest.name || dest.country;
+  if (!query) return;
+  const tried = `${state.id}:${destId}`;
+  if (destPhotoTried.has(tried)) return;
+  destPhotoTried.add(tried);
+
+  const tripId = state.id;
+  try {
+    const [url] = await fetchPexelsPhotos(query, { perPage: 1 });
+    if (url && state.id === tripId) {
+      // The stop may have been removed or filled meanwhile — re-check before write.
+      const current = state.destinations.find((d) => d.id === destId);
+      if (current && !current.photoUrl)
+        updateDestination(destId, { photoUrl: url });
+    } else if (!url) {
+      // Nothing found this time — let a later attempt retry rather than
+      // permanently giving up on this stop.
+      destPhotoTried.delete(tried);
+    }
+  } catch {
+    // Transient (cold SDK, network) — clear the flag so a re-render retries.
+    destPhotoTried.delete(tried);
+  }
+}
+
+/** Full trip object for an id (any trip, not just the active one). */
+export function getTripById(id) {
+  return trips.get(id);
+}
+
+/**
+ * Set (or clear, with `null`) a trip's uploaded cover photo, by id — so the
+ * picker can change a trip that isn't the active one. The blob lives in
+ * IndexedDB (and, signed in, Storage); this only records the reference and
+ * clears any remote photo it supersedes.
+ */
+export function setTripCover(tripId, coverDoc) {
+  if (cloudModeActive && !isOnline()) return;
+  const trip = trips.get(tripId);
+  if (!trip) return;
+  const next = {
+    ...trip,
+    coverDoc: coverDoc || null,
+    photoUrl: "",
+    updatedAt: new Date().toISOString(),
+  };
+  trips.set(tripId, next);
+  if (tripId === activeId) {
+    state = next;
+    listeners.forEach((l) => l());
+  }
+  persistTrip(next);
+  pushTrip(next);
+  refreshRegistry();
 }
 
 export function removeDestination(id) {
@@ -1214,7 +1342,7 @@ export function removeDestination(id) {
       transportOut: state.lastStop
         ? legOf(last).length
           ? last.transportOut
-          : [makeSegment()]
+          : [makeSegment({ mode: "none" })]
         : [],
     };
   }
@@ -1260,7 +1388,9 @@ export function reorderDestinations(from, to) {
       const existing = legs[i] ?? [];
       return {
         ...d,
-        transportOut: existing.length ? existing : [makeSegment()],
+        transportOut: existing.length
+          ? existing
+          : [makeSegment({ mode: "none" })],
       };
     });
   });
@@ -1304,7 +1434,9 @@ export function addLastStop(partial = {}) {
     lastStop: makeLastStop(partial),
     destinations: needsSegment
       ? dests.map((d, i) =>
-          i === dests.length - 1 ? { ...d, transportOut: [makeSegment()] } : d,
+          i === dests.length - 1
+            ? { ...d, transportOut: [makeSegment({ mode: "none" })] }
+            : d,
         )
       : dests,
   });
@@ -1463,6 +1595,7 @@ function mutateDay(key, fn) {
 }
 
 export function addAttraction(key, partial = {}) {
+  const created = makeAttraction({ ...partial, legOut: null });
   mutateDay(key, (day) => {
     const next = [...day.attractions];
     // The one that used to be last now needs a leg on to the newcomer.
@@ -1470,10 +1603,10 @@ export function addAttraction(key, partial = {}) {
       const prev = next[next.length - 1];
       next[next.length - 1] = {
         ...prev,
-        legOut: prev.legOut ?? { mode: "walk", durationMin: 0, distanceKm: 0 },
+        legOut: prev.legOut ?? { mode: "none", durationMin: 0, distanceKm: 0 },
       };
     }
-    next.push(makeAttraction({ ...partial, legOut: null }));
+    next.push(created);
     return { ...day, attractions: next };
   });
 }
@@ -1527,7 +1660,7 @@ export function setAttractionLeg(key, attractionId, patch) {
         ? {
             ...a,
             legOut: {
-              mode: "walk",
+              mode: "none",
               durationMin: 0,
               distanceKm: 0,
               ...a.legOut,
@@ -1748,7 +1881,7 @@ function liveDayEntries(trip) {
  * rather than adding to it — you only sleep in one bed a night, so counting
  * both would inflate the budget.
  */
-function sleepingCost(trip, dest) {
+export function sleepingCost(trip, dest) {
   const nightly = num(dest.sleeping?.cost);
   return Array.from({ length: dest.nights }, (_, n) => {
     const override = getDay(trip, dayKey(dest.id, n)).accommodation;

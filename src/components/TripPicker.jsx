@@ -1,14 +1,27 @@
+import { useRef, useState } from "react";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
-import { Check, LogOut, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ImagePlus,
+  Loader2,
+  LogOut,
+  MoreVertical,
+  Plus,
+  X,
+} from "lucide-react";
 import AppControls from "./AppControls.jsx";
+import TripAvatar from "./TripAvatar.jsx";
 import {
   acceptTripInvitation,
   createTrip,
   deleteTrip,
   leaveSharedTrip,
+  useCloudMode,
   useTripInvitations,
   useTripList,
 } from "../lib/store.js";
+import { MAX_FILE_BYTES, formatBytes } from "../lib/docs.js";
+import { saveTripCover } from "../lib/tripCover.js";
 import {
   sessionEmail,
   setLocalOnly,
@@ -18,6 +31,14 @@ import {
 } from "../lib/auth.js";
 import { hasSupabase } from "../lib/supabase.js";
 import { useI18n } from "../lib/i18n.js";
+
+// No display name is stored anywhere — this is just a friendlier greeting
+// than the raw address, derived from the part before the first separator.
+const firstNameFrom = (email) => {
+  if (!email) return null;
+  const local = email.split("@")[0].split(/[._+-]/)[0];
+  return local ? local[0].toUpperCase() + local.slice(1) : null;
+};
 
 /**
  * The landing screen: every trip the user has, as cards. Selecting one hands
@@ -32,6 +53,9 @@ export default function TripPicker({ onSelect }) {
   const invitations = useTripInvitations();
   const { session } = useSession();
   const localOnly = useLocalOnly();
+  const cloudMode = useCloudMode();
+  const name = firstNameFrom(sessionEmail(session));
+  const [filter, setFilter] = useState("upcoming");
 
   const range = (trip) => {
     const start = parseISO(trip.startDate);
@@ -43,6 +67,21 @@ export default function TripPicker({ onSelect }) {
       nights,
     };
   };
+
+  // Time-based, from dates alone — no separate "trip status" is stored.
+  const status = (trip) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = parseISO(trip.startDate);
+    const end = parseISO(trip.endDate);
+    if (end < today) return "past";
+    if (start > today) return "upcoming";
+    return "active";
+  };
+
+  const visibleTrips = trips.filter((trip) =>
+    filter === "past" ? status(trip) === "past" : status(trip) !== "past",
+  );
 
   const remove = (trip) => {
     if (!window.confirm(t("trips.confirmDelete", { name: trip.title }))) return;
@@ -56,12 +95,25 @@ export default function TripPicker({ onSelect }) {
 
   const startNew = () => onSelect(createTrip({ title: t("trips.newTitle") }));
 
+  const STATUS_STYLE = {
+    active: "bg-accent text-on-accent",
+    upcoming: "bg-accent-soft text-accent",
+    past: "bg-raised text-subtle border border-line",
+  };
+
   return (
-    <div className="min-h-full bg-canvas">
-      <div className="mx-auto max-w-4xl px-5 py-8 md:px-8">
+    <div className="bg-wander relative min-h-full overflow-hidden">
+      <div className="relative mx-auto max-w-6xl px-5 py-8 md:px-8">
         {/* Account + app controls */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-          <AccountBar session={session} localOnly={localOnly} t={t} />
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt={t("app.name")}
+              className="h-9 w-9 rounded-xl shadow-sm"
+            />
+            <AccountBar session={session} localOnly={localOnly} t={t} />
+          </div>
           <AppControls />
         </div>
 
@@ -78,9 +130,11 @@ export default function TripPicker({ onSelect }) {
                 const { label, nights } = range(trip);
                 return (
                   <li key={trip.id} className="card p-5">
-                    <span className="text-3xl" aria-hidden>
-                      {trip.emoji}
-                    </span>
+                    <TripAvatar
+                      trip={trip}
+                      size={40}
+                      emojiClassName="text-3xl"
+                    />
                     <span className="mt-3 block truncate text-lg font-semibold text-fg">
                       {trip.title}
                     </span>
@@ -121,43 +175,112 @@ export default function TripPicker({ onSelect }) {
           </section>
         )}
 
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-fg">
-            {t("picker.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("picker.subtitle")}</p>
-        </header>
+        {/* Welcome banner — the one prominent place to start a trip. */}
+        <div className="card mb-8 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">
+              {name ? t("picker.welcomeName", { name }) : t("picker.title")}
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              {name ? t("picker.welcomeSubtitle") : t("picker.subtitle")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNew}
+            className="btn-primary shrink-0 self-start sm:self-auto"
+          >
+            <Plus size={16} />
+            {t("picker.new")}
+          </button>
+        </div>
+
+        <div className="mb-4 flex items-center justify-between gap-3">
+          {/* The banner above already says "Your trips" when there's no name
+              to greet — skip repeating it right below. */}
+          {name ? (
+            <h2 className="text-lg font-semibold tracking-tight text-fg">
+              {t("picker.title")}
+            </h2>
+          ) : (
+            <span />
+          )}
+          <div className="inline-flex rounded-full border border-line p-1 text-sm">
+            <button
+              type="button"
+              onClick={() => setFilter("upcoming")}
+              aria-pressed={filter === "upcoming"}
+              className={`rounded-full px-3 py-1 font-medium transition ${
+                filter === "upcoming"
+                  ? "bg-accent text-on-accent"
+                  : "text-muted hover:text-fg"
+              }`}
+            >
+              {t("picker.filterUpcoming")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter("past")}
+              aria-pressed={filter === "past"}
+              className={`rounded-full px-3 py-1 font-medium transition ${
+                filter === "past"
+                  ? "bg-accent text-on-accent"
+                  : "text-muted hover:text-fg"
+              }`}
+            >
+              {t("picker.filterPast")}
+            </button>
+          </div>
+        </div>
 
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {trips.map((trip) => {
+          {visibleTrips.map((trip) => {
             const { label, nights } = range(trip);
+            const tripStatus = status(trip);
             return (
               <li key={trip.id} className="relative">
                 <button
                   type="button"
                   onClick={() => onSelect(trip.id)}
                   aria-label={t("picker.open", { name: trip.title })}
-                  className="card h-full w-full p-5 text-start transition hover:border-accent
+                  className="card h-full w-full overflow-hidden text-start transition hover:border-accent
                              hover:shadow-lg hover:shadow-brand-950/10
                              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                  <span className="text-3xl" aria-hidden>
-                    {trip.emoji}
-                  </span>
-                  {trip.role === "editor" && (
-                    <span className="ms-2 inline-block rounded-full bg-accent-soft px-2 py-0.5 align-middle text-[0.65rem] font-medium text-fg">
-                      {t("picker.sharedBadge")}
+                  <div className="relative flex h-24 items-center justify-center overflow-hidden bg-gradient-to-br from-accent-soft via-raised to-canvas">
+                    <TripAvatar trip={trip} cover emojiClassName="text-4xl" />
+                    <span
+                      className={`absolute end-3 top-3 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider ${STATUS_STYLE[tripStatus]}`}
+                    >
+                      {t(
+                        `picker.status${tripStatus[0].toUpperCase()}${tripStatus.slice(1)}`,
+                      )}
                     </span>
-                  )}
-                  <span className="mt-3 block truncate text-lg font-semibold text-fg">
-                    {trip.title}
-                  </span>
-                  <span className="tabular mt-1 block text-sm text-muted">
-                    {label}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-subtle">
-                    {t("picker.nights", { count: nights })}
-                  </span>
+                  </div>
+
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="block truncate text-lg font-semibold text-fg">
+                        {trip.title}
+                      </span>
+                      {trip.role === "editor" && (
+                        <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[0.65rem] font-medium text-accent">
+                          {t("picker.sharedBadge")}
+                        </span>
+                      )}
+                    </div>
+                    <span className="tabular mt-1 block text-sm text-muted">
+                      {label}
+                    </span>
+                    <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+                      <span className="tabular inline-flex items-center rounded-full bg-raised px-2.5 py-1 text-xs font-medium text-muted">
+                        {t("picker.nights", { count: nights })}
+                      </span>
+                      <span className="text-xs font-medium text-accent">
+                        {t("picker.viewDetails")}
+                      </span>
+                    </div>
+                  </div>
                 </button>
 
                 {/* The store keeps at least one trip, so the last can't go
@@ -167,11 +290,11 @@ export default function TripPicker({ onSelect }) {
                     type="button"
                     onClick={() => remove(trip)}
                     aria-label={t("trips.delete", { name: trip.title })}
-                    className="absolute end-2 top-2 grid size-8 place-items-center rounded-full
-                               text-subtle transition hover:bg-raised hover:text-fg
+                    className="absolute start-2 top-2 grid size-8 place-items-center rounded-full
+                               bg-surface/70 text-fg backdrop-blur transition hover:bg-raised
                                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
-                    <Trash2 size={15} />
+                    <MoreVertical size={15} />
                   </button>
                 )}
                 {trips.length > 1 && trip.role === "editor" && (
@@ -179,50 +302,123 @@ export default function TripPicker({ onSelect }) {
                     type="button"
                     onClick={() => leave(trip)}
                     aria-label={t("picker.leaveTrip", { name: trip.title })}
-                    className="absolute end-2 top-2 grid size-8 place-items-center rounded-full
-                               text-subtle transition hover:bg-raised hover:text-fg
+                    className="absolute start-2 top-2 grid size-8 place-items-center rounded-full
+                               bg-surface/70 text-fg backdrop-blur transition hover:bg-raised
                                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     <LogOut size={15} />
                   </button>
                 )}
+                <CoverUpload trip={trip} cloudMode={cloudMode} />
               </li>
             );
           })}
-
-          <li>
-            <button
-              type="button"
-              onClick={startNew}
-              className="flex h-full min-h-[9.5rem] w-full flex-col items-center justify-center gap-2
-                         rounded-card border border-dashed border-line-strong p-5 text-muted transition
-                         hover:border-accent hover:text-accent
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <Plus size={22} />
-              <span className="text-sm font-medium">{t("picker.new")}</span>
-            </button>
-          </li>
         </ul>
       </div>
     </div>
   );
 }
 
+/**
+ * Upload a cover photo for a trip straight from the picker. The bytes go to
+ * IndexedDB (and, signed in, Storage) exactly like a trip document; the trip
+ * keeps only the reference. Sits on the card banner as a small camera button.
+ */
+function CoverUpload({ trip, cloudMode }) {
+  const { t } = useI18n();
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function ingest(file) {
+    if (!file) return;
+    setError("");
+    if (!file.type.startsWith("image/")) {
+      setError(t("cover.imageOnly"));
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError(
+        t("docs.tooBig", {
+          name: file.name,
+          size: formatBytes(file.size),
+          max: formatBytes(MAX_FILE_BYTES),
+        }),
+      );
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await saveTripCover({
+        tripId: trip.id,
+        role: trip.role,
+        file,
+        cloudMode,
+      });
+    } catch (err) {
+      console.error("Cover upload failed", err);
+      setError(t("cover.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        aria-label={t("cover.change", { name: trip.title })}
+        className="absolute end-2 top-14 grid size-8 place-items-center rounded-full
+                   bg-surface/70 text-fg backdrop-blur transition hover:bg-raised
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
+                   disabled:cursor-progress"
+      >
+        {busy ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : (
+          <ImagePlus size={15} />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={(e) => {
+          ingest(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      {error && (
+        <p
+          role="alert"
+          className="absolute inset-x-2 bottom-2 z-10 truncate rounded-md bg-surface/95 px-2 py-1 text-[11px] font-medium text-fg shadow"
+        >
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
 function AccountBar({ session, localOnly, t }) {
   const email = sessionEmail(session);
 
+  // Signed in: the welcome banner's "Welcome back, {name}!" already says so,
+  // so this just needs the sign-out action, not a redundant email label.
   if (email) {
     return (
-      <div className="flex items-center gap-3 text-sm">
-        <span className="truncate text-muted">
-          {t("picker.signedInAs", { email })}
-        </span>
-        <button type="button" className="btn-ghost !py-1.5" onClick={signOut}>
-          <LogOut size={14} />
-          {t("picker.signOut")}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="btn-ghost !py-1.5 text-sm"
+        onClick={signOut}
+      >
+        <LogOut size={14} />
+        {t("picker.signOut")}
+      </button>
     );
   }
 

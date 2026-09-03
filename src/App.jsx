@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { Map as MapIcon } from "lucide-react";
-import BottomNav from "./components/BottomNav.jsx";
+import TabNav from "./components/TabNav.jsx";
 import TripHeader from "./components/TripHeader.jsx";
 import PlanView from "./components/PlanView.jsx";
 import ItineraryView from "./components/ItineraryView.jsx";
@@ -18,6 +18,7 @@ import ResizeHandle from "./components/ResizeHandle.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
 import SharedTripView from "./components/SharedTripView.jsx";
+import PhotoLightbox from "./components/PhotoLightbox.jsx";
 import {
   effectiveLastStop,
   getTripRegistry,
@@ -49,13 +50,6 @@ const DEFAULT_MAP_PCT = 42;
 const MIN_MAP_PX = 300;
 const MIN_CONTENT_PX = 420;
 
-const TABS = [
-  { id: "plan", key: "tab.destinations" },
-  { id: "details", key: "tab.details" },
-  { id: "view", key: "tab.dayByDay" },
-  { id: "budget", key: "tab.budget" },
-];
-
 /**
  * Screen gate. Four states, in order:
  *   1. Supabase configured but not signed in (and not opted into local-only)
@@ -70,7 +64,18 @@ const TABS = [
  * All hooks run before any branch, so the rules of hooks hold; the heavy
  * editor and its map only mount once a trip is actually open.
  */
+// Everything renders inside this; the lightbox sits alongside so a picture
+// preview can open from any screen.
 export default function App() {
+  return (
+    <>
+      <AppScreens />
+      <PhotoLightbox />
+    </>
+  );
+}
+
+function AppScreens() {
   const { session, ready } = useSession();
   const localOnly = useLocalOnly();
   const tripsReady = useTripsReady();
@@ -324,44 +329,16 @@ function TripEditor({ onBackToTrips }) {
       )}
       <div
         ref={splitRef}
-        className={`flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row ${
+        className={`relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row ${
           dragging ? "cursor-col-resize select-none" : ""
         } ${readOnly ? "pointer-events-none select-none opacity-90" : ""}`}
       >
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface">
-          <TripHeader
-            trip={trip}
-            stats={stats}
-            view={view}
-            onChangeView={setView}
-            onBackToTrips={onBackToTrips}
-          />
+          <TripHeader trip={trip} stats={stats} onBackToTrips={onBackToTrips} />
 
-          {/* Duplicates the floating bottom nav, so it's only worth its
-              vertical space on desktop; phones navigate from the bottom bar. */}
-          <nav
-            aria-label={t("nav.sections")}
-            className="hidden shrink-0 gap-1 border-b border-line bg-surface px-5 md:px-8 lg:flex"
-          >
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setView(tab.id)}
-                aria-current={view === tab.id ? "true" : undefined}
-                className={`-mb-px border-b-2 px-3 py-3 text-sm font-medium transition ${
-                  view === tab.id
-                    ? "border-accent text-fg"
-                    : "border-transparent text-muted hover:text-fg"
-                }`}
-              >
-                {t(tab.key)}
-              </button>
-            ))}
-          </nav>
+          {!mapOpen && <TabNav active={view} onChange={setView} />}
 
-          {/* Padded so the last row clears the floating bar. */}
-          <div className="min-h-0 flex-1 overflow-y-auto pb-24">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {view === "plan" && (
               <PlanView
                 trip={trip}
@@ -436,16 +413,13 @@ function TripEditor({ onBackToTrips }) {
         {showMap && !mapOpen && (
           <button
             type="button"
-            /* Clears the floating bar rather than sitting behind it. */
-            className="btn-primary fixed bottom-24 end-4 z-[800] shadow-lg lg:hidden"
+            className="btn-primary absolute bottom-4 end-4 z-[800] shadow-lg lg:hidden"
             onClick={() => setMapOpen(true)}
           >
             <MapIcon size={16} /> {t("map.label")}
           </button>
         )}
       </div>
-
-      <BottomNav active={view} onChange={setView} />
     </div>
   );
 }
