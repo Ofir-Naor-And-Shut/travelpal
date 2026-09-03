@@ -123,7 +123,7 @@ function makeDestination(partial = {}) {
     lat: 0,
     lng: 0,
     nights: 2,
-    sleeping: { name: "", cost: 0 },
+    sleeping: { name: "", cost: 0, address: "" },
     notes: "",
     // A Pexels photo of the destination, filled in lazily after it's placed.
     photoUrl: "",
@@ -352,7 +352,7 @@ export function normalize(trip) {
     destinations: (trip.destinations ?? []).map((d) => ({
       ...makeDestination(),
       ...d,
-      sleeping: { name: "", cost: 0, ...d.sleeping },
+      sleeping: { name: "", cost: 0, address: "", ...d.sleeping },
       travelDocs: d.travelDocs ?? [],
       sleepingDocs: d.sleepingDocs ?? [],
       transportOut: normalizeLeg(d.transportOut),

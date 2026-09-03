@@ -34,13 +34,17 @@ import {
 } from "../lib/docs.js";
 import { useI18n } from "../lib/i18n.js";
 
-/** Every distinct accommodation name set across the stop's own nights, or a
- * "not set"/"multiple" summary — there's no single per-destination field to
- * read anymore, accommodation lives night by night. */
+/** Every distinct accommodation name set across the stop's own nights (each
+ * falling back to the destination's default when a night has no override of
+ * its own), or a "not set"/"multiple" summary. */
 function accommodationSummary(trip, dest, t) {
   const names = new Set();
   for (let n = 0; n < dest.nights; n += 1) {
-    const name = getDay(trip, dayKey(dest.id, n)).accommodation?.name?.trim();
+    const name = (
+      getDay(trip, dayKey(dest.id, n)).accommodation?.name ||
+      dest.sleeping?.name ||
+      ""
+    ).trim();
     if (name) names.add(name);
   }
   if (names.size === 0) return t("details.accommodationNone");

@@ -40,14 +40,14 @@ shape factories, and load-time normalization keeps old saves valid.
 - **Details** — per-destination notes plus travel and sleeping documents.
 - **Daily planner** — one card per night with attractions and reservations
   (24-hour times, costs, done-state), plus opt-in per-night accommodation
-  (name, cost, address, documents). This is now the **only place accommodation
-  is entered**: the Destinations tab's per-destination accommodation control
-  (the bed button, its sleeping panel, and the "Accommodation" column) was
-  removed. A night still surfaces, and its cost replaces, any legacy
-  `dest.sleeping` value carried in existing trips (never adds to it) — but new
-  trips have no per-destination default, so sleeping is set night by night.
-  Attraction search blends Nominatim (free text) and BizData (category browsing,
-  returns hours/phone/website). Both persist coordinates.
+  (name, cost, address, documents), which overrides — never adds to — the
+  destination's default for that one night. The Destinations/Plan tab carries
+  that default: a collapsed "Add accommodation"/name badge under each stop
+  expands into the same name/cost/address/documents card as the per-night one;
+  its documents land in `dest.sleepingDocs`, so they show up under the Details
+  tab exactly like before. Attraction search blends Nominatim (free text) and
+  BizData (category browsing, returns hours/phone/website). Both persist
+  coordinates.
 - **Budget** — rollup across sleeping, transport, attractions, reservations.
 - **Map** — Leaflet with four switchable basemaps, curved route arcs split into a
   coloured piece per transport segment with a mode badge, zooming to city level

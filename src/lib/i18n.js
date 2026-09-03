@@ -174,6 +174,9 @@ const STRINGS = {
     "plan.moveEarlier": "Move {name} earlier",
     "plan.moveLater": "Move {name} later",
     "plan.remove": "Remove {name}",
+    "plan.addAccommodation": "Add accommodation",
+    "plan.accommodationHint":
+      "The default for every night here — a night with its own accommodation overrides it.",
     "plan.addOrigin": "Add trip origin",
     "plan.originPlaceholder": "Where the trip starts (e.g. home)…",
     "plan.originSearchLabel": "Search for the trip's starting point",
@@ -613,6 +616,9 @@ const STRINGS = {
     "plan.moveEarlier": "הזזת {name} מוקדם יותר",
     "plan.moveLater": "הזזת {name} מאוחר יותר",
     "plan.remove": "הסרת {name}",
+    "plan.addAccommodation": "הוספת לינה",
+    "plan.accommodationHint":
+      "ברירת המחדל לכל לילה כאן — לילה עם לינה משלו גובר עליה.",
     "plan.addOrigin": "הוספת מוצא לטיול",
     "plan.originPlaceholder": "מאיפה הטיול מתחיל (למשל הבית)…",
     "plan.originSearchLabel": "חיפוש נקודת המוצא של הטיול",
