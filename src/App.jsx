@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { Map as MapIcon } from "lucide-react";
-import TopNav from "./components/TopNav.jsx";
+import TabNav from "./components/TabNav.jsx";
 import TripHeader from "./components/TripHeader.jsx";
 import PlanView from "./components/PlanView.jsx";
 import ItineraryView from "./components/ItineraryView.jsx";
@@ -205,11 +205,6 @@ function TripEditor({ onBackToTrips }) {
   }, []);
 
   const splitRef = useRef(null);
-  // The main content scrolls in an inner overflow container (not the window),
-  // so the floating TopNav watches this node to know when to collapse. Held in
-  // state (via a callback ref) rather than a ref so TopNav re-renders and wires
-  // up its scroll listener once the node actually mounts.
-  const [scrollEl, setScrollEl] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [mapPct, setMapPct] = useState(() => {
     const saved = Number(localStorage.getItem(MAP_WIDTH_KEY));
@@ -334,22 +329,16 @@ function TripEditor({ onBackToTrips }) {
       )}
       <div
         ref={splitRef}
-        className={`flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row ${
+        className={`relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row ${
           dragging ? "cursor-col-resize select-none" : ""
         } ${readOnly ? "pointer-events-none select-none opacity-90" : ""}`}
       >
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface">
-          <TripHeader
-            trip={trip}
-            stats={stats}
-            view={view}
-            onChangeView={setView}
-            onBackToTrips={onBackToTrips}
-          />
+          <TripHeader trip={trip} stats={stats} onBackToTrips={onBackToTrips} />
 
-          {/* Bottom padding clears the mobile map button; the scroll ref lets
-              the floating TopNav collapse in response to this pane's scroll. */}
-          <div ref={setScrollEl} className="min-h-0 flex-1 overflow-y-auto pb-24">
+          {!mapOpen && <TabNav active={view} onChange={setView} />}
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {view === "plan" && (
               <PlanView
                 trip={trip}
@@ -424,16 +413,13 @@ function TripEditor({ onBackToTrips }) {
         {showMap && !mapOpen && (
           <button
             type="button"
-            /* Clears the floating bar rather than sitting behind it. */
-            className="btn-primary fixed bottom-24 end-4 z-[800] shadow-lg lg:hidden"
+            className="btn-primary absolute bottom-4 end-4 z-[800] shadow-lg lg:hidden"
             onClick={() => setMapOpen(true)}
           >
             <MapIcon size={16} /> {t("map.label")}
           </button>
         )}
       </div>
-
-      <TopNav active={view} onChange={setView} scrollContainer={scrollEl} />
     </div>
   );
 }

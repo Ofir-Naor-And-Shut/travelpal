@@ -40,14 +40,6 @@
    `dark:` twin.
    --------------------------------------------------------------------------- */
 :root {
-  /* Floating bottom bar. Kept separate from the surface tokens because it sits
-     over arbitrary content (the map especially) and needs its own contrast. */
-  --c-nav-bg: rgb(255 255 255 / 0.82);
-  --c-nav-border: rgb(25 28 29 / 0.08);
-  --c-nav-idle: #585f6c;
-  --c-nav-hover: #191c1d;
-  --c-nav-shadow: rgb(25 28 29 / 0.16);
-
   --c-canvas: #f8f9fa;
   --c-surface: #ffffff;
   --c-raised: #f3f4f5;
@@ -67,12 +59,6 @@
 }
 
 [data-theme="dark"] {
-  --c-nav-bg: rgb(31 41 55 / 0.72);
-  --c-nav-border: rgb(255 255 255 / 0.09);
-  --c-nav-idle: #cbd3e1;
-  --c-nav-hover: #ffffff;
-  --c-nav-shadow: rgb(0 0 0 / 0.55);
-
   --c-canvas: #111827;
   --c-surface: #1f2937;
   --c-raised: #232e3f;
@@ -207,37 +193,6 @@
 
   .col-head {
     @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted;
-  }
-
-  /* --- Floating bottom navigation ---------------------------------------- */
-  .nav-bar {
-    background: var(--c-nav-bg);
-    border: 1px solid var(--c-nav-border);
-    box-shadow:
-      0 8px 32px var(--c-nav-shadow),
-      inset 0 1px 0 rgb(255 255 255 / 0.06);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  }
-
-  .nav-item-idle {
-    color: var(--c-nav-idle);
-  }
-
-  .nav-item-idle:hover {
-    color: var(--c-nav-hover);
-  }
-
-  /* Pinned to the base brand blue in both themes rather than the themed
-     accent: white-on-blue is the look, and dark mode's lifted accent would
-     otherwise pair with dark text. White on #007BFF clears AA for normal text. */
-  .nav-pill-active {
-    background: var(--color-brand-500);
-    color: #ffffff;
-    /* The glow is what makes the active pill read as lit rather than filled. */
-    box-shadow:
-      0 2px 14px color-mix(in srgb, var(--color-brand-500) 60%, transparent),
-      0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent);
   }
 
   /* Shared backdrop for the open, spacious screens (auth, trip picker) — soft

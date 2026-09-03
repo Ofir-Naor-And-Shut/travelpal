@@ -101,7 +101,6 @@ const STRINGS = {
       "Remove “{name}” from your trips? You keep nothing local — the owner keeps the trip, and can invite you again if this was a mistake.",
     "header.allTrips": "All trips",
     "header.menu": "Menu",
-    "header.goTo": "Go to",
     "account.label": "Account",
 
     // language + theme
@@ -541,7 +540,6 @@ const STRINGS = {
       "להסיר את „{name}“ מהטיולים שלך? הטיול נשאר אצל הבעלים, ותוכלו לקבל הזמנה חוזרת אם זו הייתה טעות.",
     "header.allTrips": "כל הטיולים",
     "header.menu": "תפריט",
-    "header.goTo": "מעבר אל",
     "account.label": "חשבון",
 
     "lang.label": "שפה",

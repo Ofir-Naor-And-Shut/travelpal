@@ -10,13 +10,7 @@ import { CURRENCIES, updateTrip } from "../lib/store.js";
 import { currencySymbol, formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
 
-export default function TripHeader({
-  trip,
-  stats,
-  view,
-  onChangeView,
-  onBackToTrips,
-}) {
+export default function TripHeader({ trip, stats, onBackToTrips }) {
   const [editing, setEditing] = useState(false);
   const { t } = useI18n();
 
@@ -27,21 +21,14 @@ export default function TripHeader({
     "dd/MM/yy",
   )}`;
 
-  // pt-14 reserves the top band for the floating TopNav so the header row
-  // (trip switcher / controls) never sits behind it.
   return (
-    <header className="border-b border-line bg-surface px-5 pt-14 md:px-8">
+    <header className="border-b border-line bg-surface px-5 pt-6 md:px-8">
       {/* Language + theme sit at the inline-start of the header. On phones the
           row wraps so the trip switcher drops to its own line rather than being
           clipped off the edge; on desktop it stays a single row. */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 lg:flex-nowrap">
         <div className="flex items-center gap-2">
-          <TripMenu
-            trip={trip}
-            view={view}
-            onChangeView={onChangeView}
-            onBackToTrips={onBackToTrips}
-          />
+          <TripMenu trip={trip} onBackToTrips={onBackToTrips} />
           <AppControls />
         </div>
         {/* Full-width on its own wrapped line on phones; natural width inline
