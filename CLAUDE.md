@@ -53,11 +53,13 @@ shape factories, and load-time normalization keeps old saves valid.
   coloured piece per transport segment with a mode badge, zooming to city level
   in day-planner mode. Clicking a destination pin opens its Details.
 - A floating bottom **nav bar**; the active item expands into a pill.
-- **Accounts & trips** — a passwordless (magic-link) sign-in screen and a
-  trip-picker landing screen let you keep several trips and open one at a time.
-  Inside the editor the header carries a quick trip switcher, an "All trips"
-  button back to the picker, and sign-out. Signing in is optional — a "continue
-  without an account" escape runs the app fully local-only.
+- **Accounts & trips** — an email + password sign-in/sign-up screen (with a
+  "forgot password" flow that also lets an old magic-link account set its
+  first password) and a trip-picker landing screen let you keep several trips
+  and open one at a time. Inside the editor the header carries a quick trip
+  switcher, an "All trips" button back to the picker, and sign-out. Signing in
+  is optional — a "continue without an account" escape runs the app fully
+  local-only.
 
 **A Supabase backend** layered _under_ the local-first store for cross-device sync
 and sharing. A trip is stored as one JSONB row in `public.trips` with owner-only
@@ -66,12 +68,19 @@ backup, not a replacement.** Client in `src/lib/supabase.js`, auth/session in
 `src/lib/auth.js`, schema in `supabase/schema.sql`, credentials in `.env.local`
 (gitignored).
 
-_Done & verified:_ **magic-link (passwordless) auth** and the **screen flow** —
+_Done & verified:_ **email + password auth** and the **screen flow** —
 `AuthScreen` → `TripPicker` (the landing screen) → the editor (`TripEditor`),
-gated in `App.jsx`. `auth.js` exposes `useSession`, `sendMagicLink`, `signOut`,
-`useLocalOnly`/`setLocalOnly`, all no-ops when Supabase isn't configured. A
-"continue without an account" choice keeps the app usable local-only; sign-out
-returns to the login screen.
+gated in `App.jsx`. `auth.js` exposes `useSession`, `signInWithPassword`,
+`signUpWithPassword`, `sendPasswordResetLink`, `updateUserPassword`,
+`usePasswordRecovery`, `signOut`, `useLocalOnly`/`setLocalOnly`, all no-ops
+when Supabase isn't configured. Signing up on an email that's already
+registered (including an old magic-link-only account) silently falls back to
+emailing a password-set/reset link instead of erroring, so the UI never
+reveals whether an account already existed — the same link doubles as
+"forgot password". A recovery link lands on `SetPasswordScreen`
+(`usePasswordRecovery`, gated in `App.jsx` ahead of the normal flow) before
+the session is treated as a real sign-in. A "continue without an account"
+choice keeps the app usable local-only; sign-out returns to the login screen.
 Also **cloud read/write** (`store.js`): signed in, `public.trips` is the sole
 source of truth (localStorage is not written — `cloudModeActive` guards);
 `enterCloudMode` pulls the user's trips on sign-in and adopts any existing
@@ -80,12 +89,16 @@ local-only trips into the account; `pushTrip` debounces edits (1500 ms) into
 trip once the cloud confirms it stored it — a failed push keeps the trip (and the
 index) as a local fallback, never a silent loss (regression-tested in
 `test/store.sync.test.js`, run with `npm test`). Verified end-to-end against a
-real magic-link login: fetch, push, reload round-trip, and delete-sync all
-confirmed against Postgres.
+real (then magic-link, now password) login: fetch, push, reload round-trip,
+and delete-sync all confirmed against Postgres.
 
 _Still to do:_ documents to a Storage bucket, sharing via a `trip_members` table,
-and realtime, each phased so the app is never left broken. One known rough edge:
-the `touch_updated_at` trigger overwrites the `updated_at` **column** with
+realtime, and Google OAuth (a planned second phase on top of password auth),
+each phased so the app is never left broken. Password auth's Supabase dashboard
+side (requiring "Confirm email", an 8-char minimum, Site URL/Redirect URLs, and
+custom SMTP) is configured directly in the dashboard, not in this repo, and
+still needs a real end-to-end email test. One known rough edge: the
+`touch_updated_at` trigger overwrites the `updated_at` **column** with
 `now()` on update while the client's last-write-wins clock lives in
 `data.updatedAt` inside the JSON — harmless today (reads use `data.updatedAt`),
 but it needs reconciling before real conflict resolution.

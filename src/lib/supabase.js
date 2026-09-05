@@ -19,10 +19,11 @@ export const hasSupabase = Boolean(url && anonKey)
 export const supabase = hasSupabase
   ? createClient(url, anonKey, {
       auth: {
-        // Magic-link sign-in: persist the session and refresh it silently.
+        // Persist the session and refresh it silently.
         persistSession: true,
         autoRefreshToken: true,
-        // The session arrives in the URL hash after clicking the email link.
+        // The session arrives in the URL hash after a confirmation/recovery
+        // email link redirects back to the app.
         detectSessionInUrl: true,
       },
     })

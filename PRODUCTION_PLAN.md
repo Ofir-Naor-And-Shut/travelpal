@@ -94,8 +94,8 @@ policy recursion, an owner-protection trigger). Verify the rest before launch:
       via `get_trip_by_share_token` only.
 - [ ] Plan the **Storage bucket RLS** now (owner/member-scoped) for when
       documents move off IndexedDB (see 1.3).
-- [ ] Enable Supabase **email rate limits** and confirm the magic-link flow
-      can't be used to spam arbitrary addresses (see 2.3).
+- [ ] Enable Supabase **email rate limits** and confirm the signup/password-reset
+      email flow can't be used to spam arbitrary addresses (see 2.3).
 
 ### 0.4 Reconcile the `updated_at` clock 🟠 (S/M)
 
@@ -164,8 +164,8 @@ For cross-device use they need a private Storage bucket.
 
 ### 2.3 Rate-limiting & abuse protection 🟠 (M)
 
-- [ ] Rate-limit the **magic-link** send path (per email + per IP) to prevent
-      spam and bill abuse.
+- [ ] Rate-limit the **signup / password-reset** email send path (per email +
+      per IP) to prevent spam and bill abuse.
 - [ ] Rate-limit the **invite** edge function.
 - [ ] Consider a lightweight bot/abuse check on sign-in.
 

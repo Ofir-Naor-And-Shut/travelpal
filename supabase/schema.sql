@@ -371,11 +371,10 @@ create policy trips_update_own on public.trips
 -- ============================================================================
 --  Phase 4 — Admin access.
 --
---  One designated admin account that signs in with a real Supabase password
---  instead of a magic link (no email round trip). The account itself is
---  created once by hand in the Supabase dashboard (Authentication → Add
---  user → set a password → tick "Auto Confirm User") — never scripted here,
---  so no password ever passes through this repo.
+--  One designated admin account, created once by hand in the Supabase
+--  dashboard (Authentication → Add user → set a password → tick "Auto
+--  Confirm User") — never scripted here, so no password ever passes through
+--  this repo.
 --
 --  What this section adds is the *authorization*: a `role: admin` claim in
 --  app_metadata unlocks read/update/delete on every trip, on top of the

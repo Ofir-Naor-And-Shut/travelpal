@@ -104,24 +104,30 @@ fallback, never a silent loss. This is regression-tested in
 
 ## 5. Authentication — how sign-in works
 
-Three ways in, all handled in [src/lib/auth.js](src/lib/auth.js):
+Email + password, all handled in [src/lib/auth.js](src/lib/auth.js):
 
-- **Magic link (passwordless)** — the normal path for everyone. The user types
-  their email, Supabase emails them a link, clicking it signs them in. First time
-  for an email, this also _creates_ the account. No passwords stored anywhere.
+- **Sign in / sign up** — a normal email + password account, created via
+  Supabase `signUp`. With "Confirm email" enabled in the dashboard (§9.4), a new
+  account can't sign in until the confirmation link is clicked, so an
+  impersonator can't sign up as someone else's address and start using it.
+- **Forgot / set password** — the same link (`resetPasswordForEmail`) serves two
+  purposes: a forgotten password, and an old magic-link-only account setting a
+  password for the first time. Signing up on an email that's already registered
+  silently sends this same link instead of erroring — the "check your inbox"
+  panel is identical either way, so the UI never reveals whether an account
+  already existed. Opening the link lands on a dedicated "set your password"
+  screen (gated in `App.jsx` ahead of the normal flow) before the session counts
+  as a real sign-in.
 - **Local-only** — a "continue without an account" choice. Persisted so it
   survives reloads. Signing in later supersedes it and adopts any local trips.
-- **Admin password sign-in** — one designated admin account signs in with a real
-  Supabase password (no email round-trip). Regular accounts have no password set,
-  so the password form simply fails for them (natural gating). The admin account
-  is created **once, by hand, in the Supabase dashboard** — no password ever
-  lives in this repo or in the shipped JavaScript.
 
 Admin _authorization_ is a `role: admin` claim in Supabase `app_metadata`, which
 can only be set by a service-role request — a user can never grant it to
-themselves. So the app can trust it. (Note: an admin _UI_ to browse everyone's
-trips is **not built yet**; today an admin only sees their own trips. The
-database permission exists as a foundation.)
+themselves. So the app can trust it. Any account can have a password now, so
+there's nothing special about how the admin account signs in — only the claim
+itself, granted by hand (§9.8). (Note: an admin _UI_ to browse everyone's trips
+is **not built yet**; today an admin only sees their own trips. The database
+permission exists as a foundation.)
 
 The screen flow, gated in [src/App.jsx](src/App.jsx):
 `AuthScreen` → `TripPicker` (landing) → `TripEditor`.
@@ -198,7 +204,7 @@ committed). Only variables prefixed `VITE_` reach the browser.
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
 | `VITE_SUPABASE_URL`        | Your Supabase project URL.                                                                                                           | Public                                 |
 | `VITE_SUPABASE_ANON_KEY`   | Supabase anon/publishable key (RLS-protected).                                                                                       | Public                                 |
-| `VITE_SITE_URL`            | The deployed app URL that magic-link emails redirect back to. Required in production; falls back to the current origin in local dev. | Public                                 |
+| `VITE_SITE_URL`            | The deployed app URL that confirmation and password-reset emails redirect back to. Required in production; falls back to the current origin in local dev. | Public                                 |
 | `VITE_GOOGLE_MAPS_API_KEY` | _(Optional)_ enables Google place search + Google map. Omit to use free OpenStreetMap instead.                                       | Public, but **restrict it** (see §9.6) |
 | `VITE_PEXELS_API_KEY`      | _(Optional)_ enables Pexels photos for trip covers + destination cards. Omit to fall back to the emoji picture.                       | Public                                 |
 
@@ -262,18 +268,24 @@ your local project.
    `pending_trip_invites`, `trip_share_links`; **Storage** should show a private
    `trip-documents` bucket.
 
-### 9.4 Configure Auth (magic links)
+### 9.4 Configure Auth (email + password)
 
-1. **Authentication → Providers → Email**: ensure email sign-in is enabled.
-2. **Authentication → URL Configuration**: set the **Site URL** to your final
+1. **Authentication → Providers → Email**: ensure email sign-in is enabled, and
+   turn **"Confirm email" ON** — this is what blocks a new signup from getting a
+   session until the confirmation link is clicked.
+2. **Authentication → Settings**: set the **minimum password length to 8**, to
+   match the client-side rule (otherwise a hand-crafted request could sneak in
+   a shorter one).
+3. **Authentication → URL Configuration**: set the **Site URL** to your final
    domain (e.g. `https://travelpal.com`) and add it (and any preview URLs) to the
-   **Redirect URLs** allow-list. Magic links won't work if the redirect URL isn't
-   listed.
-3. _(Optional but recommended for a business)_ Configure a custom SMTP provider
-   (e.g. Resend, Postmark, SendGrid) under **Authentication → Emails → SMTP** so
-   sign-in and invite emails come from _your_ domain and don't hit Supabase's
-   low default sending limits. Customize the "Magic Link" and "Invite user" email
-   templates with your branding.
+   **Redirect URLs** allow-list. Confirmation and password-reset links won't
+   work if the redirect URL isn't listed.
+4. Configure a custom SMTP provider (e.g. Resend, Postmark, SendGrid) under
+   **Authentication → Emails → SMTP** so confirmation, reset, and invite emails
+   come from _your_ domain and don't hit Supabase's low default sending limits —
+   now more likely to matter, since signup confirmation and password reset both
+   add real volume on top of invites. Customize the "Confirm signup" and
+   "Reset password" email templates with your branding.
 
 ### 9.5 Deploy the invite edge function
 
@@ -308,8 +320,8 @@ Only if you want Google's search/map instead of the free OpenStreetMap one:
 3. Point your **domain** at the host (they provide DNS instructions) and enable
    HTTPS (automatic on all of them).
 4. Confirm `VITE_SITE_URL` and the Supabase **Redirect URLs** both exactly match
-   the live domain — mismatches are the #1 cause of "the magic link doesn't log
-   me in".
+   the live domain — mismatches are the #1 cause of "the confirmation/reset link
+   doesn't log me in".
 
 ### 9.8 Create the admin account (optional)
 
@@ -327,7 +339,11 @@ where email = 'admin@example.com';
 
 Verify against the _running_ app, not the code:
 
-- Sign in with a real email via magic link; confirm the redirect logs you in.
+- Sign up with a real email + password; confirm you can't sign in until the
+  confirmation link is clicked, and that clicking it does sign you in.
+- If migrating from an old magic-link account: use "Forgot password" on it,
+  confirm the reset email arrives, and that setting a password there lets you
+  sign in with it afterwards.
 - Create a trip, edit it, reload — it persists. Sign in on a second device — the
   trip appears (cloud sync).
 - Upload a document; confirm it appears on the other device (Storage sync).
