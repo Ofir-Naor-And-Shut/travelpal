@@ -200,13 +200,13 @@ can edit its trip (owner or accepted editor), nothing more.
 Configured in a **`.env.local`** file at the project root (gitignored — never
 committed). Only variables prefixed `VITE_` reach the browser.
 
-| Variable                   | Purpose                                                                                                                              | Secret?                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
-| `VITE_SUPABASE_URL`        | Your Supabase project URL.                                                                                                           | Public                                 |
-| `VITE_SUPABASE_ANON_KEY`   | Supabase anon/publishable key (RLS-protected).                                                                                       | Public                                 |
+| Variable                   | Purpose                                                                                                                                                   | Secret?                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `VITE_SUPABASE_URL`        | Your Supabase project URL.                                                                                                                                | Public                                 |
+| `VITE_SUPABASE_ANON_KEY`   | Supabase anon/publishable key (RLS-protected).                                                                                                            | Public                                 |
 | `VITE_SITE_URL`            | The deployed app URL that confirmation and password-reset emails redirect back to. Required in production; falls back to the current origin in local dev. | Public                                 |
-| `VITE_GOOGLE_MAPS_API_KEY` | _(Optional)_ enables Google place search + Google map. Omit to use free OpenStreetMap instead.                                       | Public, but **restrict it** (see §9.6) |
-| `VITE_PEXELS_API_KEY`      | _(Optional)_ enables Pexels photos for trip covers + destination cards. Omit to fall back to the emoji picture.                       | Public                                 |
+| `VITE_GOOGLE_MAPS_API_KEY` | _(Optional)_ enables Google place search + Google map. Omit to use free OpenStreetMap instead.                                                            | Public, but **restrict it** (see §9.6) |
+| `VITE_PEXELS_API_KEY`      | _(Optional)_ enables Pexels photos for trip covers + destination cards. Omit to fall back to the emoji picture.                                           | Public                                 |
 
 The edge function additionally uses server-side `SUPABASE_URL`,
 `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL` — these are set
@@ -281,7 +281,11 @@ your local project.
    **Redirect URLs** allow-list. Confirmation and password-reset links won't
    work if the redirect URL isn't listed.
 4. Configure a custom SMTP provider (e.g. Resend, Postmark, SendGrid) under
-   **Authentication → Emails → SMTP** so confirmation, reset, and invite emails
+   **Authentication → SMTP Settings** (`/project/_/auth/smtp` in the dashboard
+   URL — Supabase has moved this tab around between dashboard versions, so if
+   it's not visible under Authentication, go directly to
+   `https://supabase.com/dashboard/project/<your-project-ref>/auth/smtp`) so
+   confirmation, reset, and invite emails
    come from _your_ domain and don't hit Supabase's low default sending limits —
    now more likely to matter, since signup confirmation and password reset both
    add real volume on top of invites. Customize the "Confirm signup" and
