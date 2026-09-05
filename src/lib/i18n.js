@@ -38,7 +38,7 @@ const STRINGS = {
     "trips.confirmDelete":
       "Delete “{name}” and everything in it? This can’t be undone.",
 
-    // auth (magic-link sign in / sign up)
+    // auth (email + password sign in / sign up)
     "auth.tagline":
       "Plan trips that live in your browser — and in your account.",
     "auth.heroHeadline": "Plan every trip, offline and in your pocket.",
@@ -50,11 +50,13 @@ const STRINGS = {
     "auth.welcomeSubtitle": "Enter your email to sign in or create an account.",
     "auth.emailLabel": "Email address",
     "auth.emailPlaceholder": "you@example.com",
-    "auth.send": "Send magic link",
+    "auth.passwordLabel": "Password",
+    "auth.confirmPasswordLabel": "Confirm password",
+    "auth.passwordHint": "At least 8 characters",
     "auth.sending": "Sending…",
     "auth.sentTitle": "Check your inbox",
     "auth.sentBody":
-      "We emailed a sign-in link to {email}. Open it on this device to continue.",
+      "We emailed a link to {email}. Open it on this device to continue.",
     "auth.differentEmail": "Use a different email",
     "auth.resend": "Resend link",
     "auth.resending": "Resending…",
@@ -62,13 +64,24 @@ const STRINGS = {
     "auth.localOnly": "Continue without an account",
     "auth.localOnlyHint": "Your trips stay on this device and won’t sync.",
     "auth.invalidEmail": "Enter a valid email address.",
-    "auth.error": "Couldn’t send the link. Please try again.",
-    "auth.passwordToggle": "Sign in with a password instead",
-    "auth.passwordLabel": "Password",
+    "auth.error": "Something went wrong. Please try again.",
     "auth.passwordSignIn": "Sign in",
     "auth.passwordSigningIn": "Signing in…",
-    "auth.passwordError": "Incorrect email or password.",
-    "auth.backToMagicLink": "Back to email link",
+    "auth.signInError": "Incorrect email or password.",
+    "auth.signUp": "Sign up",
+    "auth.signingUp": "Creating account…",
+    "auth.signUpToggle": "Don’t have an account? Sign up",
+    "auth.signInToggle": "Already have an account? Sign in",
+    "auth.forgotPassword": "Forgot your password?",
+    "auth.forgotSubmit": "Send reset link",
+    "auth.backToSignIn": "Back to sign in",
+    "auth.passwordMismatch": "Passwords don’t match.",
+    "auth.passwordTooShort": "Password must be at least 8 characters.",
+    "auth.setPasswordTitle": "Set your password",
+    "auth.setPasswordBody":
+      "Choose a password so you can sign in directly next time.",
+    "auth.setPasswordButton": "Save password",
+    "auth.setPasswordSaving": "Saving…",
 
     // trip picker (the landing screen after signing in)
     "picker.title": "Your trips",
@@ -486,7 +499,7 @@ const STRINGS = {
     "trips.delete": "מחיקת {name}",
     "trips.confirmDelete": "למחוק את „{name}“ ואת כל התוכן שלו? לא ניתן לבטל.",
 
-    // auth (magic-link sign in / sign up)
+    // auth (email + password sign in / sign up)
     "auth.tagline": "לתכנן טיולים שנשמרים בדפדפן — ועכשיו גם בחשבון שלך.",
     "auth.heroHeadline": "לתכנן כל טיול, אופליין וממש בכיס שלכם.",
     "auth.heroBody":
@@ -498,11 +511,12 @@ const STRINGS = {
       "הזינו את כתובת האימייל שלכם כדי להיכנס או ליצור חשבון.",
     "auth.emailLabel": "כתובת אימייל",
     "auth.emailPlaceholder": "you@example.com",
-    "auth.send": "שליחת קישור כניסה",
+    "auth.passwordLabel": "סיסמה",
+    "auth.confirmPasswordLabel": "אימות סיסמה",
+    "auth.passwordHint": "לפחות 8 תווים",
     "auth.sending": "שולח…",
     "auth.sentTitle": "בדקו את תיבת הדואר",
-    "auth.sentBody":
-      "שלחנו קישור כניסה אל {email}. פתחו אותו במכשיר הזה כדי להמשיך.",
+    "auth.sentBody": "שלחנו קישור אל {email}. פתחו אותו במכשיר הזה כדי להמשיך.",
     "auth.differentEmail": "שימוש בכתובת אחרת",
     "auth.resend": "שליחת הקישור שוב",
     "auth.resending": "שולח שוב…",
@@ -510,13 +524,23 @@ const STRINGS = {
     "auth.localOnly": "המשך ללא חשבון",
     "auth.localOnlyHint": "הטיולים יישארו במכשיר הזה ולא יסונכרנו.",
     "auth.invalidEmail": "הזינו כתובת אימייל תקינה.",
-    "auth.error": "שליחת הקישור נכשלה. נסו שוב.",
-    "auth.passwordToggle": "כניסה עם סיסמה במקום זאת",
-    "auth.passwordLabel": "סיסמה",
+    "auth.error": "משהו השתבש. נסו שוב.",
     "auth.passwordSignIn": "כניסה",
     "auth.passwordSigningIn": "מתחבר…",
-    "auth.passwordError": "אימייל או סיסמה שגויים.",
-    "auth.backToMagicLink": "חזרה לקישור באימייל",
+    "auth.signInError": "אימייל או סיסמה שגויים.",
+    "auth.signUp": "הרשמה",
+    "auth.signingUp": "יוצר חשבון…",
+    "auth.signUpToggle": "אין לכם חשבון? הרשמו",
+    "auth.signInToggle": "כבר יש לכם חשבון? היכנסו",
+    "auth.forgotPassword": "שכחתם סיסמה?",
+    "auth.forgotSubmit": "שליחת קישור לאיפוס",
+    "auth.backToSignIn": "חזרה להתחברות",
+    "auth.passwordMismatch": "הסיסמאות אינן תואמות.",
+    "auth.passwordTooShort": "הסיסמה חייבת להכיל לפחות 8 תווים.",
+    "auth.setPasswordTitle": "הגדרת סיסמה",
+    "auth.setPasswordBody": "בחרו סיסמה כדי להתחבר איתה ישירות בפעם הבאה.",
+    "auth.setPasswordButton": "שמירת סיסמה",
+    "auth.setPasswordSaving": "שומר…",
 
     // trip picker (the landing screen after signing in)
     "picker.title": "הטיולים שלך",

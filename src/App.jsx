@@ -16,6 +16,7 @@ import DetailsView from "./components/DetailsView.jsx";
 import TripMap from "./components/TripMap.jsx";
 import ResizeHandle from "./components/ResizeHandle.jsx";
 import AuthScreen from "./components/AuthScreen.jsx";
+import SetPasswordScreen from "./components/SetPasswordScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
 import SharedTripView from "./components/SharedTripView.jsx";
 import PhotoLightbox from "./components/PhotoLightbox.jsx";
@@ -31,7 +32,7 @@ import {
   useTripsReady,
   withDates,
 } from "./lib/store.js";
-import { useLocalOnly, useSession } from "./lib/auth.js";
+import { useLocalOnly, usePasswordRecovery, useSession } from "./lib/auth.js";
 import {
   clearRouteTrip,
   setRouteTrip,
@@ -51,21 +52,9 @@ const MIN_MAP_PX = 300;
 const MIN_CONTENT_PX = 420;
 
 /**
- * Screen gate. Four states, in order:
- *   1. Supabase configured but not signed in (and not opted into local-only)
- *      → the auth screen.
- *   2. Signed in (or local-only, or no Supabase at all) but the real trip
- *      data hasn't loaded yet → the loading splash. Without this, the
- *      picker/editor would briefly show the in-memory placeholder trip
- *      (store.js's demo seed) while the cloud fetch is still in flight.
- *   3. Real data loaded, but no trip opened yet → the trip picker.
- *   4. A trip opened → the editor.
- *
- * All hooks run before any branch, so the rules of hooks hold; the heavy
- * editor and its map only mount once a trip is actually open.
+ * Everything renders inside this; the lightbox sits alongside so a picture
+ * preview can open from any screen.
  */
-// Everything renders inside this; the lightbox sits alongside so a picture
-// preview can open from any screen.
 export default function App() {
   return (
     <>
@@ -75,9 +64,28 @@ export default function App() {
   );
 }
 
+/**
+ * Screen gate. Five states, in order:
+ *   1. A password-recovery link is open but no new password has been set yet
+ *      → the set-password screen, ahead of everything else — the recovery
+ *      link does create a session, but it must not be treated as a normal
+ *      sign-in until a password is actually chosen.
+ *   2. Supabase configured but not signed in (and not opted into local-only)
+ *      → the auth screen.
+ *   3. Signed in (or local-only, or no Supabase at all) but the real trip
+ *      data hasn't loaded yet → the loading splash. Without this, the
+ *      picker/editor would briefly show the in-memory placeholder trip
+ *      (store.js's demo seed) while the cloud fetch is still in flight.
+ *   4. Real data loaded, but no trip opened yet → the trip picker.
+ *   5. A trip opened → the editor.
+ *
+ * All hooks run before any branch, so the rules of hooks hold; the heavy
+ * editor and its map only mount once a trip is actually open.
+ */
 function AppScreens() {
   const { session, ready } = useSession();
   const localOnly = useLocalOnly();
+  const passwordRecovery = usePasswordRecovery();
   const tripsReady = useTripsReady();
   const routeTripId = useRouteTripId();
   const shareToken = useShareToken();
@@ -119,6 +127,8 @@ function AppScreens() {
   // A shared view-only link is public: no auth, no picker, not even the
   // splash gate below — it never touches the signed-in trip store at all.
   if (shareToken) return <SharedTripView token={shareToken} />;
+
+  if (passwordRecovery) return <SetPasswordScreen />;
 
   const showSplash =
     hasSupabase && (!ready || ((session || localOnly) && !tripsReady));

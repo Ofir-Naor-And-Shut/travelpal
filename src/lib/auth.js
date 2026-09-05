@@ -30,6 +30,17 @@ function emitSession() {
   sessionListeners.forEach((l) => l());
 }
 
+// True from the moment a password-recovery link is opened until a new
+// password is actually set — the recovery link does create a real session,
+// but App.jsx must show the "set your password" screen instead of treating
+// that as a normal sign-in.
+let recoveryMode = false;
+const recoveryListeners = new Set();
+
+function emitRecoveryMode() {
+  recoveryListeners.forEach((l) => l());
+}
+
 if (hasSupabase) {
   // Prime from any persisted session, then track every later change.
   supabase.auth.getSession().then(({ data }) => {
@@ -38,9 +49,16 @@ if (hasSupabase) {
     emitSession();
   });
 
-  supabase.auth.onAuthStateChange((_event, next) => {
+  supabase.auth.onAuthStateChange((event, next) => {
     session = next ?? null;
     ready = true;
+    if (event === "PASSWORD_RECOVERY") {
+      recoveryMode = true;
+      emitRecoveryMode();
+    } else if (event === "SIGNED_OUT") {
+      recoveryMode = false;
+      emitRecoveryMode();
+    }
     // A real sign-in overrides an earlier "use without an account" choice.
     if (session) setLocalOnly(false);
     emitSession();
@@ -72,42 +90,82 @@ export { subscribeSession };
 /** The signed-in user's email, or null. */
 export const sessionEmail = (s) => s?.user?.email ?? null;
 
-/* --- magic-link actions ---------------------------------------------------- */
+/** True while a password-recovery link is open but no new password has been
+ *  set yet — App.jsx uses this to show the "set your password" screen ahead
+ *  of the normal signed-in/signed-out gate. */
+export function usePasswordRecovery() {
+  return useSyncExternalStore(
+    (listener) => {
+      recoveryListeners.add(listener);
+      return () => recoveryListeners.delete(listener);
+    },
+    () => recoveryMode,
+    () => recoveryMode,
+  );
+}
 
-/**
- * Send a passwordless sign-in link. First time for an email, this also creates
- * the account — so it's both "sign up" and "log in". Resolves once the mail is
- * on its way; the session itself only arrives when the link is opened.
- */
-export async function sendMagicLink(email) {
-  if (!hasSupabase) throw new Error("Supabase is not configured");
+function siteUrl() {
   // VITE_SITE_URL pins the redirect target explicitly (needed for deployed
   // environments — see .env.local); falls back to wherever the page is
   // actually running, which is what local dev needs.
-  const siteUrl = import.meta.env.VITE_SITE_URL?.trim();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    // The link returns to the app; supabase.js has detectSessionInUrl on to
-    // pick the session out of the URL hash when it lands.
-    options: { emailRedirectTo: siteUrl || window.location.origin },
-  });
-  if (error) throw error;
+  return import.meta.env.VITE_SITE_URL?.trim() || window.location.origin;
 }
 
 export async function signOut() {
   if (hasSupabase) await supabase.auth.signOut();
 }
 
-/**
- * Password sign-in — no email round trip, used only by accounts that have a
- * password set (in practice, the one admin account; see supabase/schema.sql
- * phase 4). Regular accounts are magic-link-only and never get a password,
- * so this simply fails for them rather than needing its own gating.
- */
+/** Email + password sign-in — the primary login path. */
 export async function signInWithPassword(email, password) {
   if (!hasSupabase) throw new Error("Supabase is not configured");
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
+}
+
+/**
+ * Create an account with a password. If the email is already registered —
+ * including an old magic-link-only account that has never had a password —
+ * Supabase reports that by returning an empty `identities` array rather than
+ * an error (the standard non-enumerating signal), so no error is ever thrown
+ * for "already registered". Instead this transparently sends the same
+ * password-set/reset link used for that case, and the caller shows one
+ * neutral "check your inbox" message regardless of which branch ran — the UI
+ * must never reveal whether the account already existed.
+ */
+export async function signUpWithPassword(email, password) {
+  if (!hasSupabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: siteUrl() },
+  });
+  if (error) throw error;
+  if (data.user && data.user.identities?.length === 0) {
+    await sendPasswordResetLink(email);
+  }
+}
+
+/**
+ * Emails a password-recovery link. Doubles as both "forgot password" and the
+ * backward-compat "set a password" step for an old magic-link account — the
+ * two cases look identical from here (and to the UI), which is what keeps
+ * this from leaking account existence.
+ */
+export async function sendPasswordResetLink(email) {
+  if (!hasSupabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: siteUrl(),
+  });
+  if (error) throw error;
+}
+
+/** Sets the password for the session opened by a recovery link. */
+export async function updateUserPassword(password) {
+  if (!hasSupabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+  recoveryMode = false;
+  emitRecoveryMode();
 }
 
 /** True when the session carries the `admin` app_metadata claim — settable
