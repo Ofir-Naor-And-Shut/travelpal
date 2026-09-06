@@ -358,27 +358,40 @@ Verify against the _running_ app, not the code:
 - Create a view-only share link; open it in a private window (no account).
 - Sign out; confirm "continue without an account" still works fully offline.
 
-### 9.10 _(Optional, not yet enabled)_ Google OAuth
+### 9.10 Google OAuth — configured, testing-only for now
 
 The code (`signInWithGoogle` in `src/lib/auth.js`, the "Continue with Google"
-button in `AuthScreen`) is in place but does nothing usable until this is done:
+button in `AuthScreen`) is live. What's been configured so far:
 
-1. In **Google Cloud Console**, create an OAuth 2.0 Client ID (Web application
-   type). Add your Supabase project's callback URL as an **Authorized redirect
-   URI** — Supabase shows the exact URL to use on its Google provider settings
-   page (step 2 below).
-2. In Supabase: **Authentication → Providers → Google**, enable it and paste in
-   the Client ID and Client Secret from step 1.
-3. Make sure your app's own **Site URL / Redirect URLs** (§9.4.3) already cover
-   where Google should hand the user back to — same requirement as the
-   email-based flows.
-4. Decide on **identity linking**: if a Google sign-in uses an email that
+- **Google Cloud Console**: an OAuth 2.0 Client ID (Web application type)
+  exists, with the app's own URL(s) added to its **Authorized redirect URIs**
+  so Google hands the signed-in user back to the right place.
+- The OAuth consent screen is in **Testing** publishing status, not
+  **Production** — only the Google accounts explicitly added as **test users**
+  in that screen can actually complete a Google sign-in right now. Anyone else
+  hitting "Continue with Google" will be rejected by Google before it ever
+  reaches this app. This is the correct, safe default while nobody but the
+  developer is signing in.
+- **Supabase → Authentication → Providers → Google**: enabled, with that
+  Client ID/Secret pasted in. Supabase's own callback URL (shown on that same
+  provider settings page) was in turn added to the Google OAuth client's
+  **Authorized redirect URIs** — this is the leg Google actually redirects to
+  first (it hands off to Supabase, which then redirects again to the app's own
+  Site URL/Redirect URLs from §9.4.3).
+
+**Still to do before real users can use this:**
+
+1. **Publish the OAuth consent screen** (Google Cloud Console → OAuth consent
+   screen → Publish app) when ready to go beyond a hand-picked test-user list.
+   Depending on the requested scopes, Google may require a verification review
+   first — start this well before a launch date, not the week of.
+2. Decide on **identity linking**: if a Google sign-in uses an email that
    already has a password account, whether Supabase merges them into one user
    or errors depends on the project's linking settings — check this
    deliberately before launch rather than discovering it from a support ticket.
-5. Smoke test: "Continue with Google" on a fresh browser profile, and again on
-   an email that already has a password account, to confirm the linking
-   decision from step 4 actually behaves as chosen.
+3. Smoke test: "Continue with Google" as a listed test user, and again on an
+   email that already has a password account, to confirm the linking decision
+   from step 2 actually behaves as chosen.
 
 ---
 

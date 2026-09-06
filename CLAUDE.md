@@ -94,9 +94,12 @@ and delete-sync all confirmed against Postgres.
 
 _Still to do:_ documents to a Storage bucket, sharing via a `trip_members` table,
 and realtime, each phased so the app is never left broken. **Google OAuth is
-coded** (`signInWithGoogle`, the "Continue with Google" button) but **not yet
-usable** — it needs a Google Cloud OAuth client and the Google provider enabled
-in the Supabase dashboard, still to be done. Password auth's Supabase dashboard
+coded and configured** (`signInWithGoogle`, the "Continue with Google" button;
+Google Cloud OAuth client + Supabase's Google provider both set up, with the
+redirect URIs wired between them per `OPERATIONS.md` §9.10) but the Google OAuth
+consent screen is still in **Testing** status — only hand-picked Google test
+users can actually sign in with it until it's published, which needs doing
+before real users can use this option. Password auth's Supabase dashboard
 side (requiring "Confirm email", an 8-char minimum, and Site URL/Redirect URLs)
 is configured directly in the dashboard, not in this repo, and still needs a
 real end-to-end email test. **No custom SMTP yet** — no domain is owned, so
