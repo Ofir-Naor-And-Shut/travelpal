@@ -47,12 +47,18 @@ const BASEMAPS = [
   {
     id: "positron",
     key: "map.minimal",
-    // Wikimedia's OSM-based tiles: the closest key-free equivalent to CARTO's
-    // (now key-gated) Positron style. No natively dark variant, so this falls
+    // Esri's key-free ArcGIS Online canvas basemap — the same no-key public
+    // service already used below for Satellite, just a light/decluttered
+    // style instead. (Wikimedia's tile service, used here previously, blocks
+    // third-party sites with a 403 — it's been Wikimedia-project-only since
+    // 2021.) The base has no labels by design; `referenceUrl` layers Esri's
+    // matching labels tileset on top. No natively dark variant, so this falls
     // back to the same CSS dimming as Terrain/Satellite in dark mode.
-    url: "https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png",
-    maxZoom: 19,
-    attribution: "© OpenStreetMap contributors · Wikimedia",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    referenceUrl:
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+    maxZoom: 16,
+    attribution: "© Esri",
   },
   {
     id: "terrain",
@@ -513,6 +519,17 @@ export default function TripMap({
             // A natively dark tileset shouldn't also get the CSS dimming filter.
             className={basemap.darkUrl ? "tile-no-dim" : undefined}
           />
+          {/* Labels for basemaps whose base tileset is unlabelled (Esri's
+              light-gray canvas) — stacked on top of the base layer above. */}
+          {basemap.referenceUrl && (
+            <TileLayer
+              key={`${basemap.id}:reference`}
+              url={basemap.referenceUrl}
+              maxZoom={basemap.maxZoom}
+              detectRetina
+              className={basemap.darkUrl ? "tile-no-dim" : undefined}
+            />
+          )}
 
           {/* Casing under every leg keeps thin colour readable on any basemap;
             it flips to a dark halo where the tiles themselves are dark. */}
