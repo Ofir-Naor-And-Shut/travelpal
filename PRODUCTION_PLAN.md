@@ -94,8 +94,8 @@ policy recursion, an owner-protection trigger). Verify the rest before launch:
       via `get_trip_by_share_token` only.
 - [ ] Plan the **Storage bucket RLS** now (owner/member-scoped) for when
       documents move off IndexedDB (see 1.3).
-- [ ] Enable Supabase **email rate limits** and confirm the magic-link flow
-      can't be used to spam arbitrary addresses (see 2.3).
+- [ ] Enable Supabase **email rate limits** and confirm the signup/password-reset
+      email flow can't be used to spam arbitrary addresses (see 2.3).
 
 ### 0.4 Reconcile the `updated_at` clock 🟠 (S/M)
 
@@ -164,8 +164,8 @@ For cross-device use they need a private Storage bucket.
 
 ### 2.3 Rate-limiting & abuse protection 🟠 (M)
 
-- [ ] Rate-limit the **magic-link** send path (per email + per IP) to prevent
-      spam and bill abuse.
+- [ ] Rate-limit the **signup / password-reset** email send path (per email +
+      per IP) to prevent spam and bill abuse.
 - [ ] Rate-limit the **invite** edge function.
 - [ ] Consider a lightweight bot/abuse check on sign-in.
 
@@ -174,6 +174,21 @@ For cross-device use they need a private Storage bucket.
 - [ ] Confirm Supabase **point-in-time recovery / daily backups** are on for the
       production tier.
 - [ ] Document a restore procedure.
+
+### 2.5 Custom email domain & SMTP 🟠 (S)
+
+Auth emails (confirm signup, password reset, invites) currently go through
+Supabase's default mailer — fine for solo testing, not for real users (it only
+delivers to the project's own Supabase org members, and is rate-limited to
+~2/hour).
+
+- [ ] **Buy a domain** (or use a subdomain of one already owned, e.g.
+      `mail.travelpal.com` — recommended over the root domain, to isolate
+      sending reputation).
+- [ ] Verify it with an SMTP provider (Resend recommended — free tier, simple
+      setup; Postmark/SendGrid are fine alternatives).
+- [ ] Wire the SMTP credentials into Supabase (see OPERATIONS.md §9.4).
+- [ ] Re-run the signup/confirm and forgot-password smoke tests once live.
 
 ---
 
