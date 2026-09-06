@@ -55,11 +55,11 @@ shape factories, and load-time normalization keeps old saves valid.
 - A floating bottom **nav bar**; the active item expands into a pill.
 - **Accounts & trips** — an email + password sign-in/sign-up screen (with a
   "forgot password" flow that also lets an old magic-link account set its
-  first password) and a trip-picker landing screen let you keep several trips
-  and open one at a time. Inside the editor the header carries a quick trip
-  switcher, an "All trips" button back to the picker, and sign-out. Signing in
-  is optional — a "continue without an account" escape runs the app fully
-  local-only.
+  first password, and a "Continue with Google" option) and a trip-picker
+  landing screen let you keep several trips and open one at a time. Inside the
+  editor the header carries a quick trip switcher, an "All trips" button back
+  to the picker, and sign-out. Signing in is optional — a "continue without an
+  account" escape runs the app fully local-only.
 
 **A Supabase backend** layered _under_ the local-first store for cross-device sync
 and sharing. A trip is stored as one JSONB row in `public.trips` with owner-only
@@ -72,8 +72,8 @@ _Done & verified:_ **email + password auth** and the **screen flow** —
 `AuthScreen` → `TripPicker` (the landing screen) → the editor (`TripEditor`),
 gated in `App.jsx`. `auth.js` exposes `useSession`, `signInWithPassword`,
 `signUpWithPassword`, `sendPasswordResetLink`, `updateUserPassword`,
-`usePasswordRecovery`, `signOut`, `useLocalOnly`/`setLocalOnly`, all no-ops
-when Supabase isn't configured. Signing up on an email that's already
+`signInWithGoogle`, `usePasswordRecovery`, `signOut`,
+`useLocalOnly`/`setLocalOnly`, all no-ops when Supabase isn't configured. Signing up on an email that's already
 registered (including an old magic-link-only account) silently falls back to
 emailing a password-set/reset link instead of erroring, so the UI never
 reveals whether an account already existed — the same link doubles as
@@ -93,11 +93,17 @@ real (then magic-link, now password) login: fetch, push, reload round-trip,
 and delete-sync all confirmed against Postgres.
 
 _Still to do:_ documents to a Storage bucket, sharing via a `trip_members` table,
-realtime, and Google OAuth (a planned second phase on top of password auth),
-each phased so the app is never left broken. Password auth's Supabase dashboard
-side (requiring "Confirm email", an 8-char minimum, Site URL/Redirect URLs, and
-custom SMTP) is configured directly in the dashboard, not in this repo, and
-still needs a real end-to-end email test. One known rough edge: the
+and realtime, each phased so the app is never left broken. **Google OAuth is
+coded** (`signInWithGoogle`, the "Continue with Google" button) but **not yet
+usable** — it needs a Google Cloud OAuth client and the Google provider enabled
+in the Supabase dashboard, still to be done. Password auth's Supabase dashboard
+side (requiring "Confirm email", an 8-char minimum, and Site URL/Redirect URLs)
+is configured directly in the dashboard, not in this repo, and still needs a
+real end-to-end email test. **No custom SMTP yet** — no domain is owned, so
+confirmation/reset emails run on Supabase's default mailer (org-members-only,
+~2/hour); buying a domain and wiring up custom SMTP (Resend) is a tracked TODO
+in `PRODUCTION_PLAN.md`, not urgent while testing solo. One known rough edge:
+the
 `touch_updated_at` trigger overwrites the `updated_at` **column** with
 `now()` on update while the client's last-write-wins clock lives in
 `data.updatedAt` inside the JSON — harmless today (reads use `data.updatedAt`),

@@ -123,6 +123,24 @@ export async function signInWithPassword(email, password) {
 }
 
 /**
+ * Google sign-in. Redirects away from the app and back — unlike the other
+ * auth actions, there's no local success/error branch here; the redirect
+ * back to `siteUrl()` is what lands the session (picked up by
+ * `onAuthStateChange` like any other sign-in). If the Google email matches an
+ * existing password account, Supabase links them into the same user rather
+ * than creating a second one, as long as "Enable manual linking" (or
+ * automatic linking for verified emails) is configured for the project.
+ */
+export async function signInWithGoogle() {
+  if (!hasSupabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: siteUrl() },
+  });
+  if (error) throw error;
+}
+
+/**
  * Create an account with a password. If the email is already registered —
  * including an old magic-link-only account that has never had a password —
  * Supabase reports that by returning an empty `identities` array rather than

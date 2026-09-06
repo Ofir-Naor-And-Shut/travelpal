@@ -280,16 +280,19 @@ your local project.
    domain (e.g. `https://travelpal.com`) and add it (and any preview URLs) to the
    **Redirect URLs** allow-list. Confirmation and password-reset links won't
    work if the redirect URL isn't listed.
-4. Configure a custom SMTP provider (e.g. Resend, Postmark, SendGrid) under
-   **Authentication → SMTP Settings** (`/project/_/auth/smtp` in the dashboard
-   URL — Supabase has moved this tab around between dashboard versions, so if
-   it's not visible under Authentication, go directly to
+4. **TODO, once a domain is bought:** configure a custom SMTP provider (e.g.
+   Resend, Postmark, SendGrid) under **Authentication → SMTP Settings**
+   (`/project/_/auth/smtp` in the dashboard URL — Supabase has moved this tab
+   around between dashboard versions, so if it's not visible under
+   Authentication, go directly to
    `https://supabase.com/dashboard/project/<your-project-ref>/auth/smtp`) so
-   confirmation, reset, and invite emails
-   come from _your_ domain and don't hit Supabase's low default sending limits —
-   now more likely to matter, since signup confirmation and password reset both
-   add real volume on top of invites. Customize the "Confirm signup" and
-   "Reset password" email templates with your branding.
+   confirmation, reset, and invite emails come from _your_ domain and don't hit
+   Supabase's low default sending limits. **Until then**, Supabase's built-in
+   mailer is used as-is: it only delivers to addresses that are members of the
+   project's Supabase organization (fine for testing with your own account) and
+   is rate-limited to ~2 messages/hour — not sufficient once real users sign
+   up. Customize the "Confirm signup" and "Reset password" email templates with
+   your branding once custom SMTP is in place.
 
 ### 9.5 Deploy the invite edge function
 
@@ -354,6 +357,28 @@ Verify against the _running_ app, not the code:
 - Share a trip by email to a second address; confirm the invite email and access.
 - Create a view-only share link; open it in a private window (no account).
 - Sign out; confirm "continue without an account" still works fully offline.
+
+### 9.10 _(Optional, not yet enabled)_ Google OAuth
+
+The code (`signInWithGoogle` in `src/lib/auth.js`, the "Continue with Google"
+button in `AuthScreen`) is in place but does nothing usable until this is done:
+
+1. In **Google Cloud Console**, create an OAuth 2.0 Client ID (Web application
+   type). Add your Supabase project's callback URL as an **Authorized redirect
+   URI** — Supabase shows the exact URL to use on its Google provider settings
+   page (step 2 below).
+2. In Supabase: **Authentication → Providers → Google**, enable it and paste in
+   the Client ID and Client Secret from step 1.
+3. Make sure your app's own **Site URL / Redirect URLs** (§9.4.3) already cover
+   where Google should hand the user back to — same requirement as the
+   email-based flows.
+4. Decide on **identity linking**: if a Google sign-in uses an email that
+   already has a password account, whether Supabase merges them into one user
+   or errors depends on the project's linking settings — check this
+   deliberately before launch rather than discovering it from a support ticket.
+5. Smoke test: "Continue with Google" on a fresh browser profile, and again on
+   an email that already has a password account, to confirm the linking
+   decision from step 4 actually behaves as chosen.
 
 ---
 

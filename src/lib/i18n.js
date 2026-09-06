@@ -77,6 +77,8 @@ const STRINGS = {
     "auth.backToSignIn": "Back to sign in",
     "auth.passwordMismatch": "Passwords don’t match.",
     "auth.passwordTooShort": "Password must be at least 8 characters.",
+    "auth.orDivider": "or",
+    "auth.continueWithGoogle": "Continue with Google",
     "auth.setPasswordTitle": "Set your password",
     "auth.setPasswordBody":
       "Choose a password so you can sign in directly next time.",
@@ -537,6 +539,8 @@ const STRINGS = {
     "auth.backToSignIn": "חזרה להתחברות",
     "auth.passwordMismatch": "הסיסמאות אינן תואמות.",
     "auth.passwordTooShort": "הסיסמה חייבת להכיל לפחות 8 תווים.",
+    "auth.orDivider": "או",
+    "auth.continueWithGoogle": "המשך עם Google",
     "auth.setPasswordTitle": "הגדרת סיסמה",
     "auth.setPasswordBody": "בחרו סיסמה כדי להתחבר איתה ישירות בפעם הבאה.",
     "auth.setPasswordButton": "שמירת סיסמה",

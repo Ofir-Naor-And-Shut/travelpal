@@ -175,6 +175,21 @@ For cross-device use they need a private Storage bucket.
       production tier.
 - [ ] Document a restore procedure.
 
+### 2.5 Custom email domain & SMTP 🟠 (S)
+
+Auth emails (confirm signup, password reset, invites) currently go through
+Supabase's default mailer — fine for solo testing, not for real users (it only
+delivers to the project's own Supabase org members, and is rate-limited to
+~2/hour).
+
+- [ ] **Buy a domain** (or use a subdomain of one already owned, e.g.
+      `mail.travelpal.com` — recommended over the root domain, to isolate
+      sending reputation).
+- [ ] Verify it with an SMTP provider (Resend recommended — free tier, simple
+      setup; Postmark/SendGrid are fine alternatives).
+- [ ] Wire the SMTP credentials into Supabase (see OPERATIONS.md §9.4).
+- [ ] Re-run the signup/confirm and forgot-password smoke tests once live.
+
 ---
 
 ## Phase 3 — Legal & compliance

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * Supabase client.
@@ -11,10 +11,10 @@ import { createClient } from '@supabase/supabase-js'
  * The anon key is a public client credential: it ships in the browser and is
  * protected by Row-Level Security, not by being secret.
  */
-const url = import.meta.env.VITE_SUPABASE_URL?.trim()
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
+const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
-export const hasSupabase = Boolean(url && anonKey)
+export const hasSupabase = Boolean(url && anonKey);
 
 export const supabase = hasSupabase
   ? createClient(url, anonKey, {
@@ -27,4 +27,4 @@ export const supabase = hasSupabase
         detectSessionInUrl: true,
       },
     })
-  : null
+  : null;
