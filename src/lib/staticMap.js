@@ -1,5 +1,5 @@
 /**
- * Renders a static snapshot of the trip map for the PDF export: CARTO Voyager
+ * Renders a static snapshot of the trip map for the PDF export: OSM standard
  * basemap tiles (the app's default light basemap, legible on white paper), the
  * colour-per-segment route arcs, and numbered destination pins. It mirrors
  * TripMap's whole-trip view — origin/last stop are shown only when opted in and
@@ -13,7 +13,9 @@ import { arcPoints, splitArc } from "./arc.js";
 import { effectiveLastStop, isPlaced, legOf, modeColor } from "./store.js";
 
 const TILE = 256;
-const TILE_URL = "https://a.basemaps.cartocdn.com/rastertiles/voyager";
+// CARTO's raster CDN now requires a paid API key; OSM's own tile server is
+// the key-free replacement (see TripMap's "voyager" basemap).
+const TILE_URL = "https://tile.openstreetmap.org";
 const PAD = 72; // px kept clear around the route so pins/labels aren't clipped
 const MAX_W = 1200;
 const MAX_H = 780;
@@ -180,7 +182,7 @@ export async function renderTripMapImage(trip, destinations) {
       const dx = tx * TILE - originPxX;
       const dy = ty * TILE - originPxY;
       jobs.push(
-        loadTile(`${TILE_URL}/${zoom}/${wx}/${ty}@2x.png`).then((img) => {
+        loadTile(`${TILE_URL}/${zoom}/${wx}/${ty}.png`).then((img) => {
           if (img) ctx.drawImage(img, dx, dy, TILE, TILE);
         }),
       );
