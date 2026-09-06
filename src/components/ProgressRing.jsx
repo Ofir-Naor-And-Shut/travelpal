@@ -6,9 +6,12 @@ export default function ProgressRing({
   over = false,
   label,
 }) {
-  const radius = (size - stroke) / 2
-  const circumference = 2 * Math.PI * radius
-  const ratio = total > 0 ? Math.min(1, value / total) : 0
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const ratio = total > 0 ? Math.min(1, value / total) : 0;
+  // Small rings (the mobile budget widget) need a smaller font, or two-digit
+  // nights ("12/12") push past the circle's edge.
+  const fontSize = size < 40 ? 8 : 11;
 
   return (
     <div
@@ -35,13 +38,16 @@ export default function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - ratio)}
-          className={over ? 'stroke-subtle' : 'stroke-accent'}
-          style={{ transition: 'stroke-dashoffset .35s ease' }}
+          className={over ? "stroke-subtle" : "stroke-accent"}
+          style={{ transition: "stroke-dashoffset .35s ease" }}
         />
       </svg>
-      <span className="tabular absolute inset-0 grid place-items-center text-[11px] font-semibold text-fg">
+      <span
+        className="tabular absolute inset-0 grid place-items-center whitespace-nowrap font-semibold leading-none text-fg"
+        style={{ fontSize }}
+      >
         {value}/{total}
       </span>
     </div>
-  )
+  );
 }
