@@ -8,43 +8,68 @@ import {
   MoveRight,
   Plane,
   RefreshCw,
-  Sparkles,
+  UserPlus,
   UtensilsCrossed,
 } from "lucide-react";
 import AppControls from "./AppControls.jsx";
 import {
-  sendMagicLink,
+  sendPasswordResetLink,
   setLocalOnly,
+  signInWithGoogle,
   signInWithPassword,
+  signUpWithPassword,
 } from "../lib/auth.js";
 import { useI18n } from "../lib/i18n.js";
+
+// Lucide has no brand icons; Google's isn't stylable as one flat color.
+function GoogleIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#4285F4"
+        d="M23.52 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.87Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.87-3c-1.07.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+      />
+    </svg>
+  );
+}
 
 // Deliberately forgiving — the real check is Supabase sending the mail. This
 // just catches an obviously empty or malformed entry before a round-trip.
 const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 /**
- * Passwordless sign-in / sign-up. One email field: the first link for an
- * address creates the account, every later one just logs in — so there's no
- * separate "sign up" to get wrong. "Continue without an account" drops into the
- * local-only path the whole app still supports.
+ * Email + password sign-in / sign-up, plus a "forgot password" mode that also
+ * carries the whole "no account yet" backward-compat case: signing up on an
+ * email that already exists (e.g. an old magic-link-only account) is handled
+ * silently by auth.js as a password-reset send, so the "check your inbox"
+ * panel here is deliberately identical for every case that reaches it —
+ * never revealing whether the account already existed.
  */
 export default function AuthScreen() {
   const { t } = useI18n();
+  const [mode, setMode] = useState("signin"); // signin | signup | forgot
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
-  const [resend, setResend] = useState("idle"); // idle | sending | sent | error
-  const sent = status === "sent";
-
-  // A password-based alternative, off by default — only an account with a
-  // password set (in practice, the one admin account) can use it; a regular
-  // magic-link-only account just gets "incorrect email or password".
-  const [showPassword, setShowPassword] = useState(false);
-  const [pwEmail, setPwEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [pwStatus, setPwStatus] = useState("idle"); // idle | sending | error
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | error
+  const [errorKey, setErrorKey] = useState("auth.error");
+  const [sent, setSent] = useState(false);
+  const [resend, setResend] = useState("idle"); // idle | sending | sent | error
+  const [googleStatus, setGoogleStatus] = useState("idle"); // idle | sending | error
 
-  // Let the "Link sent" confirmation settle, then re-arm the button so a second
+  // Let the "sent" confirmation settle, then re-arm the button so a second
   // resend is possible if the first mail still hasn't arrived.
   useEffect(() => {
     if (resend !== "sent") return undefined;
@@ -52,31 +77,65 @@ export default function AuthScreen() {
     return () => clearTimeout(id);
   }, [resend]);
 
-  const submitPassword = async (e) => {
-    e.preventDefault();
-    if (pwStatus === "sending") return;
-    setPwStatus("sending");
-    try {
-      await signInWithPassword(pwEmail.trim(), password);
-      // On success, onAuthStateChange (auth.js) picks up the session and this
-      // screen unmounts — nothing else to do here.
-    } catch {
-      setPwStatus("error");
-    }
+  const resetMessages = () => {
+    if (status === "error") setStatus("idle");
+  };
+
+  const changeMode = (next) => {
+    setMode(next);
+    setStatus("idle");
+    setSent(false);
+    setResend("idle");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  const sendLink = async () => {
+    if (mode === "signup") await signUpWithPassword(email.trim(), password);
+    else await sendPasswordResetLink(email.trim());
   };
 
   const submit = async (e) => {
     e.preventDefault();
     if (status === "sending") return;
     if (!looksLikeEmail(email)) {
+      setErrorKey("auth.invalidEmail");
       setStatus("error");
       return;
     }
+
+    if (mode === "signin") {
+      setStatus("sending");
+      try {
+        await signInWithPassword(email.trim(), password);
+        // On success, onAuthStateChange (auth.js) picks up the session and
+        // this screen unmounts — nothing else to do here.
+      } catch {
+        setErrorKey("auth.signInError");
+        setStatus("error");
+      }
+      return;
+    }
+
+    if (mode === "signup") {
+      if (password.length < 8) {
+        setErrorKey("auth.passwordTooShort");
+        setStatus("error");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorKey("auth.passwordMismatch");
+        setStatus("error");
+        return;
+      }
+    }
+
     setStatus("sending");
     try {
-      await sendMagicLink(email.trim());
-      setStatus("sent");
+      await sendLink();
+      setSent(true);
     } catch {
+      setErrorKey("auth.error");
       setStatus("error");
     }
   };
@@ -85,12 +144,23 @@ export default function AuthScreen() {
     if (resend === "sending") return;
     setResend("sending");
     try {
-      await sendMagicLink(email.trim());
+      await sendLink();
       setResend("sent");
     } catch {
       // Keep the confirmation screen — the address is still valid, only the
       // send failed — and report it inline rather than dropping to the form.
       setResend("error");
+    }
+  };
+
+  const handleGoogle = async () => {
+    if (googleStatus === "sending") return;
+    setGoogleStatus("sending");
+    try {
+      await signInWithGoogle();
+      // Redirects the whole page away and back; nothing else to do here.
+    } catch {
+      setGoogleStatus("error");
     }
   };
 
@@ -191,8 +261,7 @@ export default function AuthScreen() {
                   type="button"
                   className="btn-ghost !py-1 text-xs"
                   onClick={() => {
-                    setStatus("idle");
-                    setResend("idle");
+                    changeMode(mode);
                     setEmail("");
                   }}
                 >
@@ -219,15 +288,79 @@ export default function AuthScreen() {
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  if (status === "error") setStatus("idle");
+                  resetMessages();
                 }}
                 aria-invalid={status === "error"}
               />
+
+              {mode !== "forgot" && (
+                <>
+                  <label
+                    htmlFor="auth-password"
+                    className="mb-1.5 mt-3 block text-sm font-medium text-fg"
+                  >
+                    {t("auth.passwordLabel")}
+                  </label>
+                  <input
+                    id="auth-password"
+                    type="password"
+                    autoComplete={
+                      mode === "signup" ? "new-password" : "current-password"
+                    }
+                    className="field"
+                    placeholder={t("auth.passwordLabel")}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      resetMessages();
+                    }}
+                    aria-invalid={status === "error"}
+                  />
+                  {mode === "signup" && (
+                    <p className="mt-1 text-xs text-subtle">
+                      {t("auth.passwordHint")}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {mode === "signup" && (
+                <>
+                  <label
+                    htmlFor="auth-confirm-password"
+                    className="mb-1.5 mt-3 block text-sm font-medium text-fg"
+                  >
+                    {t("auth.confirmPasswordLabel")}
+                  </label>
+                  <input
+                    id="auth-confirm-password"
+                    type="password"
+                    autoComplete="new-password"
+                    className="field"
+                    placeholder={t("auth.confirmPasswordLabel")}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      resetMessages();
+                    }}
+                    aria-invalid={status === "error"}
+                  />
+                </>
+              )}
+
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  className="mt-2 text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
+                  onClick={() => changeMode("forgot")}
+                >
+                  {t("auth.forgotPassword")}
+                </button>
+              )}
+
               {status === "error" && (
                 <p role="alert" className="mt-1.5 text-sm text-accent">
-                  {looksLikeEmail(email)
-                    ? t("auth.error")
-                    : t("auth.invalidEmail")}
+                  {t(errorKey)}
                 </p>
               )}
 
@@ -236,10 +369,81 @@ export default function AuthScreen() {
                 className="btn-primary mt-4 w-full"
                 disabled={status === "sending"}
               >
-                <Sparkles size={15} />
-                {status === "sending" ? t("auth.sending") : t("auth.send")}
+                {mode === "signup" ? (
+                  <UserPlus size={15} />
+                ) : (
+                  <LogIn size={15} />
+                )}
+                {mode === "signin" &&
+                  (status === "sending"
+                    ? t("auth.passwordSigningIn")
+                    : t("auth.passwordSignIn"))}
+                {mode === "signup" &&
+                  (status === "sending"
+                    ? t("auth.signingUp")
+                    : t("auth.signUp"))}
+                {mode === "forgot" &&
+                  (status === "sending"
+                    ? t("auth.sending")
+                    : t("auth.forgotSubmit"))}
               </button>
             </form>
+          )}
+
+          {!sent && mode !== "forgot" && (
+            <>
+              <div className="my-4 flex items-center gap-3">
+                <div className="h-px flex-1 bg-line" />
+                <span className="text-xs text-subtle">{t("auth.orDivider")}</span>
+                <div className="h-px flex-1 bg-line" />
+              </div>
+              <button
+                type="button"
+                className="btn-soft w-full"
+                onClick={handleGoogle}
+                disabled={googleStatus === "sending"}
+              >
+                <GoogleIcon />
+                {t("auth.continueWithGoogle")}
+              </button>
+              {googleStatus === "error" && (
+                <p role="alert" className="mt-1.5 text-sm text-accent">
+                  {t("auth.error")}
+                </p>
+              )}
+            </>
+          )}
+
+          {!sent && (
+            <div className="mt-4 text-center">
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  className="text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
+                  onClick={() => changeMode("signup")}
+                >
+                  {t("auth.signUpToggle")}
+                </button>
+              )}
+              {mode === "signup" && (
+                <button
+                  type="button"
+                  className="text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
+                  onClick={() => changeMode("signin")}
+                >
+                  {t("auth.signInToggle")}
+                </button>
+              )}
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  className="text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
+                  onClick={() => changeMode("signin")}
+                >
+                  {t("auth.backToSignIn")}
+                </button>
+              )}
+            </div>
           )}
 
           <div className="mt-5 border-t border-line pt-4 text-center">
@@ -254,71 +458,6 @@ export default function AuthScreen() {
             <p className="mt-1 text-xs text-subtle">
               {t("auth.localOnlyHint")}
             </p>
-          </div>
-
-          <div className="mt-4 text-center">
-            {showPassword ? (
-              <form onSubmit={submitPassword} className="text-start">
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  className="field"
-                  placeholder={t("auth.emailPlaceholder")}
-                  value={pwEmail}
-                  onChange={(e) => {
-                    setPwEmail(e.target.value);
-                    if (pwStatus === "error") setPwStatus("idle");
-                  }}
-                />
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  className="field mt-2"
-                  placeholder={t("auth.passwordLabel")}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (pwStatus === "error") setPwStatus("idle");
-                  }}
-                  aria-invalid={pwStatus === "error"}
-                />
-                {pwStatus === "error" && (
-                  <p role="alert" className="mt-1.5 text-sm text-accent">
-                    {t("auth.passwordError")}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  className="btn-soft mt-3 w-full !py-1.5 text-sm"
-                  disabled={pwStatus === "sending"}
-                >
-                  <LogIn size={14} />
-                  {pwStatus === "sending"
-                    ? t("auth.passwordSigningIn")
-                    : t("auth.passwordSignIn")}
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost mt-1.5 w-full !py-1 text-xs"
-                  onClick={() => {
-                    setShowPassword(false);
-                    setPwStatus("idle");
-                    setPassword("");
-                  }}
-                >
-                  {t("auth.backToMagicLink")}
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                className="text-xs text-subtle underline-offset-2 hover:text-muted hover:underline"
-                onClick={() => setShowPassword(true)}
-              >
-                {t("auth.passwordToggle")}
-              </button>
-            )}
           </div>
 
           <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-subtle">
