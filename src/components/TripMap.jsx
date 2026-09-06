@@ -24,8 +24,11 @@ import { useI18n } from "../lib/i18n.js";
 import { useTheme } from "../lib/theme.js";
 
 /**
- * Basemaps. Voyager leads because it keeps street names, parks and water
- * legible at every zoom without the clutter of raw OSM tiles.
+ * Basemaps. "Streets" (OSM standard) leads as the most familiar, legible
+ * default; "Minimal" (Wikimedia) is the lighter, decluttered alternative.
+ * Both are genuinely key-free — CARTO's raster CDN, used here previously,
+ * started requiring a paid API key and now serves a watermarked placeholder
+ * tile without one.
  *
  * `darkUrl` swaps in a natively dark tileset where one exists, which reads far
  * better than dimming a light one with a CSS filter.
@@ -34,19 +37,22 @@ const BASEMAPS = [
   {
     id: "voyager",
     key: "map.streets",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    subdomains: "abcd",
-    maxZoom: 20,
-    attribution: "© OpenStreetMap · © CARTO",
+    // CARTO's raster CDN now requires a paid API key (serves a watermarked
+    // placeholder tile without one) — the official OSM tile server is the
+    // key-free replacement.
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    maxZoom: 19,
+    attribution: "© OpenStreetMap contributors",
   },
   {
     id: "positron",
     key: "map.minimal",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    darkUrl: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    subdomains: "abcd",
-    maxZoom: 20,
-    attribution: "© OpenStreetMap · © CARTO",
+    // Wikimedia's OSM-based tiles: the closest key-free equivalent to CARTO's
+    // (now key-gated) Positron style. No natively dark variant, so this falls
+    // back to the same CSS dimming as Terrain/Satellite in dark mode.
+    url: "https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png",
+    maxZoom: 19,
+    attribution: "© OpenStreetMap contributors · Wikimedia",
   },
   {
     id: "terrain",
@@ -501,7 +507,7 @@ export default function TripMap({
           <TileLayer
             key={`${basemap.id}:${isDark}`}
             url={tileUrl}
-            subdomains={basemap.subdomains}
+            subdomains={basemap.subdomains ?? "abc"}
             maxZoom={basemap.maxZoom}
             detectRetina
             // A natively dark tileset shouldn't also get the CSS dimming filter.
