@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
-import { CalendarDays, Check, Moon, Pencil } from "lucide-react";
+import { CalendarDays, Check, HelpCircle, Moon, Pencil } from "lucide-react";
 import ProgressRing from "./ProgressRing.jsx";
 import AppControls from "./AppControls.jsx";
 import TripMenu from "./TripMenu.jsx";
 import TripPhotoControl from "./TripPhotoControl.jsx";
 import { CURRENCIES, updateTrip } from "../lib/store.js";
 import { currencySymbol, formatMoney } from "../lib/money.js";
+import { startTour } from "../lib/tour.js";
 import { useClampToViewport } from "../lib/useClampToViewport.js";
 import { useI18n } from "../lib/i18n.js";
 
@@ -26,8 +27,21 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
       {/* Language + theme sit at the inline-start of the header; the app menu
           (with the way back to All trips) sits alongside it. */}
       <div className="mb-3 flex items-center gap-2">
-        <TripMenu trip={trip} onBackToTrips={onBackToTrips} />
+        <span data-tour="trip-menu" className="inline-flex">
+          <TripMenu trip={trip} onBackToTrips={onBackToTrips} />
+        </span>
         <AppControls />
+        <button
+          type="button"
+          onClick={() => startTour("editor")}
+          aria-label={t("tour.help")}
+          title={t("tour.help")}
+          className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-2
+                     text-xs font-semibold text-fg transition hover:border-accent lg:py-1.5
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <HelpCircle size={14} />
+        </button>
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
@@ -102,7 +116,10 @@ export default function TripHeader({ trip, stats, onBackToTrips }) {
 
         {/* Desktop keeps the full card inline; on phones it's replaced by the
             floating corner widget below so it doesn't crowd the title. */}
-        <div className="glass-card hidden items-center gap-4 px-4 py-2.5 lg:flex">
+        <div
+          data-tour="budget-card"
+          className="glass-card hidden items-center gap-4 px-4 py-2.5 lg:flex"
+        >
           <BudgetProgressDetails trip={trip} stats={stats} t={t} />
         </div>
       </div>
@@ -206,6 +223,7 @@ function MobileBudgetWidget({ trip, stats, t }) {
     <div ref={boxRef} className="fixed end-3 top-3 z-40 lg:hidden">
       <button
         type="button"
+        data-tour="budget-card"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={t("header.budgetSummary")}

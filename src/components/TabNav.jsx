@@ -37,6 +37,7 @@ export default function TabNav({ active, onChange }) {
           <button
             key={id}
             type="button"
+            data-tour={`tab-${id}`}
             onClick={() => onChange(id)}
             aria-current={isActive ? "page" : undefined}
             title={label}

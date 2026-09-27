@@ -4,6 +4,7 @@ import {
   Flag,
   Home,
   Landmark,
+  Receipt,
   Route,
   Wallet,
 } from "lucide-react";
@@ -48,6 +49,16 @@ const CATEGORIES = [
   },
 ];
 
+/* Trip-wide costs with no single destination (insurance, visas, licences).
+   Only shown in the summary once there is one, so the four-category layout is
+   untouched for trips that never use it. */
+const GENERAL_CATEGORY = {
+  id: "general",
+  key: "budget.general",
+  icon: Receipt,
+  color: "var(--color-accent)",
+};
+
 /** A stop's cost split the same way the trip-wide stats are, for the
  * by-destination breakdown table. */
 function categoryCosts(trip, dest) {
@@ -76,7 +87,10 @@ export default function BudgetView({ trip, destinations, stats }) {
     transport: stats.transport,
     attractions: stats.attractions,
     reservations: stats.reservations,
+    general: stats.general,
   };
+  const summaryCategories =
+    stats.general > 0 ? [...CATEGORIES, GENERAL_CATEGORY] : CATEGORIES;
   const perNight = stats.plannedNights ? stats.total / stats.plannedNights : 0;
 
   return (
@@ -105,7 +119,7 @@ export default function BudgetView({ trip, destinations, stats }) {
 
         {/* Share-of-total bar */}
         <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-accent-soft shadow-[inset_0_1px_2px_rgb(0_0_0_/_0.12)]">
-          {CATEGORIES.map((cat) => {
+          {summaryCategories.map((cat) => {
             const share = stats.total
               ? (totals[cat.id] / stats.total) * 100
               : 0;
@@ -122,7 +136,7 @@ export default function BudgetView({ trip, destinations, stats }) {
       </section>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {CATEGORIES.map((cat) => {
+        {summaryCategories.map((cat) => {
           const share = stats.total
             ? Math.round((totals[cat.id] / stats.total) * 100)
             : 0;

@@ -236,6 +236,21 @@ export function makeReservation(partial = {}) {
   };
 }
 
+/**
+ * A trip-wide cost with no home in any single destination — insurance, visas,
+ * an international driving licence. It rolls into the trip total and can carry
+ * its own paperwork, just like any other expense.
+ */
+export function makeGeneralExpense(partial = {}) {
+  return {
+    id: uid(),
+    name: "",
+    cost: 0,
+    documents: [],
+    ...partial,
+  };
+}
+
 export function getDay(trip, key) {
   const day = trip.days?.[key];
   if (!day) return EMPTY_DAY;
@@ -316,6 +331,8 @@ function tripDefaults() {
     currency: "EUR",
     days: {},
     destinations: [],
+    // Trip-wide costs (insurance, visas, licences) with no single destination.
+    generalExpenses: [],
     // Absent for almost every trip — only set once the user opts in.
     origin: null,
     lastStop: null,
@@ -365,6 +382,9 @@ export function normalize(trip) {
         }
       : null,
     lastStop: trip.lastStop ? { ...makeLastStop(), ...trip.lastStop } : null,
+    generalExpenses: (trip.generalExpenses ?? []).map((e) =>
+      makeGeneralExpense(e),
+    ),
   };
 }
 
@@ -1776,6 +1796,53 @@ export function removeDayAccommodationDoc(key, docId) {
   });
 }
 
+/* --- general trip expenses ------------------------------------------------- */
+
+export function addGeneralExpense(partial = {}) {
+  const expense = makeGeneralExpense(partial);
+  commit({
+    ...state,
+    generalExpenses: [...(state.generalExpenses ?? []), expense],
+  });
+  return expense.id;
+}
+
+export function updateGeneralExpense(id, patch) {
+  commit({
+    ...state,
+    generalExpenses: (state.generalExpenses ?? []).map((e) =>
+      e.id === id ? { ...e, ...patch } : e,
+    ),
+  });
+}
+
+export function removeGeneralExpense(id) {
+  commit({
+    ...state,
+    generalExpenses: (state.generalExpenses ?? []).filter((e) => e.id !== id),
+  });
+}
+
+export function addGeneralExpenseDoc(id, meta) {
+  commit({
+    ...state,
+    generalExpenses: (state.generalExpenses ?? []).map((e) =>
+      e.id === id ? { ...e, documents: [...e.documents, meta] } : e,
+    ),
+  });
+}
+
+export function removeGeneralExpenseDoc(id, docId) {
+  commit({
+    ...state,
+    generalExpenses: (state.generalExpenses ?? []).map((e) =>
+      e.id === id
+        ? { ...e, documents: e.documents.filter((d) => d.id !== docId) }
+        : e,
+    ),
+  });
+}
+
 /**
  * Every document attached to a destination, from every place one can live —
  * its own travel/sleeping docs, plus any of its nights' own accommodation or
@@ -1914,6 +1981,11 @@ export function tripStats(trip) {
     0,
   );
 
+  const general = (trip.generalExpenses ?? []).reduce(
+    (sum, e) => sum + num(e.cost),
+    0,
+  );
+
   const done = entries.reduce(
     (sum, day) =>
       sum +
@@ -1935,9 +2007,10 @@ export function tripStats(trip) {
     transport,
     attractions,
     reservations,
+    general,
     itemsDone: done,
     itemsPlanned: planned,
-    total: sleeping + transport + attractions + reservations,
+    total: sleeping + transport + attractions + reservations + general,
   };
 }
 
