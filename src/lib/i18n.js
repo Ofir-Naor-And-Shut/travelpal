@@ -15,6 +15,63 @@ const STRINGS = {
   en: {
     // shell
     "app.name": "TravelPal",
+
+    // guided tour
+    "tour.label": "App tour",
+    "tour.step": "Step {current} of {total}",
+    "tour.next": "Next",
+    "tour.back": "Back",
+    "tour.skip": "Skip",
+    "tour.done": "Done",
+    "tour.launch": "Take a tour",
+    "tour.help": "App tour",
+    "tour.editor.intro.title": "Welcome to TravelPal",
+    "tour.editor.intro.body":
+      "Let’s take a quick tour of your trip planner. You can leave any time, or replay it later from the help button.",
+    "tour.editor.tripMenu.title": "Trips & menu",
+    "tour.editor.tripMenu.body":
+      "Switch between trips, jump back to all trips, share, export a PDF, or download for offline — all from here.",
+    "tour.editor.controls.title": "Language & theme",
+    "tour.editor.controls.body":
+      "Flip the whole app between English and Hebrew, and switch between light, dark, or system theme.",
+    "tour.editor.budget.title": "Your trip at a glance",
+    "tour.editor.budget.body":
+      "This tracks your total cost and how many nights you’ve planned against your trip’s length.",
+    "tour.editor.plan.title": "Plan your route",
+    "tour.editor.plan.body":
+      "Add destinations, set the nights at each, drag to reorder, and connect them with transport legs.",
+    "tour.editor.day.title": "Daily planner",
+    "tour.editor.day.body":
+      "Fill each night with attractions and reservations, and set where you’re sleeping — day by day.",
+    "tour.editor.details.title": "Details & documents",
+    "tour.editor.details.body":
+      "Keep notes, and store passports, bookings, and tickets safely on this device.",
+    "tour.editor.budgetTab.title": "Budget breakdown",
+    "tour.editor.budgetTab.body":
+      "See your spending split across sleeping, transport, attractions, and reservations.",
+    "tour.editor.map.title": "See it on the map",
+    "tour.editor.map.body":
+      "Your whole route on an interactive map, a coloured line per leg. On a phone, tap the Map button to open it.",
+    "tour.editor.outro.title": "You’re all set!",
+    "tour.editor.outro.body":
+      "That’s the tour. Start adding destinations — and tap the help button any time to see this again.",
+    "tour.picker.intro.title": "Your trips live here",
+    "tour.picker.intro.body":
+      "This is your home base — every trip you create shows up as a card you can open.",
+    "tour.picker.trips.title": "Open a trip",
+    "tour.picker.trips.body":
+      "Tap any card to dive in. Each shows its dates, nights, and whether it’s upcoming, active, or past.",
+    "tour.picker.new.title": "Start a new trip",
+    "tour.picker.new.body": "Begin planning a fresh adventure with one tap.",
+    "tour.picker.account.title": "Sign in to sync",
+    "tour.picker.account.body":
+      "Optional: sign in to back up your trips and open them on any device. Without an account, everything stays on this device.",
+    "tour.picker.controls.title": "Language & theme",
+    "tour.picker.controls.body":
+      "Set your language and light or dark theme here — they carry into every trip.",
+    "tour.picker.outro.title": "Pick a trip to begin",
+    "tour.picker.outro.body":
+      "Open a trip and we’ll walk you through the planner itself.",
     "nav.main": "Main",
     "nav.sections": "Trip sections",
     "nav.view": "View",
@@ -498,6 +555,62 @@ const STRINGS = {
 
   he: {
     "app.name": "TravelPal",
+
+    // guided tour
+    "tour.label": "סיור באפליקציה",
+    "tour.step": "שלב {current} מתוך {total}",
+    "tour.next": "הבא",
+    "tour.back": "הקודם",
+    "tour.skip": "דילוג",
+    "tour.done": "סיום",
+    "tour.launch": "יציאה לסיור",
+    "tour.help": "סיור באפליקציה",
+    "tour.editor.intro.title": "ברוכים הבאים ל‑TravelPal",
+    "tour.editor.intro.body":
+      "בואו נעשה סיור קצר במתכנן הטיולים. אפשר לצאת בכל רגע, או להפעיל שוב מכפתור העזרה.",
+    "tour.editor.tripMenu.title": "טיולים ותפריט",
+    "tour.editor.tripMenu.body":
+      "מעבר בין הטיולים, חזרה לכל הטיולים, שיתוף, ייצוא PDF והורדה לצפייה לא מקוונת — הכול כאן.",
+    "tour.editor.controls.title": "שפה וערכת נושא",
+    "tour.editor.controls.body":
+      "החלפת כל האפליקציה בין עברית לאנגלית, ומעבר בין מצב בהיר, כהה או לפי המערכת.",
+    "tour.editor.budget.title": "הטיול במבט אחד",
+    "tour.editor.budget.body":
+      "כאן מוצגות העלות הכוללת וכמה לילות תוכננו מתוך אורך הטיול.",
+    "tour.editor.plan.title": "תכנון המסלול",
+    "tour.editor.plan.body":
+      "הוספת יעדים, קביעת מספר הלילות בכל אחד, גרירה לסידור מחדש וחיבור בקטעי תחבורה.",
+    "tour.editor.day.title": "תכנון יומי",
+    "tour.editor.day.body":
+      "מילוי כל לילה באטרקציות והזמנות, וקביעת מקום הלינה — יום אחר יום.",
+    "tour.editor.details.title": "פרטים ומסמכים",
+    "tour.editor.details.body":
+      "שמירת הערות ואחסון דרכונים, הזמנות וכרטיסים בבטחה במכשיר הזה.",
+    "tour.editor.budgetTab.title": "פירוט התקציב",
+    "tour.editor.budgetTab.body":
+      "פיצול ההוצאות בין לינה, תחבורה, אטרקציות והזמנות.",
+    "tour.editor.map.title": "הכול על המפה",
+    "tour.editor.map.body":
+      "כל המסלול על מפה אינטראקטיבית, קו צבעוני לכל קטע. בטלפון, יש להקיש על כפתור המפה כדי לפתוח אותה.",
+    "tour.editor.outro.title": "הכול מוכן!",
+    "tour.editor.outro.body":
+      "זהו הסיור. אפשר להתחיל להוסיף יעדים — ולהקיש על כפתור העזרה בכל עת כדי לראות אותו שוב.",
+    "tour.picker.intro.title": "הטיולים שלך כאן",
+    "tour.picker.intro.body":
+      "זה הבית שלך — כל טיול שתיצור מופיע ככרטיס שאפשר לפתוח.",
+    "tour.picker.trips.title": "פתיחת טיול",
+    "tour.picker.trips.body":
+      "הקשה על כרטיס פותחת אותו. כל אחד מציג תאריכים, לילות והאם הוא קרוב, פעיל או שהסתיים.",
+    "tour.picker.new.title": "התחלת טיול חדש",
+    "tour.picker.new.body": "התחלת תכנון של הרפתקה חדשה בהקשה אחת.",
+    "tour.picker.account.title": "התחברות לסנכרון",
+    "tour.picker.account.body":
+      "אופציונלי: התחברות מגבה את הטיולים ומאפשרת לפתוח אותם בכל מכשיר. בלי חשבון, הכול נשאר במכשיר הזה.",
+    "tour.picker.controls.title": "שפה וערכת נושא",
+    "tour.picker.controls.body":
+      "בחירת השפה וערכת הנושא כאן — הן עוברות לכל טיול.",
+    "tour.picker.outro.title": "בחרו טיול כדי להתחיל",
+    "tour.picker.outro.body": "פתחו טיול ונלווה אתכם בתוך המתכנן עצמו.",
     "nav.main": "ראשי",
     "nav.sections": "חלקי הטיול",
     "nav.view": "תצוגה",

@@ -20,6 +20,7 @@ import SetPasswordScreen from "./components/SetPasswordScreen.jsx";
 import TripPicker from "./components/TripPicker.jsx";
 import SharedTripView from "./components/SharedTripView.jsx";
 import PhotoLightbox from "./components/PhotoLightbox.jsx";
+import TourGuide from "./components/TourGuide.jsx";
 import {
   effectiveLastStop,
   getTripRegistry,
@@ -33,6 +34,7 @@ import {
   withDates,
 } from "./lib/store.js";
 import { useLocalOnly, usePasswordRecovery, useSession } from "./lib/auth.js";
+import { EDITOR_TOUR, hasSeenTour, startTour } from "./lib/tour.js";
 import {
   clearRouteTrip,
   setRouteTrip,
@@ -182,6 +184,11 @@ function TripEditor({ onBackToTrips }) {
   useEffect(() => {
     setRouteTrip(trip.id);
   }, [trip.id]);
+
+  // First time anyone opens the editor, roll straight into the walkthrough.
+  useEffect(() => {
+    if (!hasSeenTour("editor")) startTour("editor");
+  }, []);
 
   const [activeId, setActiveId] = useState(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -402,6 +409,7 @@ function TripEditor({ onBackToTrips }) {
             where `fixed inset-0` supplies the size instead. */}
         {showMap && (
           <aside
+            data-tour="map"
             style={{ "--map-w": `${mapPct}%` }}
             className={`shrink-0 border-line lg:block lg:w-[var(--map-w)] lg:border-s ${
               mapOpen ? "fixed inset-0 z-[900] block bg-surface" : "hidden"
@@ -423,6 +431,7 @@ function TripEditor({ onBackToTrips }) {
         {showMap && !mapOpen && (
           <button
             type="button"
+            data-tour="map-button"
             className="btn-primary absolute bottom-4 end-4 z-[800] shadow-lg lg:hidden"
             onClick={() => setMapOpen(true)}
           >
@@ -430,6 +439,8 @@ function TripEditor({ onBackToTrips }) {
           </button>
         )}
       </div>
+
+      <TourGuide name="editor" steps={EDITOR_TOUR} onNavigate={setView} />
     </div>
   );
 }

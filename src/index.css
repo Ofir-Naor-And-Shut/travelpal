@@ -373,3 +373,221 @@
   background: var(--c-accent-soft);
   color: var(--c-fg);
 }
+
+/* --- Guided tour (spotlight coach marks) ---------------------------------- */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+/* Transparent layer that swallows clicks on the app while the tour runs. */
+.tour-veil {
+  position: absolute;
+  inset: 0;
+}
+
+/* Full-screen dim for centered intro/outro cards (no element to cut out). */
+.tour-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--c-scrim);
+  animation: tour-fade 0.25s ease both;
+}
+
+/* The cutout: a transparent window whose enormous box-shadow dims everything
+   around it, with a bright accent ring. Transitioning position + size makes it
+   glide smoothly from one target to the next. */
+.tour-spotlight {
+  position: absolute;
+  border-radius: 0.9rem;
+  box-shadow:
+    0 0 0 9999px var(--c-scrim),
+    0 0 0 2px var(--c-accent),
+    0 0 0 6px color-mix(in srgb, var(--c-accent) 35%, transparent);
+  pointer-events: none;
+  transition:
+    top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Soft pulsing halo around the highlighted element. */
+.tour-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1.1rem;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 60%, transparent);
+  animation: tour-pulse 1.8s ease-in-out infinite;
+}
+
+.tour-tip {
+  position: absolute;
+  width: min(20rem, calc(100vw - 20px));
+  border-radius: 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--c-accent) 22%, var(--c-line));
+  background: var(--c-surface);
+  color: var(--c-fg);
+  padding: 1rem 1.1rem 0.9rem;
+  box-shadow:
+    0 20px 48px -18px color-mix(in srgb, var(--c-accent) 45%, transparent),
+    0 10px 24px -12px var(--c-shadow);
+  transition:
+    top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.35s ease,
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Folded up at the plane's landing point; unfolds like paper into the card. */
+.tour-tip-hidden {
+  opacity: 0;
+  transform: scale(0.12) rotate(-8deg);
+  pointer-events: none;
+}
+
+.tour-plane {
+  position: absolute;
+  z-index: 3;
+  color: var(--c-accent);
+  pointer-events: none;
+  will-change: transform, opacity;
+  filter: drop-shadow(
+    0 4px 10px color-mix(in srgb, var(--c-accent) 55%, transparent)
+  );
+}
+
+.tour-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tour-trail path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--c-accent) 55%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.tour-tip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tour-progress {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+}
+
+.tour-close {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  padding: 0.25rem;
+  color: var(--c-muted);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.tour-close:hover {
+  background: var(--c-raised);
+  color: var(--c-fg);
+}
+
+.tour-title {
+  margin-top: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.tour-body {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--c-muted);
+}
+
+.tour-dots {
+  display: flex;
+  gap: 0.3rem;
+  margin: 0.85rem 0;
+}
+
+.tour-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--c-line-strong);
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
+}
+
+.tour-dot-on {
+  width: 1.1rem;
+  background: var(--c-accent);
+}
+
+.tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Back/Next arrows point along reading direction, so mirror them in RTL. */
+[dir="rtl"] .tour-back-icon,
+[dir="rtl"] .tour-fwd-icon {
+  transform: scaleX(-1);
+}
+
+@keyframes tour-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tour-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.04);
+  }
+}
+
+/* Respect users who ask for less motion: no glide, no pulse, no pop. */
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight,
+  .tour-tip {
+    transition: none;
+  }
+  .tour-spotlight::after,
+  .tour-tip,
+  .tour-scrim {
+    animation: none;
+  }
+  .tour-plane,
+  .tour-trail {
+    display: none;
+  }
+}

@@ -48,7 +48,7 @@ export default function AppControls() {
   const ThemeIcon = THEME_ICON[theme];
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div data-tour="controls" className="flex items-center gap-1.5">
       <div ref={boxRef} className="relative">
         <button
           type="button"

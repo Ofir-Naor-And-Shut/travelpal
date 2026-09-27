@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import {
   Check,
+  HelpCircle,
   ImagePlus,
   Loader2,
   LogOut,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import AppControls from "./AppControls.jsx";
 import TripAvatar from "./TripAvatar.jsx";
+import TourGuide from "./TourGuide.jsx";
 import {
   acceptTripInvitation,
   createTrip,
@@ -30,6 +32,7 @@ import {
   useSession,
 } from "../lib/auth.js";
 import { hasSupabase } from "../lib/supabase.js";
+import { PICKER_TOUR, hasSeenTour, startTour } from "../lib/tour.js";
 import { useI18n } from "../lib/i18n.js";
 
 // No display name is stored anywhere — this is just a friendlier greeting
@@ -56,6 +59,11 @@ export default function TripPicker({ onSelect }) {
   const cloudMode = useCloudMode();
   const name = firstNameFrom(sessionEmail(session));
   const [filter, setFilter] = useState("upcoming");
+
+  // Greet first-time visitors with the landing-screen walkthrough.
+  useEffect(() => {
+    if (!hasSeenTour("picker")) startTour("picker");
+  }, []);
 
   const range = (trip) => {
     const start = parseISO(trip.startDate);
@@ -112,9 +120,21 @@ export default function TripPicker({ onSelect }) {
               alt={t("app.name")}
               className="h-9 w-9 rounded-xl shadow-sm"
             />
-            <AccountBar session={session} localOnly={localOnly} t={t} />
+            <span data-tour="account" className="inline-flex">
+              <AccountBar session={session} localOnly={localOnly} t={t} />
+            </span>
           </div>
-          <AppControls />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => startTour("picker")}
+              className="btn-ghost !py-1.5 text-sm"
+            >
+              <HelpCircle size={15} />
+              <span className="hidden sm:inline">{t("tour.launch")}</span>
+            </button>
+            <AppControls />
+          </div>
         </div>
 
         {invitations.length > 0 && (
@@ -187,6 +207,7 @@ export default function TripPicker({ onSelect }) {
           </div>
           <button
             type="button"
+            data-tour="new-trip"
             onClick={startNew}
             className="btn-primary shrink-0 self-start sm:self-auto"
           >
@@ -233,7 +254,10 @@ export default function TripPicker({ onSelect }) {
           </div>
         </div>
 
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+          data-tour="trip-grid"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {visibleTrips.map((trip) => {
             const { label, nights } = range(trip);
             const tripStatus = status(trip);
@@ -315,6 +339,8 @@ export default function TripPicker({ onSelect }) {
           })}
         </ul>
       </div>
+
+      <TourGuide name="picker" steps={PICKER_TOUR} />
     </div>
   );
 }
