@@ -32,6 +32,7 @@ import {
   useTrip,
   useTripsReady,
   withDates,
+  destName,
 } from "./lib/store.js";
 import { useLocalOnly, usePasswordRecovery, useSession } from "./lib/auth.js";
 import { EDITOR_TOUR, hasSeenTour, startTour } from "./lib/tour.js";
@@ -334,7 +335,7 @@ function TripEditor({ onBackToTrips }) {
 
     // Nothing to frame at all — fall back to the whole-trip view.
     if (!center && stops.length === 0) return null;
-    return { label: day.dest.name, stops, center };
+    return { label: destName(day.dest), stops, center };
   }, [view, openDayKey, days]);
 
   return (

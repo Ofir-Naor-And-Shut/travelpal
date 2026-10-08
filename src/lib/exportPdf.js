@@ -11,6 +11,8 @@ import {
   tripDays,
   tripStats,
   withDates,
+  destCountry,
+  destName,
 } from "./store.js";
 import { getSession, sessionEmail } from "./auth.js";
 import { currentDateLocale, currentLang, dirOf, translate } from "./i18n.js";
@@ -343,8 +345,8 @@ export async function exportTripPdf(trip) {
       ...destinations.map((d) => {
         const leg = legOf(d);
         return [
-          toVisualOrder(d.name) || "-",
-          toVisualOrder(d.country) || "-",
+          toVisualOrder(destName(d)) || "-",
+          toVisualOrder(destCountry(d)) || "-",
           String(d.nights),
           fmtDate(d.startDate, "d MMM"),
           fmtDate(d.endDate, "d MMM"),
@@ -400,7 +402,7 @@ export async function exportTripPdf(trip) {
       const sleepingName = d.entry.accommodation?.name || d.dest.sleeping?.name;
       return [
         fmtDate(d.date, "EEE d MMM"),
-        toVisualOrder(d.dest.name) || "-",
+        toVisualOrder(destName(d.dest)) || "-",
         toVisualOrder(sleepingName) || "-",
         items.length > 0 ? items.join("\n") : toVisualOrder(t("pdf.noPlans")),
       ];

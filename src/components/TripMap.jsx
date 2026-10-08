@@ -18,6 +18,7 @@ import {
   isPlaced,
   legOf,
   modeColor,
+  destName,
 } from "../lib/store.js";
 import { hasGoogleKey } from "../lib/googlePlaces.js";
 import { useI18n } from "../lib/i18n.js";
@@ -646,13 +647,17 @@ export default function TripMap({
                   </Popup>
                 ) : isOrigin || isLastStop ? (
                   <Tooltip direction="top" offset={[0, -16]}>
-                    <span className="text-sm font-semibold">{stop.name}</span>
+                    <span className="text-sm font-semibold">
+                      {destName(stop)}
+                    </span>
                   </Tooltip>
                 ) : (
                   /* Hover rather than a popup, so the click stays free to
                    navigate while the same information is still reachable. */
                   <Tooltip direction="top" offset={[0, -18]}>
-                    <span className="text-sm font-semibold">{stop.name}</span>
+                    <span className="text-sm font-semibold">
+                      {destName(stop)}
+                    </span>
                     <span className="block text-xs text-muted">
                       {formatDay(stop.startDate)} – {formatDay(stop.endDate)}
                     </span>

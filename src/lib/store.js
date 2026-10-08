@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
-import { currentDateLocale } from "./i18n.js";
+import { LANGUAGES, currentDateLocale, currentLang } from "./i18n.js";
+import { fetchPlaceNames } from "./places.js";
 import { hasSupabase, supabase } from "./supabase.js";
 import {
   getLocalOnly,
@@ -81,6 +82,20 @@ export const DOC_SLOTS = ["travelDocs", "sleepingDocs"];
 const emptyStation = () => ({ name: "", lat: 0, lng: 0 });
 
 /**
+ * Keep only the fields a station actually declares.
+ *
+ * The place picker is shared with the accommodation card and hands back an
+ * `address` too; a station has no use for one, and a blind spread would
+ * persist it into every saved trip. Narrowing here keeps the stored shape the
+ * one `emptyStation` describes, whatever a caller passes.
+ */
+const pickStation = (station) =>
+  Object.keys(emptyStation()).reduce(
+    (out, k) => (station?.[k] === undefined ? out : { ...out, [k]: station[k] }),
+    emptyStation(),
+  );
+
+/**
  * One hop of a journey between two destinations. A leg is an array of these,
  * so "bus to the airport, flight, train into town" is three segments rather
  * than one lossy "plane".
@@ -119,7 +134,14 @@ function makeDestination(partial = {}) {
   return {
     id: uid(),
     name: "New destination",
+    // Per-language names, keyed by language code, filled from the geocoder or
+    // by the user renaming the stop. `name` stays the fallback for whichever
+    // language has no entry — see `destName`.
+    names: {},
     country: "",
+    // ISO 3166-1 alpha-2. The country *label* is never stored: `Intl`
+    // localises it offline and completely, unlike place names.
+    countryCode: "",
     lat: 0,
     lng: 0,
     nights: 2,
@@ -369,6 +391,8 @@ export function normalize(trip) {
     destinations: (trip.destinations ?? []).map((d) => ({
       ...makeDestination(),
       ...d,
+      // Saves from before per-language naming have no `names` at all.
+      names: d.names ?? {},
       sleeping: { name: "", cost: 0, address: "", ...d.sleeping },
       travelDocs: d.travelDocs ?? [],
       sleepingDocs: d.sleepingDocs ?? [],
@@ -1320,6 +1344,94 @@ export async function ensureDestinationPhoto(destId) {
   }
 }
 
+/**
+ * The destination's name in the language on screen.
+ *
+ * Falls back to the name as it was picked, so a stop whose Hebrew name nobody
+ * has recorded still reads correctly rather than going blank. Renaming a stop
+ * writes the language currently in use, which is how a gap gets filled: type
+ * "קו סמוי" in Hebrew and the English name is left alone.
+ */
+export function destName(dest) {
+  const localized = dest?.names?.[currentLang()];
+  // Presence, not truthiness: an empty string means the user cleared the field
+  // to retype it, so falling back to the old name here would type it straight
+  // back in as they delete the last character. Only a language with no entry
+  // at all falls back.
+  return localized === undefined ? dest?.name || "" : localized;
+}
+
+/**
+ * The destination's country in the language on screen.
+ *
+ * Derived from the ISO code rather than stored twice: `Intl.DisplayNames`
+ * covers every country in both languages, offline, with no lookup to miss.
+ */
+export function destCountry(dest) {
+  if (dest?.countryCode) {
+    try {
+      const label = new Intl.DisplayNames([currentLang()], {
+        type: "region",
+      }).of(dest.countryCode);
+      if (label && label !== dest.countryCode) return label;
+    } catch {
+      // Unknown code or no ICU data — fall through to what was stored.
+    }
+  }
+  return dest?.country || "";
+}
+
+const LANGUAGE_CODES = LANGUAGES.map((l) => l.code);
+
+// Stops whose names we've already looked up this session, so a place with no
+// translation isn't re-fetched on every render.
+const destNamesTried = new Set();
+
+/**
+ * Fill in a stop's per-language names and country code, once.
+ *
+ * Mirrors `ensureDestinationPhoto`: best-effort, idempotent, and called
+ * lazily from the row, so trips saved before this existed get backfilled by
+ * simply being looked at. Never overwrites a name the user typed themselves.
+ */
+export async function ensureDestinationNames(destId) {
+  const dest = state.destinations.find((d) => d.id === destId);
+  if (!dest || !dest.name) return;
+  // Nothing to gain once both languages are known and the country is coded.
+  // Presence again: a name cleared to "" was cleared on purpose, so there is
+  // nothing to look up for that language.
+  const missing = LANGUAGE_CODES.filter(
+    (c) => dest.names?.[c] === undefined,
+  );
+  if (missing.length === 0 && dest.countryCode) return;
+
+  const tried = `${state.id}:${destId}`;
+  if (destNamesTried.has(tried)) return;
+  destNamesTried.add(tried);
+
+  const tripId = state.id;
+  try {
+    const found = await fetchPlaceNames(dest);
+    if (!found) return;
+    if (state.id !== tripId) return;
+
+    const current = state.destinations.find((d) => d.id === destId);
+    if (!current) return;
+
+    // A name the user already set outranks anything the geocoder returns.
+    const names = { ...found.names, ...current.names };
+    const patch = {};
+    if (JSON.stringify(names) !== JSON.stringify(current.names ?? {}))
+      patch.names = names;
+    if (found.countryCode && !current.countryCode)
+      patch.countryCode = found.countryCode;
+    if (Object.keys(patch).length > 0) updateDestination(destId, patch);
+  } catch {
+    // Offline or rate-limited — let a later render try again.
+    destNamesTried.delete(tried);
+  }
+}
+
 /** Full trip object for an id (any trip, not just the active one). */
 export function getTripById(id) {
   return trips.get(id);
@@ -1535,7 +1647,7 @@ export function setSegmentStation(destId, segmentId, end, station) {
   mapLeg(destId, (segments) =>
     segments.map((s) =>
       s.id === segmentId
-        ? { ...s, [end]: { ...emptyStation(), ...station } }
+        ? { ...s, [end]: pickStation(station) }
         : s,
     ),
   );

@@ -3,13 +3,27 @@ import { Loader2, MapPin, Search } from "lucide-react";
 import { searchLocal, searchRemote } from "../lib/places.js";
 import {
   autocompleteGooglePlaces,
+  destinationKind,
   hasGoogleKey,
   resolveGooglePlace,
 } from "../lib/googlePlaces.js";
 import { useI18n } from "../lib/i18n.js";
 
+const isDistrict = (r) => (r.kind === "district" ? 1 : 0);
+
+/**
+ * Identity for merging the three sources. Google gives a prediction's country
+ * only as the tail of its secondary text ("Metro Manila, Philippines"), so the
+ * country is read from whichever field a given source populates. Keeping the
+ * country in the key means one Manila per country rather than one Manila.
+ */
+const dedupeKey = (r) => {
+  const country = (r.country || r.address?.split(",").pop() || "").trim();
+  return `${r.name.trim()}|${country}`.toLowerCase();
+};
+
 export default function DestinationSearch({ onSelect, placeholder, label }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,22 +48,39 @@ export default function DestinationSearch({ onSelect, placeholder, label }) {
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        // Google, when a key is present, is the far better geocoder — fall
-        // back to the free OSM lookup if it errors or there's no key.
+        // Ask both geocoders rather than treating OSM as only a fallback.
+        // They fail differently and genuinely complement each other: Google
+        // tolerates typos and ranks well, while Nominatim indexes localised
+        // names — Hebrew "מנילה" finds Manila there but only a district of it
+        // on Google, which biases hard towards the caller's own country.
         // Autocomplete predictions carry no coordinates yet; `choose` resolves
         // them (one billed Details call) only for the option actually picked.
-        const remote = hasGoogleKey()
-          ? await autocompleteGooglePlaces(q, {
-              signal: controller.signal,
-              // Localities/admin areas/countries only — no streets or businesses.
-              types: ["(regions)"],
-            }).catch(() => searchRemote(q, controller.signal))
-          : await searchRemote(q, controller.signal);
-        const seen = new Set(local.map((r) => `${r.name}|${r.country}`));
-        const merged = [
-          ...local,
-          ...remote.filter((r) => !seen.has(`${r.name}|${r.country}`)),
-        ];
+        const [fromGoogle, fromOsm] = await Promise.allSettled([
+          hasGoogleKey()
+            ? autocompleteGooglePlaces(q, { signal: controller.signal })
+            : Promise.resolve([]),
+          searchRemote(q, controller.signal),
+        ]);
+        if (controller.signal.aborted) return;
+
+        // Google is asked without a `types` filter and screened here instead,
+        // so islands and typo'd queries survive — see `destinationKind`.
+        const google = (fromGoogle.value ?? [])
+          .map((r) => ({ ...r, kind: destinationKind(r.types) }))
+          .filter((r) => r.kind);
+
+        const seen = new Set(local.map(dedupeKey));
+        const merged = [...local];
+        for (const r of [...google, ...(fromOsm.value ?? [])]) {
+          const key = dedupeKey(r);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push(r);
+        }
+
+        // Sort is stable, so each source keeps its own relevance order and
+        // this only sinks part-of-town matches below whole places.
+        merged.sort((a, b) => isDistrict(a) - isDistrict(b));
         setResults(merged.slice(0, 8));
       } catch {
         // Offline or rate-limited — the local list still stands.
@@ -83,6 +114,10 @@ export default function DestinationSearch({ onSelect, placeholder, label }) {
 
     onSelect({
       name: resolved.name,
+      // The geocoders answer in the language on screen, so the name we just
+      // got belongs to *that* language. Recording which one lets the other be
+      // filled in later (or typed) without the two overwriting each other.
+      names: { [lang]: resolved.name },
       country: resolved.country || place.address,
       lat: resolved.lat,
       lng: resolved.lng,

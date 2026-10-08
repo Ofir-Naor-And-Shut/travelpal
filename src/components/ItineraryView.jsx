@@ -17,6 +17,7 @@ import DocumentsPanel from "./DocumentsPanel.jsx";
 import AttractionSearch from "./AttractionSearch.jsx";
 import AttractionLeg from "./AttractionLeg.jsx";
 import TimeField from "./TimeField.jsx";
+import HotelSearchInput from "./HotelSearchInput.jsx";
 import {
   addAttraction,
   addDayAccommodation,
@@ -35,6 +36,7 @@ import {
   updateAttraction,
   updateDayAccommodation,
   updateReservation,
+  destName,
 } from "../lib/store.js";
 import { distanceShort } from "../lib/places.js";
 import { useDragReorder } from "../lib/useDragReorder.js";
@@ -231,7 +233,7 @@ function DayCard({
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
             {t("day.number", { n: dayNumber })}
           </p>
-          <p className="truncate text-[15px] font-semibold">{day.dest.name}</p>
+          <p className="truncate text-[15px] font-semibold">{destName(day.dest)}</p>
 
           <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs text-muted">
             {/* The night's own accommodation wins over the destination's. */}
@@ -295,6 +297,7 @@ function DayCard({
             accommodation={accommodation}
             inherited={day.dest.sleeping}
             currency={currency}
+            dest={day.dest}
           />
         </div>
       )}
@@ -315,6 +318,7 @@ function AccommodationSection({
   accommodation,
   inherited,
   currency,
+  dest,
 }) {
   const { t } = useI18n();
 
@@ -371,13 +375,11 @@ function AccommodationSection({
       <div className="grid gap-2 sm:grid-cols-[2fr_1fr]">
         <label className="text-[11px] font-medium text-muted">
           {t("dayStay.name")}
-          <input
-            className="field mt-1 !py-1 !text-xs"
-            placeholder={t("sleeping.placeholder")}
-            value={accommodation.name}
-            onChange={(e) =>
-              updateDayAccommodation(dayKeyValue, { name: e.target.value })
-            }
+          <HotelSearchInput
+            name={accommodation.name}
+            onPatch={(fields) => updateDayAccommodation(dayKeyValue, fields)}
+            lat={dest?.lat}
+            lng={dest?.lng}
           />
         </label>
         <label className="text-[11px] font-medium text-muted">

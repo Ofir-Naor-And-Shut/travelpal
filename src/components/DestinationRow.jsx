@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import {
   addDestDoc,
+  destCountry,
+  destName,
+  ensureDestinationNames,
   ensureDestinationPhoto,
   moveDestination,
   num,
@@ -20,6 +23,7 @@ import {
 } from "../lib/store.js";
 import { formatDay } from "../lib/store.js";
 import DocumentsPanel from "./DocumentsPanel.jsx";
+import HotelSearchInput from "./HotelSearchInput.jsx";
 import { openLightbox } from "../lib/lightbox.js";
 import { useI18n } from "../lib/i18n.js";
 
@@ -37,7 +41,7 @@ export default function DestinationRow({
   dropBefore = false,
   dropAfter = false,
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   // The URL of a stored photo that failed to load — hides that image and
   // falls back to the order badge alone.
@@ -49,6 +53,12 @@ export default function DestinationRow({
   useEffect(() => {
     if (!dest.photoUrl) ensureDestinationPhoto(dest.id);
   }, [dest.id, dest.photoUrl]);
+
+  // Look up the stop's name in the other language once. Runs for trips saved
+  // before per-language naming existed, so they fill in just by being shown.
+  useEffect(() => {
+    ensureDestinationNames(dest.id);
+  }, [dest.id]);
 
   const nightWord =
     dest.nights === 1 ? t("plan.night") : t("plan.nightsPlural");
@@ -111,9 +121,14 @@ export default function DestinationRow({
           )}
           <div className="min-w-0">
             <input
-              value={dest.name}
+              value={destName(dest)}
+              // Renaming sets the name for the language on screen only, which
+              // is how a stop with no Hebrew name gets one without disturbing
+              // its English.
               onChange={(e) =>
-                updateDestination(dest.id, { name: e.target.value })
+                updateDestination(dest.id, {
+                  names: { ...dest.names, [lang]: e.target.value },
+                })
               }
               onDoubleClick={(e) => {
                 // Overrides the browser's select-a-word, which is the trade the
@@ -127,7 +142,7 @@ export default function DestinationRow({
             />
             <p className="tabular truncate text-xs text-muted">
               {formatDay(dest.startDate)} – {formatDay(dest.endDate)}
-              {dest.country && ` · ${dest.country}`}
+              {destCountry(dest) && ` · ${destCountry(dest)}`}
             </p>
             <button
               type="button"
@@ -252,11 +267,11 @@ function DestinationAccommodation({ dest }) {
       <div className="mt-2 grid gap-2 sm:grid-cols-[2fr_1fr]">
         <label className="text-[11px] font-medium text-muted">
           {t("dayStay.name")}
-          <input
-            className="field mt-1 !py-1 !text-xs"
-            placeholder={t("sleeping.placeholder")}
-            value={sleeping.name}
-            onChange={(e) => patch({ name: e.target.value })}
+          <HotelSearchInput
+            name={sleeping.name}
+            onPatch={patch}
+            lat={dest.lat}
+            lng={dest.lng}
           />
         </label>
         <label className="text-[11px] font-medium text-muted">

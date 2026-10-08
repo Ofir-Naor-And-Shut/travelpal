@@ -21,6 +21,10 @@ export default function PlaceSearchInput({
   placeholder,
   label,
   className = "",
+  types,
+  strictBounds = false,
+  radiusMeters,
+  refine,
 }) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [results, setResults] = useState([]);
@@ -52,9 +56,12 @@ export default function PlaceSearchInput({
               center,
               signal: controller.signal,
               limit: 6,
+              types,
+              strictBounds,
+              ...(radiusMeters ? { radiusMeters } : {}),
             }).catch(() => searchNearby(q, center, controller.signal, 6))
           : await searchNearby(q, center, controller.signal, 6);
-        setResults(rows);
+        setResults(refine ? refine(rows) : rows);
         setHighlight(0);
         setOpen(true);
       } catch (err) {
@@ -68,7 +75,7 @@ export default function PlaceSearchInput({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [query, center]);
+  }, [query, center, types, strictBounds, radiusMeters, refine]);
 
   useEffect(() => {
     const onAway = (e) => {
@@ -89,7 +96,16 @@ export default function PlaceSearchInput({
         ? await resolveGooglePlace(place.placeId).catch(() => place)
         : place;
 
-    onChange({ name: resolved.name, lat: resolved.lat, lng: resolved.lng });
+    onChange({
+      name: resolved.name,
+      lat: resolved.lat,
+      lng: resolved.lng,
+      // Only a *picked* place carries an address, which is what lets the
+      // accommodation card fill its address field from one choice. Typed text
+      // omits the key entirely rather than sending "", so a caller merging
+      // this in never wipes an address the user wrote by hand.
+      address: resolved.fullAddress || resolved.address || "",
+    });
   }
 
   /** Free text keeps the name but drops any stale coordinates. */

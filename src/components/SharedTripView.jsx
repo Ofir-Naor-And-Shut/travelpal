@@ -9,6 +9,7 @@ import {
   tripDays,
   tripStats,
   withDates,
+  destName,
 } from "../lib/store.js";
 import { formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
@@ -117,7 +118,7 @@ export default function SharedTripView({ token }) {
             {destinations.map((d) => (
               <li key={d.id} className="card p-4">
                 <p className="truncate font-medium text-fg">
-                  {d.name}
+                  {destName(d)}
                   {d.country ? `, ${d.country}` : ""}
                 </p>
                 <p className="text-sm text-muted">
@@ -141,7 +142,7 @@ export default function SharedTripView({ token }) {
               return (
                 <li key={day.key} className="card p-4">
                   <p className="mb-2 text-sm font-semibold text-fg">
-                    {day.dest.name} · {formatDay(day.date)}
+                    {destName(day.dest)} · {formatDay(day.date)}
                   </p>
                   {items.length === 0 ? (
                     <p className="text-sm text-muted">{t("pdf.noPlans")}</p>

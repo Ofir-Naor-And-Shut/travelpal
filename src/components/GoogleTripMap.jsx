@@ -8,7 +8,7 @@ import {
 import { Flag, Home } from "lucide-react";
 import { arcPoints, splitArc } from "../lib/arc.js";
 import { TransportIcon } from "./TransportLeg.jsx";
-import { formatDay, isPlaced, legOf, modeColor } from "../lib/store.js";
+import { destName, formatDay, isPlaced, legOf, modeColor } from "../lib/store.js";
 import { googleMapsKey } from "../lib/googlePlaces.js";
 import { useI18n } from "../lib/i18n.js";
 import { useTheme } from "../lib/theme.js";
@@ -151,10 +151,10 @@ function StopPin({
       onMouseLeave={() => onHover?.(null)}
       title={
         isOrigin || isLastStop
-          ? stop.name
+          ? destName(stop)
           : inDayMode
             ? stop.name || t("attractions.fallback")
-            : `${stop.name} — ${formatDay(stop.startDate)} – ${formatDay(stop.endDate)}`
+            : `${destName(stop)} — ${formatDay(stop.startDate)} – ${formatDay(stop.endDate)}`
       }
     >
       {isOrigin || isLastStop ? (

@@ -32,6 +32,8 @@ import {
   updateDestination,
   updateGeneralExpense,
   useTrip,
+  destCountry,
+  destName,
 } from "../lib/store.js";
 import {
   ICON_FOR,
@@ -142,7 +144,7 @@ export default function DetailsView({
                 >
                   {i + 1}
                 </span>
-                <span className="max-w-[10rem] truncate">{d.name}</span>
+                <span className="max-w-[10rem] truncate">{destName(d)}</span>
                 {count > 0 && (
                   <span
                     className={`tabular rounded-full px-1.5 text-[10px] font-bold ${
@@ -232,7 +234,7 @@ function DestinationDetails({ trip, dest, index }) {
               className="pointer-events-none absolute end-4 top-4 text-cat-attractions opacity-10"
             />
             <h2 className="text-base font-semibold tracking-tight text-fg">
-              {dest.name}
+              {destName(dest)}
             </h2>
             <p className="tabular mt-1 flex items-center gap-1.5 text-sm text-muted">
               <CalendarDays size={14} />
@@ -256,7 +258,7 @@ function DestinationDetails({ trip, dest, index }) {
                   {t("details.country")}
                 </span>
                 <p className="mt-1 truncate text-sm font-medium text-fg">
-                  {dest.country || "—"}
+                  {destCountry(dest) || "—"}
                 </p>
               </div>
             </div>

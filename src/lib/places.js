@@ -118,6 +118,8 @@ export async function searchNearby(query, center, signal, limit = 8) {
       name: r.name || parts[0],
       // A short locality hint rather than the full comma-separated address.
       address: parts.slice(1, 3).join(", "),
+      // The whole thing, for callers that fill an address field from a pick.
+      fullAddress: r.display_name,
       category: r.type?.replace(/_/g, " ") ?? "",
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
@@ -147,6 +149,17 @@ const DESTINATION_KINDS = new Set([
 const isDestinationRow = (r) =>
   DESTINATION_KINDS.has(r.addresstype) || DESTINATION_KINDS.has(r.type);
 
+// Parts of a town rather than the town. These reach us through the catch-all
+// `administrative` kind above, so they're classified rather than excluded —
+// callers rank them last, matching `destinationKind` in googlePlaces.js.
+const DISTRICT_KINDS = new Set([
+  "suburb",
+  "neighbourhood",
+  "quarter",
+  "city_district",
+  "borough",
+]);
+
 export async function searchRemote(query, signal, limit = 6) {
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("q", query);
@@ -168,11 +181,75 @@ export async function searchRemote(query, signal, limit = 6) {
     .slice(0, limit)
     .map((r) => ({
       id: `osm:${r.osm_type}:${r.osm_id}`,
+      source: "osm",
+      kind: DISTRICT_KINDS.has(r.addresstype) ? "district" : "place",
       name: r.name || r.display_name.split(",")[0],
       country: r.address?.country ?? "",
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
     }));
+}
+
+/**
+ * A place's name in every language OSM knows, plus its ISO country code.
+ *
+ * Nominatim's `namedetails` is the only multilingual source we can actually
+ * reach: Google localises names by the `language` the Maps script was loaded
+ * with, that is fixed for the page, and its REST endpoints send no CORS
+ * header — so the browser cannot ask Google for "the same place, in Hebrew".
+ *
+ * Coverage is real but partial (Manila and Tokyo have Hebrew names, Ko Samui
+ * and Chiang Mai do not), which is why callers treat the result as a bonus
+ * over the name the user already has, never a replacement.
+ *
+ * Matched by name and then by proximity, because a name alone is ambiguous —
+ * there is a Manila in Utah as well as the Philippines.
+ */
+export async function fetchPlaceNames({ name, lat, lng }, signal) {
+  if (!name?.trim()) return null;
+
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", name);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "10");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("namedetails", "1");
+
+  const res = await fetch(url, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Geocoder returned ${res.status}`);
+  const rows = (await res.json()).filter(isDestinationRow);
+  if (rows.length === 0) return null;
+
+  const placed = Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng);
+  const best = placed
+    ? rows
+        .map((r) => ({
+          r,
+          km: distanceKmExact(
+            { lat, lng },
+            { lat: parseFloat(r.lat), lng: parseFloat(r.lon) },
+          ),
+        }))
+        // Far enough away and it is a different place that shares a name.
+        .filter((x) => x.km < 80)
+        .sort((a, b) => a.km - b.km)[0]?.r
+    : rows[0];
+  if (!best) return null;
+
+  const detail = best.namedetails ?? {};
+  const names = {};
+  for (const code of ["en", "he"]) {
+    const value = detail[`name:${code}`];
+    if (value) names[code] = value;
+  }
+
+  return {
+    names,
+    countryCode: (best.address?.country_code ?? "").toUpperCase(),
+  };
 }
 
 /**

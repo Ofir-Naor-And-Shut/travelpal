@@ -16,6 +16,7 @@ import {
   legTotals,
   num,
   sleepingCost,
+  destName,
 } from "../lib/store.js";
 import { formatMoney } from "../lib/money.js";
 import { useI18n } from "../lib/i18n.js";
@@ -243,7 +244,7 @@ export default function BudgetView({ trip, destinations, stats }) {
                           <span className="tabular grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[10px] font-bold text-fg">
                             {i + 1}
                           </span>
-                          <span className="truncate">{dest.name}</span>
+                          <span className="truncate">{destName(dest)}</span>
                         </span>
                       </td>
                       <td className="px-4 py-3 text-end text-muted">

@@ -123,12 +123,65 @@ function statusOk(status) {
 }
 
 /**
+ * Google place types a trip *stop* can legitimately be.
+ *
+ * This replaces the `types: ["(regions)"]` request filter the destination
+ * search used to send. `(regions)` is far narrower than it sounds: it matches
+ * only localities and administrative areas, so it answered ZERO_RESULTS for
+ * islands (Koh Phi Phi is a `natural_feature`, not a locality) and for any
+ * query carrying a typo — "manila phillipines" found nothing at all. Filtering
+ * here instead keeps Google's fuzzy matching, which does resolve both, while
+ * still dropping the hotels, airports and restaurants that share those names.
+ */
+const DESTINATION_TYPES = new Set([
+  "locality",
+  "postal_town",
+  "colloquial_area",
+  "administrative_area_level_1",
+  "administrative_area_level_2",
+  "administrative_area_level_3",
+  "country",
+  "continent",
+  // Islands, archipelagos and the like — the gap that hid Koh Phi Phi.
+  "natural_feature",
+  "sublocality",
+  "sublocality_level_1",
+  "neighborhood",
+]);
+
+/** The subset of the above that names a part of a town rather than the town. */
+const DISTRICT_TYPES = new Set([
+  "sublocality",
+  "sublocality_level_1",
+  "neighborhood",
+]);
+
+/**
+ * Coarse kind for a prediction: `"place"`, `"district"`, or null when it isn't
+ * somewhere you would stay. Callers rank `"district"` last, because a
+ * neighbourhood is a plausible stop but a worse answer than the city sharing
+ * its name (searching Hebrew "מנילה" offers Google a district of Manila and
+ * Nominatim the city itself — the city should win).
+ */
+export function destinationKind(types = []) {
+  if (!types.some((t) => DESTINATION_TYPES.has(t))) return null;
+  return types.some((t) => DISTRICT_TYPES.has(t)) ? "district" : "place";
+}
+
+/**
  * Autocomplete predictions for a query — name + rough address only, no
  * coordinates yet. Call `resolveGooglePlace` once the caller picks one.
  */
 export async function autocompleteGooglePlaces(
   query,
-  { center, signal, limit = 8, radiusMeters = 35000, types } = {},
+  {
+    center,
+    signal,
+    limit = 8,
+    radiusMeters = 35000,
+    types,
+    strictBounds = false,
+  } = {},
 ) {
   const { autocompleteService } = await legacyServices();
 
@@ -137,6 +190,12 @@ export async function autocompleteGooglePlaces(
   if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
     request.location = new window.google.maps.LatLng(center.lat, center.lng);
     request.radius = radiusMeters;
+    // `location` + `radius` alone is only a *hint*, and Google drops it freely:
+    // searching a hotel from Ko Samui returned matches in Arkansas and
+    // Bangladesh ahead of the one on the next beach. `strictBounds` is what
+    // actually confines results to the circle. Opt-in, because a station can
+    // legitimately sit outside its city's radius (an airport an hour away).
+    request.strictBounds = strictBounds;
   }
 
   const predictions = await new Promise((resolve, reject) => {
@@ -161,6 +220,9 @@ export async function autocompleteGooglePlaces(
     placeId: p.place_id,
     name: p.structured_formatting?.main_text ?? p.description,
     address: p.structured_formatting?.secondary_text ?? "",
+    // Raw Google types, so a caller can filter by `destinationKind` rather
+    // than asking the API to pre-filter (see DESTINATION_TYPES above).
+    types: p.types ?? [],
     // No lat/lng/contact info until resolved — the legacy API only returns
     // those from a separate, billed Place Details call.
     lat: 0,
